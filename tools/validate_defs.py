@@ -58,17 +58,42 @@ def collect_source_types():
     return types
 
 
+def find_refdump():
+    """
+    Locate the refdump helper that answers "does this vanilla type exist?".
+
+    Explicit --refdump wins, then a system install, then a build of tools/refdump in this
+    repo. Returning None is fine and expected on a machine that has never built it: the
+    type check downgrades to a note rather than failing, exactly as it did when there was
+    no such tool at all.
+    """
+    if "--refdump" in sys.argv:
+        return sys.argv[sys.argv.index("--refdump") + 1].split()
+    if os.path.exists("/usr/local/bin/refdump"):
+        return ["/usr/local/bin/refdump"]
+
+    built = glob.glob(os.path.join(ROOT, "tools/refdump/bin/*/net*/refdump.dll"))
+    if built:
+        return ["dotnet", sorted(built)[-1]]
+    return None
+
+
 def game_type_exists(name, refdump):
     """Ask the reference assemblies whether a vanilla type exists."""
     if not refdump:
         return None  # can't check
     short = name.rsplit(".", 1)[-1]
     try:
-        out = subprocess.run(refdump + ["=" + short], capture_output=True, text=True,
-                             timeout=120).stdout
+        proc = subprocess.run(refdump + ["=" + short], capture_output=True, text=True,
+                              timeout=120)
     except Exception:
         return None
-    return "no type matching" not in out
+    # refdump exits 0 when every query resolved and 1 when one did not. Anything else
+    # (a missing package, a load failure) means it could not answer, which is not the same
+    # as a "no" and must not fail the build.
+    if proc.returncode not in (0, 1):
+        return None
+    return proc.returncode == 0
 
 
 def collect_xml_type_refs():
@@ -131,7 +156,8 @@ def collect_own_defnames():
 DEF_REF_ELEMENTS = ["shopKind", "workType", "researchPrerequisites", "defaultStockCategories",
                     "defaultStockThings", "stuffCategories", "relevantSkills",
                     "requiredCapacities", "targetTags", "letterDef",
-                    "designationCategory", "constructEffect"]
+                    "designationCategory", "constructEffect",
+                    "services", "jobDef", "thoughtDef"]
 
 # Elements that name a def only under certain def types. <category>, for instance, is an
 # IncidentCategoryDef on IncidentDef but the ThingCategory *enum* on ThingDef.
@@ -193,11 +219,7 @@ def check_translation_keys():
 # ---------------------------------------------------------------------- main
 
 def main():
-    refdump = None
-    if "--refdump" in sys.argv:
-        refdump = sys.argv[sys.argv.index("--refdump") + 1].split()
-    elif os.path.exists("/usr/local/bin/refdump"):
-        refdump = ["/usr/local/bin/refdump"]
+    refdump = find_refdump()
 
     for path in xml_files("Defs/**/*.xml", "Languages/**/*.xml", "About/About.xml"):
         try:

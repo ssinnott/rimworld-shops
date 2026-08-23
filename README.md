@@ -95,7 +95,36 @@ python3 tools/validate_defs.py
 It verifies that every C# type named in XML exists, that every def reference resolves (or is
 on an explicit known-vanilla list), and that every `.Translate()` key has an English string.
 
-CI (`.github/workflows/ci.yml`) runs the same checks plus a full build on every push.
+Checking a *vanilla* type needs something that can read RimWorld's assemblies. `tools/refdump`
+does that, using the same reference assemblies the build already restores from NuGet, so it
+needs neither the game nor a running RimWorld:
+
+```sh
+dotnet build tools/refdump/refdump.csproj -c Release   # once
+python3 tools/validate_defs.py                         # now checks vanilla types for real
+```
+
+Without it the validator still runs, but downgrades "is this a real vanilla type?" to a note.
+`refdump` is also useful on its own when you are unsure an API exists:
+
+```sh
+dotnet tools/refdump/bin/Release/net8.0/refdump.dll Thing.Ingested '=CompPowerTrader' '~Hediff'
+```
+
+### Making art for a new building
+
+Textures are flat programmer art in a shared frontier palette. `tools/make_textures.py` draws
+them from one table, so adding a building is a row rather than an art task — and CI fails if a
+building in that table has no texture on disk:
+
+```sh
+pip install Pillow
+python3 tools/make_textures.py     # draw art for anything that has none
+```
+
+It never overwrites existing art unless you pass `--force`.
+
+CI (`.github/workflows/ci.yml`) runs all of the above plus a full build on every push.
 
 ## Caveats
 
