@@ -202,10 +202,15 @@ question: which colonist, specifically. `CompRolePost` answers it by being a thi
 vanilla's own `CompAssignableToPawn` — the same base class a throne room, a grave or a meditation
 spot already build "this pawn, and only this pawn, owns this" on, rather than a bespoke
 assignment system invented for this mod. It needs almost no code of its own: reflection against
-the real 1.6 assemblies confirms `CompAssignableToPawn` isn't abstract, `AssigningCandidates` is
-the only member worth overriding (narrowed here to free colonists), and `MaxAssignedPawnsCount`
-is a plain, non-virtual property — the one-sheriff-per-office limit is set with an XML field
-(`<maxAssignedPawnsCount>`), not an override, because the property genuinely can't be overridden.
+the real 1.6 assemblies confirms `CompAssignableToPawn` isn't abstract, and only two members are
+worth overriding — `AssigningCandidates` (narrowed here to free colonists) and `CanAssignTo`.
+The latter isn't optional: `MaxAssignedPawnsCount` is a plain, non-virtual property, set with an
+XML field (`<maxAssignedPawnsCount>`) rather than an override because it genuinely can't be
+overridden, but the base class only *reads* that count — it never checks it against
+`AssignedPawnsForReading` itself, unlike the bed/grave comps this stage's design cites, which
+enforce their own capacity by delegating to a pawn-side ownership tracker. `CanAssignTo` rejects
+once the post is full, which is the one thing standing between the XML field and a second
+"Assign" click quietly making two pawns the sheriff.
 
 Two of the three roles the roadmap once named didn't survive being asked "does this add
 something beyond a work priority?" **Barkeep** folds into the existing Shopkeeping loop as a
@@ -433,12 +438,20 @@ competitive rather than solitaire.
   factors (both 0.5×), `TownEconomy.RecordDisturbance`'s reputation debit (-0.05), and the
   calm-down job's wait duration — is a first-pass guess, exactly like every other constant this
   mod has shipped with. Expect retuning once a sheriff is actually watching a busy saloon.
-- `OWT_CalmDownPatron`'s higher `priorityInType` than `OWT_PatrolPost` is meant to make a sheriff
-  break off an ambient patrol to go calm a specific patron down first. Whether a higher
-  `priorityInType` really does outrank a lower one for an in-progress job, and how often a
-  running job gets reconsidered against a WorkGiver scan at all, are scheduling behaviours, not
-  type signatures — unconfirmed here the same way every other job-driver timing question in this
-  file is.
+- `OWT_CalmDownPatron`'s higher `priorityInType` than `OWT_PatrolPost` only decides which
+  WorkGiver wins the next time a jobless pawn's think tree is consulted — it does nothing to
+  preempt a toil already running with `ToilCompleteMode.Never`, which is what `JobDriver_Patrol`
+  spends most of its time in. So `JobDriver_Patrol` polls `TroubleUtility.AnyoneWorthCalming`
+  itself (throttled to every 30 ticks) and ends its own job with `JobCondition.InterruptForced`
+  the moment there's someone to calm, handing the pawn back to ordinary WorkGiver reselection
+  rather than trusting cross-WorkGiver preemption to happen on its own. That sidesteps needing
+  `WorkGiverDef.emergency` or `OWT_Patrol`'s `JobDef.suspendable`/`playerInterruptible` at all —
+  deliberately: `emergency` would let the reactive job interrupt anything the sheriff is doing,
+  not just the one ambient job designed to yield to it. The one thing this doesn't close: if the
+  only rowdy pawn worth calming is genuinely unreachable, the patrol will end and immediately
+  restart every 30 ticks until that stops being true (decay, distance, or the patron leaving) —
+  the same class of bounded, self-resolving churn this file already accepts elsewhere, not a
+  hang.
 - This mod has never targeted a `Pawn`, rather than a building, item, or cell, from a `WorkGiver`
   before. `JobDriver_CalmTrouble` reserving and reaching a moving, lord-controlled pawn is
   API-compatible (`ReservationUtility.CanReserveAndReach`/`.Reserve` both take a generic

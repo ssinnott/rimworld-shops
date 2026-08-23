@@ -19,10 +19,9 @@ namespace OldWestTown.Roles
     /// can satisfy). Built on vanilla's own CompAssignableToPawn, the same idiom a throne room
     /// or a grave already uses for "this pawn, and only this pawn, owns this" — not a bespoke
     /// assignment system. CompAssignableToPawn is not abstract and needs no overrides to
-    /// compile; only AssigningCandidates is virtual and worth narrowing here.
-    /// MaxAssignedPawnsCount is a plain, non-virtual property that reads
-    /// Props.maxAssignedPawnsCount, so the one-sheriff-per-office limit is set in XML
-    /// (CompProperties_RolePost.maxAssignedPawnsCount), not by an override.
+    /// compile; AssigningCandidates (narrowed to free colonists) and CanAssignTo (enforcing the
+    /// XML-configured MaxAssignedPawnsCount, which the base class reads but never itself checks
+    /// against AssignedPawnsForReading) are the two worth adding here.
     /// PostExposeData is likewise left alone: the base class already persists the assignment
     /// itself, which is the only thing here that needs to survive a save.
     /// </summary>
@@ -39,6 +38,25 @@ namespace OldWestTown.Roles
 
         public override IEnumerable<Pawn> AssigningCandidates =>
             parent.Map?.mapPawns.FreeColonistsSpawned ?? Enumerable.Empty<Pawn>();
+
+        /// <summary>The base class never actually checks AssignedPawnsForReading.Count against
+        /// MaxAssignedPawnsCount itself — that enforcement is opt-in per subclass (vanilla's own
+        /// bed/grave comps do it by delegating to a pawn-side ownership tracker instead). Without
+        /// this override, <maxAssignedPawnsCount>1</maxAssignedPawnsCount> in XML sets a number
+        /// nothing ever reads, and a second "Assign" click quietly makes a second pawn count as
+        /// the sheriff. Dialog_AssignBuildingOwner already greys out a row and shows the reason
+        /// when CanAssignTo rejects it, so this alone closes the gap.</summary>
+        public override AcceptanceReport CanAssignTo(Pawn pawn)
+        {
+            AcceptanceReport baseResult = base.CanAssignTo(pawn);
+            if (!baseResult.Accepted) return baseResult;
+
+            if (!AssignedPawnsForReading.Contains(pawn) && AssignedPawnsForReading.Count >= MaxAssignedPawnsCount)
+            {
+                return "OWT_PostAlreadyFilled".Translate();
+            }
+            return true;
+        }
 
         /// <summary>The one pawn holding this post, or null. Reads AssignedPawnsForReading
         /// rather than caching, so unassigning through the vanilla gizmo is picked up

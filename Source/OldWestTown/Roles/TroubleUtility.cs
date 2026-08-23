@@ -97,6 +97,14 @@ namespace OldWestTown.Roles
             return rowdy != null && rowdy.CurStageIndex >= OWTDefOf.OWT_Rowdy.stages.Count - 2;
         }
 
+        /// <summary>True if anyone on this map currently needs calming down. JobDriver_Patrol
+        /// polls this to break its own ambient toil off early — OWT_CalmDownPatron's higher
+        /// priorityInType only decides which WorkGiver wins once the pawn is jobless again;
+        /// nothing about a plain priority difference makes it preempt a toil already running
+        /// with ToilCompleteMode.Never, so the patrol has to notice the need and end itself.</summary>
+        public static bool AnyoneWorthCalming(Map map) =>
+            map?.mapPawns.AllPawnsSpawned.Any(IsWorthCalming) == true;
+
         /// <summary>Talks a patron down: unilaterally resets their rowdiness. No handshake — the
         /// target's own job never knows this happened.</summary>
         public static void CalmDown(Pawn target)

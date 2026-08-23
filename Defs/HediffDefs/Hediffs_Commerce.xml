@@ -13,6 +13,10 @@
     <description>Getting louder, looser with their money, and a lot less patient. A saloon left to its own devices makes its patrons like this; an on-duty sheriff, or a skilled barkeep, slows it down.</description>
     <hediffClass>HediffWithComps</hediffClass>
     <isBad>true</isBad>
+    <!-- Without this, HediffDef's own default (0.5) applies instead: every freshly-created
+         instance would start already inside the "getting loud" stage, before a single drink's
+         rowdinessPerServing is even added. -->
+    <initialSeverity>0</initialSeverity>
     <maxSeverity>1.0</maxSeverity>
     <comps>
       <li Class="HediffCompProperties_SeverityPerDay">

@@ -69,6 +69,7 @@
   <!-- Sheriff's office: assignment gizmo and inspect panel -->
   <OWT_CmdAssignSheriff>Assign sheriff</OWT_CmdAssignSheriff>
   <OWT_CmdAssignSheriffDesc>Assign a colonist to hold this post as sheriff. While they're on duty here, saloon patrons town-wide get rowdy more slowly, and the sheriff can step in to calm a specific patron down before they cause a disturbance.</OWT_CmdAssignSheriffDesc>
+  <OWT_PostAlreadyFilled>This post is already filled. Unassign its current holder first.</OWT_PostAlreadyFilled>
   <OWT_PostVacant>No sheriff assigned</OWT_PostVacant>
   <OWT_PostOnDuty>Sheriff: {0} (on duty)</OWT_PostOnDuty>
   <OWT_PostOffDuty>Sheriff: {0} (off duty)</OWT_PostOffDuty>
