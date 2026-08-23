@@ -68,10 +68,10 @@ hotel clerk, a bank teller, a gambling dealer) should use the same shape.
 | `ShopKindDef` | `Shops/ShopKindDef.cs` | Data-driven business type: default stock, price band, appeal, patience, and which services it offers. Adding a business kind is XML, not code. |
 | `CompBusiness` | `Shops/CompBusiness.cs` | Makes a building a business — goods, services, or both. Owns the till, filter, markup, ledger, staff flag, and the staff/customer cell pair. |
 | `ServiceDef` / `ServiceWorker` | `Shops/ServiceDef.cs`, `Shops/ServiceWorker.cs` | A thing a business sells that isn't a shelf item — a drink, a meal, a haircut. The embedded worker supplies the type-specific behaviour: what it can act on, how much a customer wants it, what effect it applies once paid for. |
-| `ShopStock` | `Shops/ShopStock.cs` | What's on the shelves, what a given customer would buy, and which service a shop can currently perform. |
+| `ShopStock` | `Shops/ShopStock.cs` | What's on the shelves, what a given customer would buy, which service a shop can currently perform, and whether a service has anything to work with, asked without a roll. |
 | `ShopPricing` | `Shops/ShopPricing.cs` | The only place a price is decided — for goods or a service — so the inspect pane, AI and transaction can't disagree. `MaxAffordable` settles a purse against `PriceFor` itself, so the order the AI sizes is always one the counter can charge for. |
 | `ShopTransaction` | `Shops/ShopTransaction.cs` | The single point where silver, goods and service effects move. Re-validates everything. |
-| `TownEconomy` | `Shops/TownEconomy.cs` | `MapComponent`. Shop register, daily ledger, reputation, and `Appeal`. |
+| `TownEconomy` | `Shops/TownEconomy.cs` | `MapComponent`. Shop register, daily ledger, reputation, and `Appeal` — surveys the town every 60 ticks. |
 | `JobGiver_BuyFromShop`, `JobDriver_PatronizeBusiness` (`JobDriver_BuyFromShop`, `JobDriver_UseService`) | `AI/` | Customer side: picks a business — goods or a service, whichever scores best — and runs the shared walk/wait/patience shape. |
 | `WorkGiver_/JobDriver_ManShop` | `AI/` | Colonist side. Kind-agnostic: it staffs any `CompBusiness` with something to offer. |
 | `LordJob_ShopVisit`, `LordToil_Shop` | `Lords/` | The visiting group, and per-customer records. |
@@ -95,7 +95,8 @@ does.
 A shop is defined by walls you already built, not by a zone you have to paint. It reads
 naturally ("this room is the store"), it costs nothing to set up, and it makes the room-quality
 stats you already care about matter commercially. Outdoors it falls back to a radius so market
-stalls still work.
+stalls still work. Two counters in one room are two tills on one shop-front: the room's goods
+count once, and only the first counter of a kind earns that kind's draw.
 
 ### Services: the same seam, without a `Thing` changing hands
 
@@ -133,7 +134,7 @@ namespace.
 
 A service business counts toward town appeal the same way a stocked one does
 (`CompBusiness.HasAnythingToOffer`, `AvailableServices`), with one wrinkle: a stock-consuming
-service's value is already counted once, as stock — `ServiceValue` only adds the services with
+service's value is already counted once, as stock — the town's survey only adds services with
 no `Thing` behind them at all, so a saloon's beer isn't counted twice for being sellable two
 ways.
 
@@ -146,7 +147,8 @@ ways.
          TownEconomy.Appeal  ◄──── reputation ◄──── one verdict per customer, settled nightly
                      │                                        ▲
                      ▼                                        │
-   IncidentWorker_ShopCustomers: how often, how many, how rich│
+   IncidentWorker_ShopCustomers: how often, how many ◄ appeal │
+                             how rich ◄ goods on offer        │
                      │                                        │
                      ▼                                        │
         customers arrive ──── buy goods or use a service ─────┘
@@ -155,9 +157,56 @@ ways.
                 silver in the till
 ```
 
-Appeal deliberately rewards **breadth over depth**: a second shop of a kind you already run is
-worth 35% of the first. One giant general store should not out-earn a street with a store, a
-saloon and a hotel. That's the pressure that turns a colony into a town.
+Appeal is the compounding-investment number, and it measures one thing: what a traveller would
+find here. Three terms multiplied — the businesses, the goods on offer, the town's standing —
+which is how the ledger shows it, because a number the player is meant to grow has to say which
+lever moves it.
+
+The unit of a business is a **sales floor**, not a counter. Walls already define a shop (see "Why
+the sales floor is a room"); a second counter in the same room is a second till, and what it buys
+is serving two customers at once, not a second reason to come to town. Goods are counted the same
+way — every stack on sale counts once, however many counters can see it. Before, a shared room was
+added once per counter: a second counter in the general store was worth +91% appeal for nothing.
+A counter of a *different* kind sharing a floor does still earn its kind's draw — a bar in the
+corner of the trading post genuinely offers a drink where there was none — but the goods under it
+are counted once, so what it adds is the kind, never the shelves.
+
+Breadth still beats depth, and now at every scale. A kind the town does not have is worth its full
+draw; each further front of a kind you already run is worth 35% of *the one before it*. The flat
+"35% of the first, forever" it replaces summed without limit — five general stores out-earned the
+shipped three-kind main street, inverting the rule it was written to enforce. Geometric decay
+converges: a kind is worth at most 1.54x its first front however many you build, so no amount of
+one trade catches a street with three, and depth still pays honestly through the goods term.
+
+Goods count at **market value, not the shelf price**. Appeal is what the town offers; markup
+decides what it asks. Pricing appeal through `ShopPricing` swung a lone store's appeal by 2.45x
+across the markup slider's range — gouging drew more and richer customers as well as taking more
+from each — and being generous could switch the town's trade off entirely by dropping it under the
+0.5 threshold. Price still decides which shop a customer walks into: that is
+`ShopPricing.ValueAppeal`, settled at the counter, which is the right altitude for it.
+
+### Two numbers, not one
+
+How *often* travellers come and how *rich* they are are different questions and now read
+different numbers. Appeal — breadth, goods, standing — drives the arrival clock and the size of
+the group. The goods term alone drives what arrivals carry: three trades do not fatten a purse
+and a good name does not either, but a rack of rifles does. Scaling purses off appeal meant every
+town above appeal 4 sat pinned at the top of the range, so the investment the number was supposed
+to teach became invisible exactly when the player started making it. Both are market value, so
+neither can be bought with the markup slider.
+
+### Appeal is surveyed, not computed on demand
+
+The expensive, map-walking half is something the town does every 60 ticks; what is left is a
+square root and a lerp, cheap enough for a counter's inspect pane to draw every frame. On demand
+it re-walked and re-priced the whole town per rendered frame while a counter was selected — and
+rolled the shared seeded game stream while doing it, because it asked "is there stock for this
+service" through the picker that rolls a tie-break, so whether a counter was selected changed what
+the storyteller did next. The existence question is now answered without a roll, and the picker
+can no longer be called without a customer to roll for. A survey rather than a cache because a
+cache would need an invalidation contract — stock, walls, room merges, markup, opening and closing
+— and hauling a crate into a store fires none of those; the survey is authoritative by definition,
+the same way reputation is authoritative because it settles at midnight.
 
 Arrival frequency is the town's own doing, not the storyteller's. `TownEconomy` runs an MTB
 clock that shortens as appeal grows (roughly one group every 3.5 days at the 0.5 threshold,
@@ -302,8 +351,19 @@ competitive rather than solitaire.
   counter — but nothing sends them home either. They keep the shopping duty and wander the town
   centre until the visit clock runs out. Letting a spent-out customer leave early is a lord-graph
   change, and belongs in its own commit.
-- `Appeal` walks every open shop's stock. It's cached per shop for a second, which is fine for
-  a main street and would want revisiting for a hundred counters.
+- The town's survey (`TownEconomy.TakeStock`) re-reads every sales floor and prices every
+  stack. It runs once every 60 ticks, and it is the only thing that takes that snapshot, so
+  appeal and the shelves can lag the world by up to a second of game time but never disagree
+  with each other. While the game is paused nothing surveys at all, so a filter edit refreshes
+  its own shop's shelves directly rather than waiting for a tick that will not come. It
+  everything that wants appeal reads the two numbers it recorded. This is a new steady cost:
+  before, a shop nobody was looking at or shopping at never scanned its room. Fine for a main
+  street; worth revisiting at a hundred counters.
+- Appeal fell about 18% and customer purses were moved onto the goods term, so a stocked
+  three-kind street draws groups about 18% smaller carrying about 31% less each. Both changes are
+  deliberate — the old goods term counted the player's own markup, and the old purse scale read
+  2.2 for every town above appeal 4, which is every functioning town — but neither has been
+  played. The knobs are `BasePurse` and `MinPurseFactor`, not the appeal terms.
 - Two vanilla calls the services path leans on — `FoodUtility.IngestFromInventoryNow` for
   Drink/Meal, and the `PawnStyleItemChooser.RandomHairFor` + `SetAllGraphicsDirty` pair for a
   Haircut's visible hair change — are exercised by this mod for the first time. Every signature

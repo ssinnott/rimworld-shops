@@ -27,11 +27,16 @@
   <OWT_CmdCollect>Collect takings ({0})</OWT_CmdCollect>
   <OWT_CmdCollectDesc>Empty the till onto the floor beside the counter, where a hauler can pick it up.</OWT_CmdCollectDesc>
   <OWT_CmdLedger>Town ledger</OWT_CmdLedger>
-  <OWT_CmdLedgerDesc>How the town is trading: appeal, reputation, today's business, and every shop's takings. Appeal drives how often customers arrive and how much silver they carry.</OWT_CmdLedgerDesc>
+  <OWT_CmdLedgerDesc>How the town is trading: what its appeal is made of and what raises it, the town's name, today's business, and every shop's takings.</OWT_CmdLedgerDesc>
 
   <!-- Town ledger dialog -->
   <OWT_LedgerTitle>Town ledger</OWT_LedgerTitle>
-  <OWT_LedgerAppealLine>Appeal: {0} — customers start arriving at 0.5; the higher it climbs, the more often they come and the richer they are. Grow it with more distinct, well-stocked, open businesses.</OWT_LedgerAppealLine>
+  <OWT_LedgerAppealLine>Appeal: {0} — how much trade the town attracts. Customers start arriving at 0.5. How often they come stops improving at 4.0; how many come keeps climbing past it. It is these three, multiplied:</OWT_LedgerAppealLine>
+  <OWT_LedgerAppealBusinessesLine>  Businesses: {0}. A kind of business the town does not have yet is worth its full draw; each further one of a kind you already run is worth 35% of the one before it. A second counter of a kind you already sell, on a floor you already trade from, is a second till rather than a second business — it lets you serve two customers at once, and adds nothing here. A counter of a different kind on that floor is a new trade, and does count.</OWT_LedgerAppealBusinessesLine>
+  <OWT_LedgerAppealGoodsLine>  On offer: {0} — x{1}. Goods at market value, plus what a business that sells time rather than things is reckoned to be worth. Four times the goods for twice the draw, and every stack counts once however many counters can see it. What you charge does not count: appeal is what the town offers, not what it asks.</OWT_LedgerAppealGoodsLine>
+  <OWT_LedgerAppealStandingLine>  Standing: {0} — x{1}.</OWT_LedgerAppealStandingLine>
+  <OWT_LedgerAppealMissingLine>  Nothing on offer from a {0} right now — either the town has none, or the one it has is closed or bare. A trade you don't run at all is worth far more than another of one you do.</OWT_LedgerAppealMissingLine>
+  <OWT_LedgerPurseLine>Customer purses: x{0} — set by the goods on offer alone, not by appeal. Breadth and a good name bring more travellers; a richer shelf brings travellers who can afford it.</OWT_LedgerPurseLine>
   <OWT_LedgerReputationLine>Reputation: {0} — the town's service record. Every caller leaves one verdict a day, however much they bought: being served by somebody is worth full marks, taking goods off an unwatched counter half, and giving up waiting halves whatever else their day was worth. It sways how many travellers come (a good name brings half again as much custom as a neutral one, a bad name half as much) and what they'll pay (up to 10% either way).</OWT_LedgerReputationLine>
   <OWT_LedgerTodayLine>Today: {0} came to a counter, {1} of them gave up waiting, {2} taken.</OWT_LedgerTodayLine>
   <OWT_LedgerServiceLine>Service today: {0}. The town's name moves toward that tonight — putting somebody behind a counter now still changes it.</OWT_LedgerServiceLine>

@@ -18,8 +18,9 @@ namespace OldWestTown.Shops
     {
         /// <summary>True for a service that consumes a specific Thing off the shelf (Drink,
         /// Meal); false for one that consumes nothing but time (Haircut). Drives whether the
-        /// customer job fetches an item first, whether TownEconomy counts it in ServiceValue
-        /// or leaves it to StockValue, and the staffing/appeal gate.</summary>
+        /// customer job fetches an item first, whether the town's survey counts it as an offering
+        /// in its own right or leaves it to the stack it would consume, and the staffing/appeal
+        /// gate.</summary>
         public virtual bool ConsumesStock => false;
 
         /// <summary>For a stock-consuming service: does this Thing qualify? Never called

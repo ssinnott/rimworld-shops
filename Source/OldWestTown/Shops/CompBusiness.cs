@@ -44,7 +44,6 @@ namespace OldWestTown.Shops
     public class CompBusiness : ThingComp, IThingHolder
     {
         private const int StaffPresenceGraceTicks = 60;
-        private const int StockCacheTicks = 60;
 
         private ThingOwner<Thing> till;
         private ThingFilter stockFilter;
@@ -63,7 +62,6 @@ namespace OldWestTown.Shops
         public int walkoutsToday;
 
         private List<Thing> cachedStock = new List<Thing>();
-        private int cachedStockTick = -99999;
 
         public CompProperties_Business Props => (CompProperties_Business)props;
 
@@ -208,23 +206,31 @@ namespace OldWestTown.Shops
             return true;
         }
 
+        /// <summary>The room this counter trades from, or null when it trades in the open air — a
+        /// stall, a boardwalk table, or a counter in a "room" that opens onto the map edge.
+        ///
+        /// One definition of "the sales floor", used twice: <see cref="ShopStock.ScanFor"/> decides
+        /// what is on the shelves from it, and the town's survey counts a floor's goods once however
+        /// many counters stand on it. Two counters that return the same room are two tills on one
+        /// shop-front.</summary>
+        public Room SalesFloorRoom
+        {
+            get
+            {
+                if (parent == null || !parent.Spawned) return null;
+                Room room = parent.GetRoom();
+                if (room == null || room.PsychologicallyOutdoors || room.TouchesMapEdge) return null;
+                return room;
+            }
+        }
+
         // ---------------------------------------------------------------- stock
 
         /// <summary>
         /// Everything currently for sale. Recomputed at most once a second because the
         /// customer AI asks about it constantly while choosing where to shop.
         /// </summary>
-        public List<Thing> StockOnDisplay
-        {
-            get
-            {
-                int now = Find.TickManager.TicksGame;
-                if (now - cachedStockTick <= StockCacheTicks) return cachedStock;
-                cachedStockTick = now;
-                cachedStock = ShopStock.ScanFor(this).ToList();
-                return cachedStock;
-            }
-        }
+        public List<Thing> StockOnDisplay => cachedStock;
 
         /// <summary>Total shelf price of everything on display — the shop's visible richness.</summary>
         public int StockValue
@@ -241,9 +247,17 @@ namespace OldWestTown.Shops
             }
         }
 
-        public void DirtyStock()
+        /// <summary>Re-reads the shelves. Called once per shop by the town's survey, and again the
+        /// moment a player action changes what is on sale — a filter edit, or a sale.
+        ///
+        /// Deliberately NOT done from the getter. A refreshing getter meant that drawing this
+        /// counter's inspect pane could decide WHEN the snapshot was taken, and the customer AI
+        /// draws one random number per stack it scores, so merely having a counter selected changed
+        /// how many numbers came off RimWorld's shared seeded stream — and therefore what the
+        /// storyteller rolled next. Looking at a shop must not change the game.</summary>
+        public void RefreshStock()
         {
-            cachedStockTick = -99999;
+            cachedStock = ShopStock.ScanFor(this).ToList();
         }
 
         // ---------------------------------------------------------------- services
@@ -255,7 +269,11 @@ namespace OldWestTown.Shops
 
         /// <summary>Services this business can currently perform. A Thought-type service is always
         /// available while the kind offers it; an Ingest-type one additionally needs a matching item
-        /// on display right now — the same StockFilter the player already curates for goods.</summary>
+        /// on display right now — the same StockFilter the player already curates for goods.
+        ///
+        /// Asks whether any stack qualifies, not which one — picking one is the customer's business
+        /// and the only place a roll belongs. That keeps <see cref="HasAnythingToOffer"/>, which the
+        /// inspect pane and the town's survey both reach, free of dice.</summary>
         public IEnumerable<ServiceDef> AvailableServices
         {
             get
@@ -265,26 +283,8 @@ namespace OldWestTown.Shops
                 foreach (ServiceDef sd in kind.services)
                 {
                     if (!sd.worker.ConsumesStock) { yield return sd; continue; }
-                    if (ShopStock.ChooseService(this, sd) != null) yield return sd;
+                    if (ShopStock.HasStockFor(this, sd)) yield return sd;
                 }
-            }
-        }
-
-        /// <summary>The service-side equivalent of StockValue, for town appeal. Only counts
-        /// non-stock-backed services (Haircut) — a stock-backed one (Drink, Meal) is already
-        /// reflected in StockValue via the item it would consume, and double-counting it here would
-        /// inflate appeal from the same physical stack twice.</summary>
-        public int ServiceValue
-        {
-            get
-            {
-                int total = 0;
-                foreach (ServiceDef sd in AvailableServices)
-                {
-                    if (sd.worker.ConsumesStock) continue;
-                    total += ShopPricing.PriceForService(this, sd);
-                }
-                return total;
             }
         }
 
@@ -307,7 +307,7 @@ namespace OldWestTown.Shops
             }
             // Selling silver for silver is nonsense; never allow it however the filter is set.
             stockFilter.SetAllow(ThingDefOf.Silver, false);
-            DirtyStock();
+            RefreshStock();
         }
 
         // ---------------------------------------------------------------- reputation
@@ -395,6 +395,7 @@ namespace OldWestTown.Shops
         {
             base.PostSpawnSetup(respawningAfterLoad);
             if (stockFilter == null) ResetStockFilterToDefault();
+            RefreshStock();
             parent.Map?.GetComponent<TownEconomy>()?.Register(this);
         }
 
@@ -536,6 +537,26 @@ namespace OldWestTown.Shops
             sb.AppendLine("OWT_LedgerTitle".Translate());
             sb.AppendLine();
             sb.AppendLine("OWT_LedgerAppealLine".Translate(econ.Appeal.ToString("0.0")));
+            sb.AppendLine("OWT_LedgerAppealBusinessesLine".Translate(econ.BusinessScore.ToString("0.0")));
+            sb.AppendLine("OWT_LedgerAppealGoodsLine".Translate(
+                econ.OfferValue.ToStringMoney(), econ.GoodsFactor.ToString("0.00")));
+            sb.AppendLine("OWT_LedgerAppealStandingLine".Translate(
+                econ.Reputation.ToStringPercent(), econ.StandingFactor.ToString("0.00")));
+
+            // The trades the town does not run at all — almost always the biggest single move
+            // available.
+            List<string> missing = new List<string>();
+            List<ShopKindDef> kinds = DefDatabase<ShopKindDef>.AllDefsListForReading;
+            for (int i = 0; i < kinds.Count; i++)
+            {
+                if (!econ.HasTrade(kinds[i])) missing.Add(kinds[i].label);
+            }
+            if (missing.Count > 0) sb.AppendLine("OWT_LedgerAppealMissingLine".Translate(missing.ToCommaList(true)));
+
+            // The wealth setting is part of what a customer actually arrives carrying, so the
+            // ledger prints the product rather than the half of it the town earned.
+            sb.AppendLine("OWT_LedgerPurseLine".Translate(
+                (econ.PurseFactor * OldWestTownMod.Settings.customerWealth).ToString("0.00")));
             sb.AppendLine("OWT_LedgerReputationLine".Translate(econ.Reputation.ToStringPercent()));
             sb.AppendLine();
             sb.AppendLine("OWT_LedgerTodayLine".Translate(

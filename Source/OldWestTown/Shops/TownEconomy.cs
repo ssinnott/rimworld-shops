@@ -6,27 +6,53 @@ using Verse;
 namespace OldWestTown.Shops
 {
     /// <summary>
-    /// The town's books. Keeps the live shop register, rolls the day over, and turns trading
-    /// history into the two numbers the rest of the mod cares about: <see cref="Appeal"/>
-    /// (how many customers the town pulls in) and <see cref="Reputation"/> (what they'll pay,
-    /// and how many bother coming).
+    /// The town's books. Keeps the live shop register, rolls the day over, surveys what the town
+    /// has to offer, and settles what people think of it — <see cref="Appeal"/> (how many
+    /// customers the town pulls in) and <see cref="Reputation"/> (what they'll pay, and how many
+    /// bother coming).
     /// </summary>
     public class TownEconomy : MapComponent
     {
         /// <summary>Appeal below which no customer group will set out for this town.</summary>
         public const float MinAppealForCustomers = 0.5f;
 
-        /// <summary>
-        /// A stock-free service (a haircut) has no "quantity on the shelf" the way physical
-        /// stock does — ServiceValue is just the price of one visit, an order of magnitude
-        /// below a shelf's total value. Scaled up before it joins the same wealth curve, so one
-        /// instance of a shipped stock-free service can clear <see cref="MinAppealForCustomers"/>
-        /// on its own, the way a modestly-stocked general store already can, instead of being
-        /// drowned out by a /1000 normalization tuned for physical stock.
-        /// </summary>
-        private const float ServiceValueWeight = 30f;
+        /// <summary>What one stock-free service (a haircut) is worth on the same scale as a shelf of
+        /// goods. A service has no "quantity on the shelf" — only a base price, an order of magnitude
+        /// below a shelf's total value — so it is scaled before joining the same wealth curve.
+        /// Multiplies ServiceDef.basePrice, NOT a marked-up price: a barber alone offers
+        /// 16 x 30 = 480, giving a goods factor of 0.69 against its kind's 1.1, so a barber shop
+        /// still clears <see cref="MinAppealForCustomers"/> on its own.</summary>
+        private const float ServiceOfferWeight = 30f;
 
-        /// <summary>How often the arrival clock is consulted. MTB math corrects for the interval.</summary>
+        /// <summary>Market value on display at which the goods term is worth exactly 1.0. Square root
+        /// above that: four times the goods for twice the draw.</summary>
+        private const float GoodsFactorBasis = 1000f;
+
+        /// <summary>Floor and ceiling on the goods term. The floor is what keeps a business that sells
+        /// time rather than things from surveying at nothing; the ceiling is what stops one enormous
+        /// warehouse standing in for a town.</summary>
+        private const float MinGoodsFactor = 0.25f;
+        private const float MaxGoodsFactor = 3f;
+
+        /// <summary>The thinnest purse a traveller sets out with. Floored well above the goods term's
+        /// own floor because a town's first customers must be able to afford its first shelf.</summary>
+        private const float MinPurseFactor = 0.9f;
+
+        /// <summary>What the n-th shop-front of a kind the town already has is worth against the one
+        /// before it. Geometric, not a flat repeat discount: the flat version summed without limit, so
+        /// five general stores out-earned the shipped three-kind main street — the exact rule it was
+        /// written to enforce, inverted. 0.35^n converges, so a kind is worth at most 1.54x its first
+        /// front however many of it you build.</summary>
+        private const float RepeatFrontFactor = 0.35f;
+
+        /// <summary>How often the town takes stock of itself. No faster than the per-shop shelf scan
+        /// it reads (CompBusiness.StockCacheTicks, also 60): surveying more often just re-derives the
+        /// same answer from the same cached shelves.</summary>
+        private const int SurveyInterval = 60;
+
+        /// <summary>How often the arrival clock is consulted. MTB math corrects for the interval.
+        /// A multiple of <see cref="SurveyInterval"/>, so an arrival roll always reads a survey taken
+        /// on the same tick.</summary>
         private const int ArrivalCheckInterval = 600;
 
         /// <summary>What a town with no history has, and what an idle town drifts back toward.</summary>
@@ -140,34 +166,184 @@ namespace OldWestTown.Shops
             }
         }
 
-        /// <summary>
-        /// How much trade the town attracts, roughly 0..3+. Built from the number of distinct
-        /// stocked businesses (breadth matters more than one huge store), the goods on display,
-        /// and how well past customers were treated.
-        /// </summary>
+        // ------------------------------------------------------------------ appeal
+
+        /// <summary>The town's last survey of itself — what its businesses are worth as businesses,
+        /// and the market value it has on offer. Recorded by <see cref="TakeStock"/>.
+        ///
+        /// Settled on the town's own clock rather than computed on demand, for the same reason
+        /// reputation settles at midnight: walking every sales floor and pricing every stack is
+        /// something the TOWN does, at a defined moment, not something a UI panel does incidentally
+        /// while it draws. On demand it meant a selected counter re-surveyed the town every rendered
+        /// frame — and, through the service scan's tie-break roll, advanced the shared seeded game
+        /// stream while it did, so whether the player had a counter selected changed what the
+        /// storyteller rolled next.
+        ///
+        /// Not scribed. It is derived from things that are, FinalizeInit takes the first survey
+        /// before anything can read it, and a field that cannot be stale is not a field that has to
+        /// be invalidated.</summary>
+        private float businessScore;
+        private float offerValue;
+
+        // One row per credited shop-front: its kind, the counter, and the floor it stands on. Members
+        // rather than locals so a survey does not allocate its tables afresh every pass (the walk
+        // itself still allocates its iterators); frontShops, frontFloors and countedStacks are cleared at the end
+        // of every survey because a Room is rebuilt when a wall changes and a Thing can burn —
+        // neither is meaningful outside the pass that read it. frontKinds holds Defs, which the
+        // ledger may read until the next survey.
+        private readonly List<ShopKindDef> frontKinds = new List<ShopKindDef>();
+        private readonly List<CompBusiness> frontShops = new List<CompBusiness>();
+        private readonly List<Room> frontFloors = new List<Room>();
+        private readonly HashSet<Thing> countedStacks = new HashSet<Thing>();
+
+        /// <summary>What the town's businesses are worth as businesses, before anything on their
+        /// shelves is counted: the sum of each shop-front's kind appeal, discounted for repeats.</summary>
+        public float BusinessScore => businessScore;
+
+        /// <summary>Market value of everything the town has on offer, each stack counted once.</summary>
+        public float OfferValue => offerValue;
+
+        /// <summary>Diminishing returns on wealth: four times the goods for twice the draw.</summary>
+        public float GoodsFactor =>
+            Mathf.Clamp(Mathf.Sqrt(offerValue / GoodsFactorBasis), MinGoodsFactor, MaxGoodsFactor);
+
+        /// <summary>A good name draws half again as much custom; a bad one half as much.</summary>
+        public float StandingFactor => Mathf.Lerp(0.5f, 1.5f, Reputation);
+
+        /// <summary>How rich the travellers a town like this attracts are. Reads the goods on offer
+        /// and nothing else — not the town's breadth, not its name, and at market value rather than
+        /// shelf price. Stock a rack of rifles and you do not get more customers, you get customers
+        /// who can afford a rifle; raising the markup slider gets you neither.</summary>
+        public float PurseFactor => Mathf.Max(MinPurseFactor, GoodsFactor);
+
+        /// <summary>Does the town run this trade at all? True while any credited shop-front of that
+        /// kind is open with something to offer. The ledger's one genuinely actionable line.</summary>
+        public bool HasTrade(ShopKindDef kind) => kind != null && frontKinds.Contains(kind);
+
+        /// <summary>How much trade the town attracts: 0 for a town with nothing to sell, about 5 for
+        /// a stocked three-kind main street. Decides how OFTEN customer groups set out and how large
+        /// they are; how much silver they carry is <see cref="PurseFactor"/>, which is a different
+        /// question.
+        ///
+        /// Three terms multiplied, which is exactly how the ledger shows it: what the town IS
+        /// (businesses), what it HAS OUT (goods), and what it is THOUGHT OF (standing). The first
+        /// two come from the last survey; standing is live, so a night that moves the town's name
+        /// moves appeal with it and the ledger's product always multiplies out.</summary>
         public float Appeal
         {
             get
             {
-                float kindScore = 0f;
-                float stockScore = 0f;
-                HashSet<ShopKindDef> kinds = new HashSet<ShopKindDef>();
+                if (businessScore <= 0f) return 0f;
+                return businessScore * GoodsFactor * StandingFactor;
+            }
+        }
 
-                foreach (CompBusiness shop in OpenShops())
+        /// <summary>Walks the town and records what a traveller would find. Three rules decide what
+        /// counts, and each is a decision about what appeal measures:
+        ///
+        /// - A sales floor is a shop; a counter is not. A second counter of the same kind in the same
+        ///   room is a second till — what it buys the player is serving two customers at once, which
+        ///   is its own reward — and it adds nothing to the businesses term.
+        /// - Every stack on sale counts once, however many counters can see it. A shared room used to
+        ///   be added once per counter, and two stalls with overlapping ground still would be.
+        /// - Goods count at market value, not at the shelf price. Appeal is what the town OFFERS; the
+        ///   markup slider decides what it asks. Pricing this through ShopPricing meant dragging that
+        ///   slider up drew more and richer customers for free, on top of charging them more.</summary>
+        private void TakeStock()
+        {
+            float business = 0f;
+            float offer = 0f;
+            frontKinds.Clear();
+            frontShops.Clear();
+            frontFloors.Clear();
+            countedStacks.Clear();
+
+            // One snapshot of the shelves per survey, taken here so that nothing else — least of all
+            // drawing an inspect pane — decides when it happens. Closed shops are refreshed too:
+            // they are out of the running for appeal, but their Stock tab still has to tell the
+            // truth while the player decides what to put on them.
+            for (int i = 0; i < shops.Count; i++)
+            {
+                CompBusiness shop = shops[i];
+                if (shop?.parent != null && shop.parent.Spawned) shop.RefreshStock();
+            }
+
+            foreach (CompBusiness shop in OpenShops())
+            {
+                if (!shop.HasAnythingToOffer) continue;
+
+                // A null floor is an open-air stall, which is a floor of its own: two stalls in the
+                // same outdoor "room" are two shop-fronts, and whatever ground they share is settled
+                // by countedStacks below rather than by pretending they are one shop.
+                Room floor = shop.SalesFloorRoom;
+                int repeats = 0;
+                bool secondTill = false;
+                // Parallel lists and a linear scan, like the patron table above — a main street is a
+                // handful of counters, and this stays a table small enough to read.
+                for (int i = 0; i < frontKinds.Count; i++)
                 {
-                    if (!shop.HasAnythingToOffer) continue;
-                    // Each additional business of a kind already present is worth less.
-                    float weight = kinds.Add(shop.Kind) ? 1f : 0.35f;
-                    kindScore += (shop.Kind?.appeal ?? 1f) * weight;
-                    stockScore += shop.StockValue + shop.ServiceValue * ServiceValueWeight;
+                    if (frontKinds[i] != shop.Kind) continue;
+                    if (SameSalesFloor(frontShops[i], frontFloors[i], shop, floor)) { secondTill = true; break; }
+                    repeats++;
                 }
 
-                if (kindScore <= 0f) return 0f;
+                // Before the second-till test, not after: a second till earns its kind nothing, but
+                // its stock filter may admit goods the first counter's does not, and those really are
+                // on sale in this town whichever till rings them up.
+                List<Thing> stock = shop.StockOnDisplay;
+                for (int i = 0; i < stock.Count; i++)
+                {
+                    Thing t = stock[i];
+                    if (countedStacks.Add(t)) offer += ShopPricing.UnitValue(t) * t.stackCount;
+                }
+                if (secondTill) continue;
 
-                float goods = Mathf.Sqrt(stockScore / 1000f);          // diminishing returns on wealth
-                float standing = Mathf.Lerp(0.5f, 1.5f, Reputation);   // a good name draws half again as much
-                return kindScore * Mathf.Clamp(goods, 0.25f, 3f) * standing;
+                frontKinds.Add(shop.Kind);
+                frontShops.Add(shop);
+                frontFloors.Add(floor);
+                business += (shop.Kind?.appeal ?? 1f) * Mathf.Pow(RepeatFrontFactor, repeats);
+
+                // Only services with no Thing behind them at all. A drink or a meal is already
+                // counted as the stack it would consume; counting it again here would sell the same
+                // beer twice. A stock-free service is available whenever its kind offers it, so this
+                // asks the kind directly rather than running the availability scan and throwing the
+                // answer away.
+                List<ServiceDef> services = shop.Kind?.services;
+                for (int i = 0; services != null && i < services.Count; i++)
+                {
+                    ServiceDef sd = services[i];
+                    if (sd?.worker == null || sd.worker.ConsumesStock) continue;
+                    // Discounted by the same repeat factor the front was, or depth in a service
+                    // trade would buy through the goods term exactly what the businesses term
+                    // refuses it: eight barber chairs and no stock would otherwise out-draw a
+                    // stocked street with three trades on it.
+                    offer += sd.basePrice * ServiceOfferWeight * Mathf.Pow(RepeatFrontFactor, repeats);
+                }
             }
+
+            businessScore = business;
+            offerValue = offer;
+
+            // Rooms and Things mean nothing outside the survey that read them: a wall knocked through
+            // rebuilds every Room, and a stack can burn between passes.
+            frontShops.Clear();
+            frontFloors.Clear();
+            countedStacks.Clear();
+        }
+
+        /// <summary>Whether two counters of one kind trade off the same ground, and so are one
+        /// shop-front with two tills rather than two businesses.
+        ///
+        /// Indoors that is simply the same room. Outdoors there is no room to compare — every stall
+        /// answers null — so it is whether their sales floors are the same patch of ground. Without
+        /// that second half the player is paid to knock the walls down: the same two counters beside
+        /// the same pile of goods would count as one business indoors and two in the open.</summary>
+        private static bool SameSalesFloor(CompBusiness a, Room aFloor, CompBusiness b, Room bFloor)
+        {
+            if (aFloor != null || bFloor != null) return aFloor == bFloor;
+            if (a?.parent == null || b?.parent == null || a.parent.Map != b.parent.Map) return false;
+            float reach = Mathf.Max(a.Props.openAirRadius, b.Props.openAirRadius);
+            return a.parent.Position.DistanceTo(b.parent.Position) <= reach;
         }
 
         public void RecordSale(Pawn customer, int price, bool selfService = false)
@@ -218,6 +394,11 @@ namespace OldWestTown.Shops
         public override void MapComponentTick()
         {
             base.MapComponentTick();
+
+            // Ahead of the IsPlayerHome gate: a counter on any map shows the town line, and
+            // surveying a map with no businesses is a walk over an empty list.
+            if (Find.TickManager.TicksGame % SurveyInterval == 0) TakeStock();
+
             if (!map.IsPlayerHome) return;
 
             // Roll the ledger at midnight.
@@ -331,6 +512,10 @@ namespace OldWestTown.Shops
                 CompBusiness comp = t.TryGetComp<CompBusiness>();
                 if (comp != null) Register(comp);
             }
+
+            // First survey before anything can read appeal: the game is paused on load, so a player
+            // who clicks a counter before unpausing must not be shown a town worth nothing.
+            TakeStock();
         }
     }
 }

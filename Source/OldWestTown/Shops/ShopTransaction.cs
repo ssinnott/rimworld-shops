@@ -72,7 +72,7 @@ namespace OldWestTown.Shops
             }
 
             shop.RecordSale(price);
-            shop.DirtyStock();
+            shop.RefreshStock();
             shop.parent.Map?.GetComponent<TownEconomy>()?.RecordSale(customer, price, selfService);
             TrainShopkeeper(shop);
 
@@ -137,7 +137,7 @@ namespace OldWestTown.Shops
             service.worker.ApplyEffect(customer, served);
 
             shop.RecordSale(price);
-            shop.DirtyStock();
+            shop.RefreshStock();
             shop.parent.Map?.GetComponent<TownEconomy>()?.RecordSale(customer, price, selfService);
             TrainShopkeeper(shop);
 

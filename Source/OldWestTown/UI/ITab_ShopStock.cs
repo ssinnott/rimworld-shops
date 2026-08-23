@@ -52,7 +52,7 @@ namespace OldWestTown.UI
 
             // Refresh the shelves the moment the player changes the filter — but only then.
             // Invalidating every frame would rescan the whole room on every repaint.
-            if (shop.StockFilter.AllowedDefCount != allowedBefore) shop.DirtyStock();
+            if (shop.StockFilter.AllowedDefCount != allowedBefore) shop.RefreshStock();
         }
     }
 }
