@@ -103,6 +103,9 @@ appeal up.
 
 ## Textures
 
+**[See every texture in the art gallery](art.md)** — all three buildings, at all four facings,
+with each one's palette.
+
 The art is deliberately flat programmer art in a shared frontier palette, drawn from one table
 by `tools/make_textures.py`. Adding a building is a row in that table rather than an art task,
 and [CI fails](contributing.md#continuous-integration) if a building in the table has no texture

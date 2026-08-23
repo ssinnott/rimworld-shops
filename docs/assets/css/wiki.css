@@ -175,6 +175,74 @@ td code { white-space: nowrap; }
 .cards li a { font-weight: 600; text-decoration: none; }
 .cards li p { margin: .3rem 0 0; font-size: .9rem; color: var(--ink-soft); max-width: none; }
 
+/* ------------------------------------------------------------- art gallery */
+
+/* Pixel art, shown at a single scale across every tile. A 2x1 building is 256x128
+   facing north and 128x256 facing east, so tiles are a fixed box with the image
+   centred in it — sizing each to its own intrinsic dimensions makes a row of
+   facings read as a ragged mess rather than as one building turned four ways. */
+
+.art-row {
+  display: flex; flex-wrap: wrap; gap: 1rem;
+  margin: 1.4rem 0 1.6rem;
+}
+
+.art-tile {
+  margin: 0; padding: .7rem;
+  width: 172px; min-height: 212px;
+  display: flex; flex-direction: column; align-items: center;
+  border: 1px solid var(--rule); border-radius: 4px;
+  background: var(--paper-2);
+  box-shadow: 0 1px 2px var(--shadow);
+}
+
+.art-tile img {
+  /* One scale for every facing: the longest side lands on 140px either way. */
+  max-width: 140px; max-height: 140px;
+  width: auto; height: auto;
+  margin: auto;                       /* centres in whatever space the caption leaves */
+
+  /* Nearest-neighbour: this is pixel art, and a browser's default smoothing turns a
+     2px outline into a gradient. */
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+
+  /* The transparent margin is a real part of every texture — the checkerboard is what
+     makes it visible instead of invisible. */
+  background-color: #cfcfcf;
+  background-image:
+    linear-gradient(45deg, #b4b4b4 25%, transparent 25%, transparent 75%, #b4b4b4 75%),
+    linear-gradient(45deg, #b4b4b4 25%, transparent 25%, transparent 75%, #b4b4b4 75%);
+  background-size: 14px 14px;
+  background-position: 0 0, 7px 7px;
+}
+
+.art-tile figcaption {
+  margin-top: .6rem; min-height: 2.5em; text-align: center;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: .78rem; color: var(--ink-soft); line-height: 1.4;
+}
+.art-note { color: var(--ink-faint); font-style: italic; }
+
+/* The mod-listing preview is a real illustration, not a tile of pixel art. */
+.art-tile.art-wide { width: auto; max-width: 100%; min-height: 0; }
+.art-tile.art-wide img {
+  width: 640px; max-width: 100%; max-height: none;
+  image-rendering: auto; background: none;
+}
+
+.swatches {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .4rem 1.1rem;
+  margin: 1rem 0 1.8rem;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: .85rem; color: var(--ink-soft);
+}
+.swatch {
+  display: inline-block; width: 1.15rem; height: 1.15rem;
+  border: 1px solid var(--rule); border-radius: 3px;
+  vertical-align: middle; margin-right: -.7rem;
+}
+
 /* ------------------------------------------------------------- footer */
 
 .page-footer {

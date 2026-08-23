@@ -9,9 +9,10 @@ stanza rather than a class.
 
 > **Whatever you add, update this wiki in the same change.** A new business kind belongs in
 > [Business kinds](businesses.md) and the [reference tables](reference.md); a new service in
-> [Services](services.md); a new building in [Buildings](buildings.md). Then add a line to the
-> [changelog](changelog.md). See [contributing](contributing.md#keeping-the-wiki-honest) — CI
-> checks that every def is mentioned somewhere in these pages.
+> [Services](services.md); a new building in [Buildings](buildings.md) and the
+> [art gallery](art.md). Then add a line to the [changelog](changelog.md). See
+> [contributing](contributing.md#keeping-the-wiki-honest) — CI checks that every def is
+> mentioned somewhere in these pages, and that the gallery shows every shipped texture.
 
 ## Add a business kind
 
@@ -68,13 +69,17 @@ a graphic, an icon, and a `CompProperties_Business`:
 </ThingDef>
 ```
 
-Then add a row to the table at the top of `tools/make_textures.py` and run it. CI fails if a
+Then add a row to the `BUILDINGS` table in `tools/make_textures.py` and run it. CI fails if a
 building in that table has no art on disk, so this is not optional:
 
 ```sh
 pip install Pillow
-python3 tools/make_textures.py
+python3 tools/make_textures.py                     # draw the art
+python3 tools/validate_docs.py --sync-art          # copy it into the wiki's gallery
 ```
+
+Then add the four facings to the [art gallery](art.md) — CI fails on a texture the gallery
+doesn't show. See [the recipe](art.md#the-recipe) for what each palette colour draws.
 
 ## Add a service
 
@@ -147,7 +152,7 @@ The [roadmap](roadmap.md) sketches several of these.
 dotnet build Source/OldWestTown/OldWestTown.csproj -c Release   # rebuild the shipped assembly
 python3 tools/validate_defs.py                                  # types, def refs, translation keys
 python3 tools/make_textures.py --check                          # every building has art
-python3 tools/validate_docs.py                                  # every def is documented here
+python3 tools/validate_docs.py                                  # every def and texture is documented here
 ```
 
 See [contributing](contributing.md) for what each of those actually checks.

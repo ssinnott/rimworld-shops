@@ -28,6 +28,8 @@ This mod is standalone. It does not require Hospitality, and is written to sit a
     <p>General store, saloon, barber shop — what each one stocks by default, charges, and contributes to the town.</p></li>
   <li><a href="services.html">Services</a>
     <p>Drink, meal and haircut: businesses that sell time rather than goods.</p></li>
+  <li><a href="art.html">Art gallery</a>
+    <p>Every texture the mod ships, at every facing, with the palette and the recipe that draws it.</p></li>
 </ul>
 
 ## How the mod works

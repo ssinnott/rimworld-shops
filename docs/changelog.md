@@ -26,9 +26,15 @@ change itself, and update the [wiki page](contributing.md#the-workflow) it affec
   [shopkeeping](shopkeeping.md), a full [reference table](reference.md) of defs, tunable
   constants, settings and translation keys, a [code map](architecture.md), an
   [extension guide](extending.md), and this changelog.
+- **An [art gallery](art.md)**: every shipped texture at every facing, each building's palette
+  with the reasoning behind it, the five-step recipe `tools/make_textures.py` draws from, the
+  mod-listing preview, and an explicit account of what the mod *doesn't* draw — it adds no items
+  of its own, and reuses vanilla's gizmo icons deliberately.
 - `tools/validate_docs.py`, wired into CI: fails the build if a def, source file or translation
-  key exists without being documented, if an internal wiki link is broken, or if the changelog
-  has no *Unreleased* section. See [keeping the wiki honest](contributing.md#keeping-the-wiki-honest).
+  key exists without being documented, if an internal wiki link is broken, if a page is missing
+  from the sidebar, if the changelog has no *Unreleased* section, or if the art gallery is
+  missing a texture or showing a stale copy of one. `--sync-art` applies the one fix that is
+  mechanical. See [keeping the wiki honest](contributing.md#keeping-the-wiki-honest).
 - `.github/workflows/pages.yml`, which builds the wiki on every pull request and deploys it on
   every push to `main`.
 - `CLAUDE.md`, recording the repository's layout, commands and conventions — including the rule
@@ -41,6 +47,10 @@ change itself, and update the [wiki page](contributing.md#the-workflow) it affec
   [roadmap](roadmap.md), [known risks](architecture.md#known-risks). The design reasoning itself
   is unchanged.
 - `README.md` now points at the wiki rather than restating it.
+
+- Copies of the shipped art under `docs/assets/textures/`, checked byte-for-byte against
+  `Textures/` and `About/`. One copy makes the gallery work both on the published site and when
+  someone reads `docs/art.md` on GitHub; the check is what stops it going stale.
 
 ### Save compatibility
 

@@ -24,7 +24,8 @@ until the wiki describes it.
 
    | You changed | Update |
    | --- | --- |
-   | A building | `docs/buildings.md` |
+   | A building | `docs/buildings.md` **and** `docs/art.md` |
+   | A texture | `docs/art.md`, plus `--sync-art` below |
    | A `ShopKindDef` | `docs/businesses.md` |
    | A `ServiceDef` or `ServiceWorker` | `docs/services.md` |
    | Appeal, reputation, pricing, arrivals | `docs/economy.md` |
@@ -45,10 +46,16 @@ until the wiki describes it.
 4. **`docs/_config.yml`**, if you added a page — `wiki_nav` is the sidebar, and a page missing
    from it fails CI.
 
+5. **The gallery's image copies**, if you added or regenerated art. The wiki serves art from
+   `docs/assets/textures/`, checked byte-for-byte against `Textures/` and `About/`, so a
+   regenerated texture that never reached the gallery leaves the wiki showing the old art.
+   `python3 tools/validate_docs.py --sync-art` copies them across; commit the copies.
+
 `python3 tools/validate_docs.py` enforces the mechanical half of this: it fails if a def, source
 file or translation key is undocumented, if an internal wiki link or anchor is broken, if a page
-is missing from the nav, or if the changelog has no *Unreleased* section. It cannot check that
-the prose is *true* — that part is on you.
+is missing from the nav, if the changelog has no *Unreleased* section, or if the art gallery is
+missing a texture or showing a stale copy of one. It cannot check that the prose is *true* —
+that part is on you.
 
 Do not add a "docs" commit afterwards. The docs change belongs in the commit that made it true.
 
@@ -62,6 +69,7 @@ dotnet build Source/OldWestTown/OldWestTown.csproj -c Release
 python3 tools/validate_defs.py        # C# types named in XML, def references, .Translate() keys
 python3 tools/make_textures.py --check # every building in the texture table has art on disk
 python3 tools/validate_docs.py        # the wiki has not drifted from the code
+python3 tools/validate_docs.py --sync-art   # refresh the gallery's art copies, then check
 dotnet build Source/OldWestTown/OldWestTown.csproj -c Release
 
 # One-time, so validate_defs.py can check vanilla types for real instead of noting them
@@ -92,6 +100,7 @@ There is no test suite. The static checks above and a careful read are what stan
 | `Defs/` | XML defs, one folder per def type |
 | `Languages/English/Keyed/` | Translation strings |
 | `Textures/Things/Building/Commerce/` | Building art, generated from `tools/make_textures.py` |
+| `docs/assets/textures/` | Checked copies of that art, for the wiki's gallery |
 | `Source/OldWestTown/` | C# — `Shops/`, `AI/`, `Lords/`, `Incidents/`, `Alerts/`, `UI/` |
 | `1.6/Assemblies/` | The committed build output |
 | `tools/` | Validators, the texture generator, `refdump` |

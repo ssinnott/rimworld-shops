@@ -11,6 +11,7 @@ summary: Building the assembly, the static checks that stand in for launching th
 | `Defs/` | All XML defs, one folder per def type |
 | `Languages/English/Keyed/` | Translation strings |
 | `Textures/Things/Building/Commerce/` | Building art (generated — see below) |
+| `docs/assets/textures/` | Copies of that art, so the [gallery](art.md) can show it |
 | `Source/OldWestTown/` | C# source ([code map](architecture.md)) |
 | `1.6/Assemblies/OldWestTown.dll` | **Committed** compiled assembly |
 | `tools/` | Static validators and the texture generator |
@@ -113,9 +114,23 @@ is that check. It fails the build if:
    to a file that exists, and every `#anchor` must match a heading on the target page.
 5. **The changelog has no Unreleased section.** So there is always somewhere to write the next
    line.
+6. **The art gallery is out of date.** Every texture in `Textures/` and `About/` must appear in
+   [the gallery](art.md), and its copy under `docs/assets/textures/` must be **byte-identical**
+   to the original. A regenerated texture that never reached the gallery would otherwise leave
+   the wiki quietly showing the old art.
 
 It does **not** check that the prose is accurate — nothing can. It checks that nothing was added
 without anyone thinking about the docs, which is the failure mode that actually happens.
+
+The art check is the one failure with a mechanical fix, so the tool can apply it:
+
+```sh
+python3 tools/validate_docs.py --sync-art
+```
+
+That refreshes the copies from the originals, then runs the checks as usual. **Commit the copies**
+— they are what make the gallery work both on the published site and when someone reads
+`docs/art.md` on GitHub.
 
 ### The workflow
 
@@ -124,9 +139,11 @@ When you change the mod:
 1. Make the change.
 2. Update the wiki page it affects, and the [reference tables](reference.md) if a number,
    def or key moved.
-3. Add a line under **Unreleased** in the [changelog](changelog.md).
-4. Rebuild the assembly if you touched C#.
-5. Run all four checks.
+3. If you changed art: run `python3 tools/validate_docs.py --sync-art`, and add the new
+   textures to the [gallery](art.md).
+4. Add a line under **Unreleased** in the [changelog](changelog.md).
+5. Rebuild the assembly if you touched C#.
+6. Run all four checks.
 
 ```sh
 dotnet build Source/OldWestTown/OldWestTown.csproj -c Release

@@ -7,19 +7,26 @@ adds a def and forgets the page describing it. This is that failure. It cannot c
 the prose is *true* — nothing can — but it can check that nothing was added without anyone
 thinking about the docs, which is the failure mode that actually happens.
 
-Five checks:
+Six checks:
 
   1. every defName in Defs/ is mentioned somewhere under docs/;
   2. every .cs file under Source/ is named in the code map;
   3. every English translation key is listed in the reference tables;
   4. every relative link between wiki pages resolves, anchors included;
-  5. the changelog still has an Unreleased section to write the next line under.
+  5. the changelog still has an Unreleased section to write the next line under;
+  6. the art gallery shows every shipped texture, and its copies are byte-identical
+     to the originals they were copied from.
 
-Usage: python3 tools/validate_docs.py
-Exit code is non-zero if anything failed.
+Usage: python3 tools/validate_docs.py [--sync-art]
+Exit code is non-zero if anything failed. --sync-art refreshes the gallery's image
+copies from the originals rather than reporting them as stale, which is the only
+failure here with a mechanical fix.
 """
 
+import argparse
+import filecmp
 import glob
+import shutil
 import os
 import re
 import sys
@@ -32,6 +39,18 @@ CODE_MAP = "architecture.md"
 REFERENCE = "reference.md"
 CHANGELOG = "changelog.md"
 KEYED = "Languages/English/Keyed/OldWestTown.xml"
+GALLERY = "art.md"
+
+# Art the gallery shows, as {source in the repo: copy under docs/assets/textures/}.
+# The gallery needs the images inside the Jekyll source to serve them, and inside the
+# repo tree to render when someone reads docs/art.md on GitHub. One copy satisfies both;
+# check_art keeps it honest rather than trusting anyone to remember.
+ART_SOURCES = {
+    "Textures/Things/Building/Commerce": "Commerce",
+    "About": None,   # Preview.png only, flattened to the top of the asset folder
+}
+ART_DEST = "assets/textures"
+
 
 failures = []
 
@@ -186,6 +205,67 @@ def check_changelog(pages):
              f"there must always be somewhere to write the next line")
 
 
+# --------------------------------------------------------------- 6. art
+
+def art_files():
+    """Every shipped image, as (source path, path of its copy under docs/)."""
+    pairs = []
+    for src_dir, sub in ART_SOURCES.items():
+        for src in sorted(glob.glob(os.path.join(ROOT, src_dir, "*.png"))):
+            name = os.path.basename(src)
+            rel = f"{ART_DEST}/{sub}/{name}" if sub else f"{ART_DEST}/{name}"
+            pairs.append((src, rel))
+    return pairs
+
+
+def sync_art():
+    """Refresh every gallery copy from its original. The check below is what catches a
+    forgotten sync; this is the one-liner it tells you to run."""
+    copied = 0
+    for src, rel in art_files():
+        dest = os.path.join(DOCS, rel)
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        if not os.path.exists(dest) or not filecmp.cmp(src, dest, shallow=False):
+            shutil.copyfile(src, dest)
+            print(f"  synced  docs/{rel}")
+            copied += 1
+    print(f"Art in sync ({copied} file(s) updated)." if copied else "Art already in sync.")
+
+
+def check_art(pages):
+    gallery = pages.get(GALLERY)
+    if gallery is None:
+        fail(f"docs/{GALLERY} is missing — it is the gallery every shipped texture is checked against")
+        return
+
+    for src, rel in art_files():
+        src_rel = os.path.relpath(src, ROOT)
+        copy = os.path.join(DOCS, rel)
+
+        if not os.path.exists(copy):
+            fail(f"{src_rel} has no copy at docs/{rel} — the gallery cannot show it. "
+                 f"Run: python3 tools/validate_docs.py --sync-art")
+            continue
+
+        # Byte-identity, not just presence: a regenerated texture that never reached the
+        # gallery would otherwise leave the wiki quietly showing the old art.
+        if not filecmp.cmp(src, copy, shallow=False):
+            fail(f"docs/{rel} differs from {src_rel} — the gallery is showing stale art. "
+                 f"Run: python3 tools/validate_docs.py --sync-art")
+
+        if rel not in gallery:
+            fail(f"{src_rel} is shipped but not shown in docs/{GALLERY} — "
+                 f"every texture belongs in the gallery")
+
+    # And the reverse: an image under docs/assets/textures/ with no original is a leftover
+    # from a building that was renamed or removed.
+    expected = {rel for _, rel in art_files()}
+    for path in sorted(glob.glob(os.path.join(DOCS, ART_DEST, "**", "*.png"), recursive=True)):
+        rel = os.path.relpath(path, DOCS).replace(os.sep, "/")
+        if rel not in expected:
+            fail(f"docs/{rel} has no original in the repo — a leftover from removed art?")
+
+
 # ------------------------------------------------------------------- nav
 
 def check_nav(pages):
@@ -206,8 +286,16 @@ def check_nav(pages):
 
 
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--sync-art", action="store_true",
+                    help="refresh the gallery's image copies from the originals, then check")
+    args = ap.parse_args()
+
     if not os.path.isdir(DOCS):
         sys.exit("docs/ is missing — this script checks the wiki that lives there")
+
+    if args.sync_art:
+        sync_art()
 
     pages = doc_pages()
     check_defs(pages)
@@ -215,6 +303,7 @@ def main():
     check_translation_keys(pages)
     check_links(pages)
     check_changelog(pages)
+    check_art(pages)
     check_nav(pages)
 
     if failures:
