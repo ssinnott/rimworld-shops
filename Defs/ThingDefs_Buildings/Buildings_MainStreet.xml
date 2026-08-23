@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+
+  <!-- Street furniture: the decorative half of a main street. Unlike OWT_CounterBase, none of
+       these share size, statBases or costStuffCount with each other, so the base carries only
+       the shape every one of them actually agrees on. -->
+  <ThingDef Name="OWT_StreetFurnitureBase" ParentName="BuildingBase" Abstract="True">
+    <thingClass>Building</thingClass>
+    <category>Building</category>
+    <altitudeLayer>Building</altitudeLayer>
+    <!-- Standable, not Impassable: a false front in particular sits on a shop's own street
+         frontage, exactly where its customers walk to reach the counter. -->
+    <passability>Standable</passability>
+    <blockWind>false</blockWind>
+    <castEdgeShadows>false</castEdgeShadows>
+    <rotatable>true</rotatable>
+    <designationCategory>OWT_Commerce</designationCategory>
+    <researchPrerequisites>
+      <li>OWT_FrontierCommerce</li>
+    </researchPrerequisites>
+    <constructEffect>ConstructWood</constructEffect>
+    <stuffCategories>
+      <li>Woody</li>
+      <li>Stony</li>
+    </stuffCategories>
+  </ThingDef>
+
+  <ThingDef ParentName="OWT_StreetFurnitureBase">
+    <defName>OWT_FalseFront</defName>
+    <label>false front</label>
+    <description>A second storey painted on lath and studding, taller than the room behind it. Every prosperous-looking storefront in this town is lying a little; a fresh coat and a tall sign make a business look established before it is.\n\nCustomers passing nearby notice a shop dressed up like this and are a little more inclined to walk in — an effect that fades if every building on the street has one.</description>
+    <size>(3,1)</size>
+    <fillPercent>0.3</fillPercent>
+    <statBases>
+      <MaxHitPoints>140</MaxHitPoints>
+      <WorkToBuild>1200</WorkToBuild>
+      <Flammability>1.0</Flammability>
+      <Beauty>10</Beauty>
+    </statBases>
+    <costStuffCount>90</costStuffCount>
+    <graphicData>
+      <texPath>Things/Building/MainStreet/FalseFront</texPath>
+      <graphicClass>Graphic_Multi</graphicClass>
+      <!-- Deliberately taller than the (3,1) footprint below it — a false front is supposed to
+           tower over the building it is bolted to. -->
+      <drawSize>(3,2)</drawSize>
+    </graphicData>
+    <uiIconPath>Things/Building/MainStreet/FalseFront_north</uiIconPath>
+    <comps>
+      <li Class="OldWestTown.Shops.CompProperties_FalseFront" />
+    </comps>
+  </ThingDef>
+
+  <ThingDef ParentName="OWT_StreetFurnitureBase">
+    <defName>OWT_HitchingPost</defName>
+    <label>hitching post</label>
+    <description>A rail and a couple of posts, worn smooth by reins. Doesn't do anything a colonist can point to — it just makes the street look like somewhere people actually stop.</description>
+    <size>(2,1)</size>
+    <fillPercent>0.15</fillPercent>
+    <statBases>
+      <MaxHitPoints>100</MaxHitPoints>
+      <WorkToBuild>400</WorkToBuild>
+      <Flammability>1.0</Flammability>
+      <Beauty>2</Beauty>
+    </statBases>
+    <costStuffCount>30</costStuffCount>
+    <graphicData>
+      <texPath>Things/Building/MainStreet/HitchingPost</texPath>
+      <graphicClass>Graphic_Multi</graphicClass>
+      <drawSize>(2,1)</drawSize>
+    </graphicData>
+    <uiIconPath>Things/Building/MainStreet/HitchingPost_north</uiIconPath>
+  </ThingDef>
+
+  <ThingDef ParentName="OWT_StreetFurnitureBase">
+    <defName>OWT_Gallows</defName>
+    <label>gallows</label>
+    <description>Cut lumber and a good rope. Nobody has been hanged from it and, with any luck, nobody will be — but it sits there anyway, and everyone who sees it knows what it's for.\n\nA grim thing to look at. Better suited to the edge of town than the parlour.</description>
+    <size>(3,2)</size>
+    <fillPercent>0.35</fillPercent>
+    <statBases>
+      <MaxHitPoints>200</MaxHitPoints>
+      <WorkToBuild>1700</WorkToBuild>
+      <Flammability>1.0</Flammability>
+      <!-- The one deliberate negative in this stage: everything else here raises Beauty for
+           free, so putting this in a nice room should visibly cost the player something. -->
+      <Beauty>-8</Beauty>
+    </statBases>
+    <costStuffCount>110</costStuffCount>
+    <graphicData>
+      <texPath>Things/Building/MainStreet/Gallows</texPath>
+      <graphicClass>Graphic_Multi</graphicClass>
+      <drawSize>(3,2)</drawSize>
+    </graphicData>
+    <uiIconPath>Things/Building/MainStreet/Gallows_north</uiIconPath>
+  </ThingDef>
+
+  <ThingDef ParentName="OWT_StreetFurnitureBase">
+    <defName>OWT_FaroTable</defName>
+    <label>faro table</label>
+    <description>Green baize, a dealing box, and a case-keeper's abacus. Off-duty hands and passing strangers alike will drift over to it when there's nothing more pressing to do — though for now the cards never actually change hands for money. Yet.</description>
+    <size>(2,1)</size>
+    <fillPercent>0.4</fillPercent>
+    <statBases>
+      <MaxHitPoints>140</MaxHitPoints>
+      <WorkToBuild>900</WorkToBuild>
+      <Flammability>1.0</Flammability>
+      <Beauty>7</Beauty>
+    </statBases>
+    <costStuffCount>70</costStuffCount>
+    <graphicData>
+      <texPath>Things/Building/MainStreet/FaroTable</texPath>
+      <graphicClass>Graphic_Multi</graphicClass>
+      <drawSize>(2,1)</drawSize>
+    </graphicData>
+    <uiIconPath>Things/Building/MainStreet/FaroTable_north</uiIconPath>
+    <!-- Vanilla's own idle-gathering comp: an idle colonist will drift over on their own, the
+         same free tie-in a gather spot gives any recreational furniture. No wager, no payout —
+         that is the reserved Gambling Hall (see docs/DESIGN.md's "Beyond the staged plan"). -->
+    <comps>
+      <li Class="CompProperties">
+        <compClass>RimWorld.CompGatherSpot</compClass>
+      </li>
+    </comps>
+  </ThingDef>
+
+  <!-- A reskin of vanilla's own door, not street furniture — everything not listed below
+       (thingClass, statBases, passability, rotatable, size, ...) is inherited unchanged. -->
+  <ThingDef ParentName="Door">
+    <defName>OWT_BatwingDoor</defName>
+    <label>batwing doors</label>
+    <description>Two waist-high slabs on spring hinges, cut low enough to see who's coming and high enough to keep most of the weather out. Cheaper than a full door and just as willing to let anyone through — which is rather the point in a saloon.</description>
+    <graphicData>
+      <texPath>Things/Building/MainStreet/BatwingDoor</texPath>
+      <graphicClass>Graphic_Multi</graphicClass>
+    </graphicData>
+    <uiIconPath>Things/Building/MainStreet/BatwingDoor_north</uiIconPath>
+    <stuffCategories>
+      <li>Woody</li>
+    </stuffCategories>
+    <!-- Actually undercuts a full Door (costStuffCount 50), not just restating it — two
+         waist-high slabs use noticeably less lumber than a proper hung door. -->
+    <costStuffCount>35</costStuffCount>
+    <blockLight>false</blockLight>
+    <researchPrerequisites>
+      <li>OWT_FrontierCommerce</li>
+    </researchPrerequisites>
+    <designationCategory>OWT_Commerce</designationCategory>
+  </ThingDef>
+
+</Defs>

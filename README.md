@@ -6,12 +6,13 @@ spend it.
 
 Hospitality gets guests onto your map. This is about what they do once they're there.
 
-**Status: goods, services and lodging all work.** A customer arrives, then either picks
-something off your shelves, orders a drink, a meal or a haircut, or checks into a hotel room
-for the night — queues, and pays either way. A guest who rents a room stays until they've slept
-it off, so the whole visit can now run past a single day. The breadth (banks, stables, town
-roles) is designed but not built; see [docs/DESIGN.md](docs/DESIGN.md) for the architecture and
-the staged plan.
+**Status: goods, services and lodging all work, on a street that looks the part.** A customer
+arrives, then either picks something off your shelves, orders a drink, a meal or a haircut, or
+checks into a hotel room for the night — queues, and pays either way. A guest who rents a room
+stays until they've slept it off, so the whole visit can now run past a single day. There's
+boardwalk to lay and a false front to nail over your store while you wait for them. Town roles
+and per-faction standing (banks, stables, a sheriff) are designed but not built; see
+[docs/DESIGN.md](docs/DESIGN.md) for the architecture and the staged plan.
 
 This mod is standalone. It does not require Hospitality, and is written to sit alongside it.
 
@@ -52,6 +53,11 @@ This mod is standalone. It does not require Hospitality, and is written to sit a
   and its own *Evict guest* gizmo; hotels show their room occupancy alongside every other
   counter's stock and services. A guest whose bed is taken out from under them (deconstructed,
   or claimed by a colonist) is evicted outright — no refund, and word gets around.
+- **A main street that looks like one.** Boardwalk underfoot, false-front facades, a hitching
+  post, batwing doors, a faro table and a gallows — all under the same Commerce category and
+  Frontier commerce research. A false front is the one with teeth: it gives a shop a small,
+  capped edge in the customer AI's own scoring, so a dressed-up storefront pulls trade from an
+  undecorated rival at a similar price.
 
 ## Installing
 
