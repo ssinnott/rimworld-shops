@@ -143,7 +143,7 @@ ways.
      player stocks + prices + staffs shops
                      │
                      ▼
-         TownEconomy.Appeal  ◄──── reputation ◄──── served vs. walked-out customers
+         TownEconomy.Appeal  ◄──── reputation ◄──── one verdict per customer, settled nightly
                      │                                        ▲
                      ▼                                        │
    IncidentWorker_ShopCustomers: how often, how many, how rich│
@@ -163,6 +163,32 @@ Arrival frequency is the town's own doing, not the storyteller's. `TownEconomy` 
 clock that shortens as appeal grows (roughly one group every 3.5 days at the 0.5 threshold,
 most days at high appeal) and fires the incident through the storyteller, so `minRefireDays`
 still caps the rate. The `IncidentDef` keeps a small `baseChance` as a background trickle.
+
+Reputation is a record of *service*, not of sales. Each caller leaves exactly one verdict a day
+however many times they opened their purse — full marks for being served by somebody, half for
+helping themselves off an unwatched counter, and whatever they were owed is halved again if they
+gave up waiting anywhere in town. The day's average is blended into the town's name at midnight,
+weighted by how many people the day actually heard from, so one traveller giving up on a dead
+Tuesday is bad luck rather than a scandal. Counting receipts instead made reputation a function
+of how much stock was on the shelves: one group of four crossed the whole range in an afternoon,
+after which both of the things that read reputation were reading a constant. No per-sale constant
+survives that, however it is tuned, because the granularity is the defect and not the size of the
+step. A day with no custom at all drifts back toward neutral instead: a town nobody trades with is
+forgotten, not hated — and that branch is also what stops a ruined name being a trap, since bad
+standing thins the crowd and a thin crowd stops producing walkouts.
+
+The direction is the obvious one and was, for a long time, backwards in the code: a good name
+buys higher prices and more footfall, while a town with a bad one has to discount to move goods.
+That discount is deliberately the way back rather than a second punishment — a cheaper shelf
+stretches a purse, so the few customers a poor town still draws buy more of what is on it, and
+each one served in person earns the name back. (It does *not* work by making the town look better
+value: the factor is town-wide, so it scales every shop's `ValueAppeal` alike and cancels out of
+the comparison a customer actually makes between them.) The two consequences are not the same
+size. The price band is ±10% while the arrival term runs 0.5x–1.5x, so what a good name mostly
+buys is *who comes*, not what they pay. Folding reputation into the price at all is only
+defensible because the number now moves once a night rather than on every sale in town: a price
+can still shift under a customer mid-walk when a visit spans midnight, but no longer because
+somebody else bought a beer while they were choosing.
 
 ## Roadmap
 
@@ -256,9 +282,9 @@ competitive rather than solitaire.
   the churn, but a hauler can still start a job on goods (or a service's consumable) a customer
   is mid-walk toward — and two customers can race for the same stack. The loser's job fails
   gracefully: it ends on the goto/carry fail conditions, before the counter. A customer whose
-  purse comes up short *at* the counter — the markup slider moved while they walked, or the town's
-  reputation shifted on somebody else's sale — remembers "this kind of goods, at this counter, this
-  visit", so it costs them one trip instead of repeating. It is not a walkout and costs no
+  purse comes up short *at* the counter — the markup slider moved while they walked, or their
+  visit spanned the midnight reputation roll — remembers "this kind of goods, at this counter,
+  this visit", so it costs them one trip instead of repeating. It is not a walkout and costs no
   reputation. The other refusals need no memory: goods pulled from the filter or forbidden simply
   leave the shelf scan until the player puts them back.
 - Staffing a counter lifts every refusal standing against it at once, so a colonist who takes the
@@ -268,6 +294,10 @@ competitive rather than solitaire.
   colonist has to be continuously absent for a whole window, and each further walkout needs a
   further staffing episode the player caused. Capping it would mean scribed per-(customer,
   counter) state, which is a worse trade than an outcome the player can see themselves producing.
+  At the town level a second walkout from the same customer on the same day now costs nothing
+  extra, because the ledger records the disappointed customer rather than the number of times they
+  were disappointed. The per-shop count and the walkout message still fire, so the player still
+  sees it happen.
 - A customer who has spent their last silver, or who is asleep, no longer holds a colonist at a
   counter — but nothing sends them home either. They keep the shopping duty and wander the town
   centre until the visit clock runs out. Letting a spent-out customer leave early is a lord-graph

@@ -90,15 +90,17 @@ namespace OldWestTown.AI
                             ?.RefuseGoods(shop.parent, goods.def);
 
                         // Sized against this purse minutes ago and refused now: either the price
-                        // moved under them — the markup slider, or the town's reputation shifting
-                        // on somebody else's sale — or the two sides of the price disagree, which
-                        // is the failure this pairing exists to prevent. Worth telling them apart
-                        // by hand, so name both rather than accusing the pricing code.
+                        // moved under them — the markup slider, or the nightly reputation roll
+                        // catching a visit that spans midnight — or the two sides of the price
+                        // disagree, which is the failure this pairing exists to prevent. Worth
+                        // telling them apart by hand, so name them rather than accusing the
+                        // pricing code.
                         if (Prefs.DevMode)
                         {
                             Log.Warning("[OldWestTown] " + pawn.LabelShort + " could not pay at "
                                 + shop.parent.LabelCap + " for an order sized to their purse — the price"
-                                + " moved between the shelf and the counter, or MaxAffordable and PriceFor disagree.");
+                                + " moved between the shelf and the counter (the markup slider, or the"
+                                + " midnight reputation roll), or MaxAffordable and PriceFor disagree.");
                         }
                     }
 

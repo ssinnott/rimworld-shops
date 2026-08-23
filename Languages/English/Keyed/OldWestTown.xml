@@ -4,7 +4,7 @@
   <!-- Mod settings -->
   <OWT_ModTitle>Old West Town</OWT_ModTitle>
   <OWT_SettingSelfService>Allow self-service</OWT_SettingSelfService>
-  <OWT_SettingSelfServiceDesc>Customers will buy from an unattended counter instead of walking out. Convenient, but every self-service sale quietly erodes the town's reputation — nobody remembers a shop nobody works.</OWT_SettingSelfServiceDesc>
+  <OWT_SettingSelfServiceDesc>Customers will buy from an unattended counter instead of walking out. Convenient, but a customer nobody served thinks only half as well of the town as one who was looked after.</OWT_SettingSelfServiceDesc>
   <OWT_SettingVolume>Customer volume: {0}</OWT_SettingVolume>
   <OWT_SettingWealth>Customer wealth: {0}</OWT_SettingWealth>
 
@@ -32,10 +32,13 @@
   <!-- Town ledger dialog -->
   <OWT_LedgerTitle>Town ledger</OWT_LedgerTitle>
   <OWT_LedgerAppealLine>Appeal: {0} — customers start arriving at 0.5; the higher it climbs, the more often they come and the richer they are. Grow it with more distinct, well-stocked, open businesses.</OWT_LedgerAppealLine>
-  <OWT_LedgerReputationLine>Reputation: {0} — served customers raise it; walkouts and self-service sales erode it. It sways both what customers will pay and how many come.</OWT_LedgerReputationLine>
-  <OWT_LedgerTodayLine>Today: {0} sales, {1} walkouts, {2} taken.</OWT_LedgerTodayLine>
+  <OWT_LedgerReputationLine>Reputation: {0} — the town's service record. Every caller leaves one verdict a day, however much they bought: being served by somebody is worth full marks, taking goods off an unwatched counter half, and giving up waiting halves whatever else their day was worth. It sways how many travellers come (a good name brings half again as much custom as a neutral one, a bad name half as much) and what they'll pay (up to 10% either way).</OWT_LedgerReputationLine>
+  <OWT_LedgerTodayLine>Today: {0} came to a counter, {1} of them gave up waiting, {2} taken.</OWT_LedgerTodayLine>
+  <OWT_LedgerServiceLine>Service today: {0}. The town's name moves toward that tonight — putting somebody behind a counter now still changes it.</OWT_LedgerServiceLine>
+  <OWT_LedgerQuietLine>Nobody has come to a counter today; the town's name drifts back toward the middle.</OWT_LedgerQuietLine>
   <OWT_LedgerLifetimeLine>Lifetime takings: {0}.</OWT_LedgerLifetimeLine>
   <OWT_LedgerShopLine>{0} — {1} today, {2} in the till.</OWT_LedgerShopLine>
+  <OWT_LedgerShopWalkouts>({0} gave up here.)</OWT_LedgerShopWalkouts>
 
   <!-- Stock tab -->
   <OWT_TabStock>Stock</OWT_TabStock>
@@ -47,8 +50,8 @@
   <OWT_LetterCustomersText>{0} travellers from {1} have heard there is business to be done here, and have come to spend.\n\nThey will browse whatever your open shops have on display and pay across the counter — if there is someone there to serve them.</OWT_LetterCustomersText>
   <OWT_CustomersLeaving>The {0} from {1} are heading home.</OWT_CustomersLeaving>
   <OWT_CustomersScared>Violence in town. The customers from {0} are leaving.</OWT_CustomersScared>
-  <OWT_CustomerWalkedOut>{0} gave up waiting at {1} and left the goods behind. Word of the poor service spreads. They won't go back to that counter until somebody is standing behind it.</OWT_CustomerWalkedOut>
-  <OWT_CustomerWalkedOutService>{0} gave up waiting at {1} and left. Word of the poor service spreads. They won't go back to that counter until somebody is standing behind it.</OWT_CustomerWalkedOutService>
+  <OWT_CustomerWalkedOut>{0} gave up waiting at {1} and left the goods behind. They think the less of the town for it, and won't go back to that counter until somebody is standing behind it.</OWT_CustomerWalkedOut>
+  <OWT_CustomerWalkedOutService>{0} gave up waiting at {1} and left. They think the less of the town for it, and won't go back to that counter until somebody is standing behind it.</OWT_CustomerWalkedOutService>
 
   <!-- Alerts -->
   <OWT_AlertUnattended>Customers waiting ({0})</OWT_AlertUnattended>

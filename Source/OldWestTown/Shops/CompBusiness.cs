@@ -314,14 +314,15 @@ namespace OldWestTown.Shops
 
         /// <summary>
         /// Long-run price tolerance. A town customers like will bear higher prices;
-        /// one with a bad reputation has to discount to move goods.
+        /// one with a bad reputation has to discount to move goods. A neutral name is exactly 1.0,
+        /// so on a fresh save the markup slider means precisely what it says.
         /// </summary>
         public float ReputationPriceFactor
         {
             get
             {
                 TownEconomy econ = parent.Map?.GetComponent<TownEconomy>();
-                return econ == null ? 1f : Mathf.Lerp(1.15f, 0.9f, econ.Reputation);
+                return econ == null ? 1f : Mathf.Lerp(0.9f, 1.1f, econ.Reputation);
             }
         }
 
@@ -538,16 +539,24 @@ namespace OldWestTown.Shops
             sb.AppendLine("OWT_LedgerReputationLine".Translate(econ.Reputation.ToStringPercent()));
             sb.AppendLine();
             sb.AppendLine("OWT_LedgerTodayLine".Translate(
-                econ.customersServedToday, econ.walkoutsToday, ((float)econ.revenueToday).ToStringMoney()));
+                econ.PatronsToday, econ.UnservedToday, ((float)econ.revenueToday).ToStringMoney()));
+            sb.AppendLine(econ.PatronsToday > 0
+                ? "OWT_LedgerServiceLine".Translate(econ.ServiceScoreToday.ToStringPercent())
+                : "OWT_LedgerQuietLine".Translate());
             sb.AppendLine("OWT_LedgerLifetimeLine".Translate(((float)econ.lifetimeRevenue).ToStringMoney()));
             sb.AppendLine();
             foreach (CompBusiness shop in econ.Shops)
             {
                 if (shop?.parent == null || !shop.parent.Spawned) continue;
-                sb.AppendLine("OWT_LedgerShopLine".Translate(
+                sb.Append("OWT_LedgerShopLine".Translate(
                     shop.parent.LabelCap,
                     ((float)shop.revenueToday).ToStringMoney(),
                     ((float)shop.TillSilver).ToStringMoney()));
+                if (shop.walkoutsToday > 0)
+                {
+                    sb.Append(" ").Append("OWT_LedgerShopWalkouts".Translate(shop.walkoutsToday));
+                }
+                sb.AppendLine();
             }
             return sb.ToString().TrimEndNewlines();
         }
