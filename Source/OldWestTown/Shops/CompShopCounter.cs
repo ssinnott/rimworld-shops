@@ -149,10 +149,21 @@ namespace OldWestTown.Shops
             IntVec3 primary = CustomerCell;
             if (map == null || CellFreeFor(primary, customer, map)) return primary;
 
+            // Radial cells ignore walls, so filter to the room customers actually stand in —
+            // otherwise a busy counter near a wall seats the queue's tail outside the shop.
+            // Outdoors (a stall) any nearby cell will do. Either way, never hand a customer a
+            // cell they can't walk to: a failed goto ends the job and drops the goods.
+            Room queueRoom = RegionAndRoomQuery.RoomAt(primary, map);
+            bool indoors = queueRoom != null
+                && !queueRoom.PsychologicallyOutdoors && !queueRoom.TouchesMapEdge;
+
             foreach (IntVec3 c in GenRadial.RadialCellsAround(primary, 3.9f, false))
             {
                 if (!c.InBounds(map) || c == StaffCell) continue;
-                if (CellFreeFor(c, customer, map)) return c;
+                if (indoors && RegionAndRoomQuery.RoomAt(c, map) != queueRoom) continue;
+                if (!CellFreeFor(c, customer, map)) continue;
+                if (!customer.CanReach(c, PathEndMode.OnCell, Danger.Deadly)) continue;
+                return c;
             }
             return primary;
         }

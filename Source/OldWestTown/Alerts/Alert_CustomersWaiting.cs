@@ -17,18 +17,23 @@ namespace OldWestTown.Alerts
     {
         private readonly List<GlobalTargetInfo> culprits = new List<GlobalTargetInfo>();
 
+        /// <summary>Pawns waiting, as distinct from counters affected — the label counts
+        /// customers, the culprit list jumps the camera between counters.</summary>
+        private int waitingCustomers;
+
         public Alert_CustomersWaiting()
         {
             defaultPriority = AlertPriority.High;
         }
 
-        public override string GetLabel() => "OWT_AlertUnattended".Translate(culprits.Count);
+        public override string GetLabel() => "OWT_AlertUnattended".Translate(waitingCustomers);
 
         public override TaggedString GetExplanation() => "OWT_AlertUnattendedDesc".Translate();
 
         public override AlertReport GetReport()
         {
             culprits.Clear();
+            waitingCustomers = 0;
             if (OldWestTownMod.Settings.allowSelfService) return false;
 
             List<Map> maps = Find.Maps;
@@ -47,6 +52,7 @@ namespace OldWestTown.Alerts
                     Thing counter = pawns[i].CurJob?.GetTarget(TargetIndex.B).Thing;
                     if (counter == null) continue;
 
+                    waitingCustomers++;
                     GlobalTargetInfo target = counter;
                     if (!culprits.Contains(target)) culprits.Add(target);
                 }
