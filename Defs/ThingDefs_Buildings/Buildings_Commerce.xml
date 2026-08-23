@@ -110,4 +110,78 @@
     </comps>
   </ThingDef>
 
+  <ThingDef ParentName="OWT_CounterBase">
+    <defName>OWT_HotelDesk</defName>
+    <label>hotel desk</label>
+    <description>A front desk with a rack of room keys. A colonist assigned to Shopkeeping will check guests into any vacant bed in the same room.\n\nGuests pay for the night up front, then sleep it off wherever there's a free bed — put the desk in the same room as the beds it's meant to book.</description>
+    <graphicData>
+      <texPath>Things/Building/Commerce/HotelDesk</texPath>
+      <graphicClass>Graphic_Multi</graphicClass>
+      <drawSize>(2,1)</drawSize>
+      <damageData>
+        <rect>(0,0.05,2,0.9)</rect>
+      </damageData>
+    </graphicData>
+    <uiIconPath>Things/Building/Commerce/HotelDesk_north</uiIconPath>
+    <comps>
+      <li Class="OldWestTown.Shops.CompProperties_Business">
+        <shopKind>OWT_Hotel</shopKind>
+      </li>
+    </comps>
+  </ThingDef>
+
+  <!-- Deliberately not parented from a vanilla bed def — this repo has no access to Core's
+       Defs to confirm an exact defName, and validate_defs.py does not check ParentName at all,
+       so a typo there would surface only as a red error in-game. Built the same way
+       OWT_CounterBase itself was: from BuildingBase, with everything a bed needs added by hand.
+       No CompAssignableToPawn/_Bed — a rented bed's occupant is tracked by CompRentableBed
+       instead; see CompRentableBed.cs for why. -->
+  <ThingDef ParentName="BuildingBase">
+    <defName>OWT_HotelBed</defName>
+    <label>hotel bed</label>
+    <description>A simple bed for a paying guest. Travellers with nowhere else to sleep rent one by the night at the hotel desk, then sleep until morning or until the room is needed again.</description>
+    <thingClass>Building_Bed</thingClass>
+    <category>Building</category>
+    <altitudeLayer>Building</altitudeLayer>
+    <passability>Standable</passability>
+    <blockWind>false</blockWind>
+    <fillPercent>0.3</fillPercent>
+    <castEdgeShadows>false</castEdgeShadows>
+    <rotatable>true</rotatable>
+    <size>(1,2)</size>
+    <designationCategory>OWT_Commerce</designationCategory>
+    <stuffCategories>
+      <li>Woody</li>
+      <li>Metallic</li>
+      <li>Stony</li>
+    </stuffCategories>
+    <costStuffCount>50</costStuffCount>
+    <statBases>
+      <MaxHitPoints>100</MaxHitPoints>
+      <WorkToBuild>1000</WorkToBuild>
+      <Flammability>1.0</Flammability>
+      <Beauty>2</Beauty>
+      <Comfort>0.6</Comfort>
+      <BedRestEffectiveness>1.0</BedRestEffectiveness>
+      <RestRateMultiplier>1.0</RestRateMultiplier>
+    </statBases>
+    <building>
+      <bed_humanlike>true</bed_humanlike>
+      <bed_showSleeperBody>true</bed_showSleeperBody>
+    </building>
+    <graphicData>
+      <texPath>Things/Building/Commerce/HotelBed</texPath>
+      <graphicClass>Graphic_Multi</graphicClass>
+      <drawSize>(1,2)</drawSize>
+    </graphicData>
+    <uiIconPath>Things/Building/Commerce/HotelBed_north</uiIconPath>
+    <researchPrerequisites>
+      <li>OWT_FrontierCommerce</li>
+    </researchPrerequisites>
+    <constructEffect>ConstructWood</constructEffect>
+    <comps>
+      <li Class="OldWestTown.Shops.CompProperties_RentableBed" />
+    </comps>
+  </ThingDef>
+
 </Defs>

@@ -67,6 +67,12 @@ BUILDINGS = {
     "Commerce/BarberChair": dict(
         cells=(2, 1), body=(110, 32, 40), edge=(36, 30, 32),
         surface=(196, 196, 202), accent=None),
+    "Commerce/HotelDesk": dict(
+        cells=(2, 1), body=(133, 94, 51), edge=(76, 52, 28),
+        surface=(176, 134, 82), accent=None),
+    "Commerce/HotelBed": dict(
+        cells=(1, 2), body=(96, 66, 40), edge=(54, 36, 22),
+        surface=(214, 205, 186), accent=None),
 }
 
 

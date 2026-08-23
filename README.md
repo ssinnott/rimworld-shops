@@ -6,17 +6,20 @@ spend it.
 
 Hospitality gets guests onto your map. This is about what they do once they're there.
 
-**Status: goods and services both work.** A customer arrives, then either picks something off
-your shelves or orders a drink, a meal or a haircut — queues, and pays either way. The breadth
-(hotels, banks, stables, town roles) is designed but not built; see
-[docs/DESIGN.md](docs/DESIGN.md) for the architecture and the staged plan.
+**Status: goods, services and lodging all work.** A customer arrives, then either picks
+something off your shelves, orders a drink, a meal or a haircut, or checks into a hotel room
+for the night — queues, and pays either way. A guest who rents a room stays until they've slept
+it off, so the whole visit can now run past a single day. The breadth (banks, stables, town
+roles) is designed but not built; see [docs/DESIGN.md](docs/DESIGN.md) for the architecture and
+the staged plan.
 
 This mod is standalone. It does not require Hospitality, and is written to sit alongside it.
 
 ## What works right now
 
-- **Shop counters and service posts** (`shop counter`, `saloon bar`, `barber chair`) under a
-  new *Commerce* build category, unlocked by the *Frontier commerce* research.
+- **Shop counters and service posts** (`shop counter`, `saloon bar`, `barber chair`, `hotel
+  desk` and `hotel bed`) under a new *Commerce* build category, unlocked by the *Frontier
+  commerce* research.
 - **A sales floor is a room.** Anything sellable in the same room as the counter is on
   display. Outdoors, it falls back to a radius, so a market stall on the boardwalk trades too.
 - **Per-shop stock control** via a Stock tab that reuses vanilla's storage filter widget.
@@ -43,6 +46,12 @@ This mod is standalone. It does not require Hospitality, and is written to sit a
   today's sales and walkouts, and each shop's takings — the numbers the economy runs on,
   readable in one place. Counters also show appeal, reputation and their services on offer in
   their inspect pane.
+- **Lodging.** A **hotel desk** checks a guest into any vacant **hotel bed** on its own sales
+  floor; the guest pays for the night up front, then actually sleeps until rested — the visit
+  runs past its usual length for as long as anyone's still checked in. A bed shows who's in it
+  and its own *Evict guest* gizmo; hotels show their room occupancy alongside every other
+  counter's stock and services. A guest whose bed is taken out from under them (deconstructed,
+  or claimed by a colonist) is evicted outright — no refund, and word gets around.
 
 ## Installing
 
@@ -70,6 +79,12 @@ A **saloon bar** works the same way but also serves drinks and meals straight fr
 shelves — stock it with liquor or meals as well as (or instead of) general goods. A **barber
 chair** needs no stock at all: build one, staff it, and a passing customer with money to spare
 will sit for a haircut.
+
+A **hotel desk** sells lodging instead: build one alongside a room of **hotel beds**, staff the
+desk, and a tired traveller with money to spare will pay for the night and go find a free bed.
+They sleep until rested, so don't be surprised if some of a customer group is still in town well
+past when the rest have gone home — the whole visit now waits for every rented room to empty out
+before anyone leaves.
 
 ## Building from source
 

@@ -92,7 +92,7 @@ namespace OldWestTown.AI
                 }
 
                 ShopTransaction.Result result =
-                    ShopTransaction.TryServe(shop, pawn, service, consumed, out int price);
+                    ShopTransaction.TryServe(shop, pawn, service, consumed, out int price, out Thing claimed);
 
                 if (result != ShopTransaction.Result.Sold)
                 {
@@ -105,6 +105,10 @@ namespace OldWestTown.AI
                 {
                     record.spent += price;
                     record.purchases++;
+                    // The one place a Shops-layer output (what ApplyEffect claimed) crosses
+                    // into Lords-layer state (whose stay this is) — already the file that
+                    // depends on both, so it's the natural seam rather than a new one.
+                    if (claimed is Building_Bed bed) record.rentedBed = bed;
                 }
             };
             return toil;

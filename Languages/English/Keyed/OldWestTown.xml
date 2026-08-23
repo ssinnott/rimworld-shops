@@ -14,9 +14,16 @@
   <OWT_Unattended>unattended</OWT_Unattended>
   <OWT_StockLine>On sale: {0} items ({1})</OWT_StockLine>
   <OWT_ServicesLine>Services offered: {0}</OWT_ServicesLine>
+  <OWT_RoomsLine>Rooms: {0} of {1} vacant</OWT_RoomsLine>
   <OWT_MarkupLine>Markup: {0} of market value</OWT_MarkupLine>
   <OWT_TillLine>Till: {0} (today: {1})</OWT_TillLine>
   <OWT_TownLine>Town appeal: {0} — reputation: {1}</OWT_TownLine>
+
+  <!-- Rentable bed inspect panel and gizmo -->
+  <OWT_BedVacant>Vacant</OWT_BedVacant>
+  <OWT_BedOccupiedBy>Occupied by {0}</OWT_BedOccupiedBy>
+  <OWT_CmdEvictGuest>Evict guest</OWT_CmdEvictGuest>
+  <OWT_CmdEvictGuestDesc>Release this bed's current guest immediately. They lose the room they already paid for — a guest evicted this way won't come back to this hotel for the rest of their visit.</OWT_CmdEvictGuestDesc>
 
   <!-- Counter gizmos -->
   <OWT_CmdOpen>Open for business</OWT_CmdOpen>
@@ -49,6 +56,7 @@
   <OWT_CustomersScared>Violence in town. The customers from {0} are leaving.</OWT_CustomersScared>
   <OWT_CustomerWalkedOut>{0} gave up waiting at {1} and left the goods behind. Word of the poor service spreads.</OWT_CustomerWalkedOut>
   <OWT_CustomerWalkedOutService>{0} gave up waiting at {1} and left. Word of the poor service spreads.</OWT_CustomerWalkedOutService>
+  <OWT_GuestEvicted>{0}'s room at {1} was taken from them. Word of the poor treatment spreads.</OWT_GuestEvicted>
 
   <!-- Alerts -->
   <OWT_AlertUnattended>Customers waiting ({0})</OWT_AlertUnattended>

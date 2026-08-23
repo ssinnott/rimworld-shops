@@ -9,10 +9,13 @@ namespace OldWestTown
     {
         public static JobDef OWT_BuyFromShop;
         public static JobDef OWT_ManShop;
+        public static JobDef OWT_SleepInRentedBed;
 
         public static DutyDef OWT_Shop;
 
         public static IncidentDef OWT_ShopCustomers;
+
+        public static ThoughtDef OWT_SleptAtHotel;
 
         static OWTDefOf()
         {

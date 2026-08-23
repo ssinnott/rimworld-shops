@@ -251,6 +251,7 @@ namespace OldWestTown.Shops
                 if (kind == null) yield break;
                 foreach (ServiceDef sd in kind.services)
                 {
+                    if (!sd.worker.IsAvailable(this)) continue;
                     if (!sd.worker.ConsumesStock) { yield return sd; continue; }
                     if (ShopStock.ChooseService(this, sd) != null) yield return sd;
                 }
@@ -446,6 +447,11 @@ namespace OldWestTown.Shops
                 sb.AppendLine("OWT_ServicesLine".Translate(
                     string.Join(", ", Kind.services.Select(s => s.LabelCap))));
             }
+            if (Kind != null && Kind.services.Any(sd => sd.worker is ServiceWorker_Lodging))
+            {
+                int total = ShopStock.CountBeds(this, out int vacant);
+                sb.AppendLine("OWT_RoomsLine".Translate(vacant, total));
+            }
             sb.AppendLine("OWT_MarkupLine".Translate(Markup.ToStringPercent()));
             sb.Append("OWT_TillLine".Translate(((float)TillSilver).ToStringMoney(), ((float)revenueToday).ToStringMoney()));
 
@@ -535,6 +541,11 @@ namespace OldWestTown.Shops
                     shop.parent.LabelCap,
                     ((float)shop.revenueToday).ToStringMoney(),
                     ((float)shop.TillSilver).ToStringMoney()));
+                if (shop.Kind != null && shop.Kind.services.Any(sd => sd.worker is ServiceWorker_Lodging))
+                {
+                    int total = ShopStock.CountBeds(shop, out int vacant);
+                    sb.AppendLine("OWT_RoomsLine".Translate(vacant, total));
+                }
             }
             return sb.ToString().TrimEndNewlines();
         }

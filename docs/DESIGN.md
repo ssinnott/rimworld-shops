@@ -52,14 +52,16 @@ hotel clerk, a bank teller, a gambling dealer) should use the same shape.
 | --- | --- | --- |
 | `ShopKindDef` | `Shops/ShopKindDef.cs` | Data-driven business type: default stock, price band, appeal, patience, and which services it offers. Adding a business kind is XML, not code. |
 | `CompBusiness` | `Shops/CompBusiness.cs` | Makes a building a business — goods, services, or both. Owns the till, filter, markup, ledger, staff flag, and the staff/customer cell pair. |
-| `ServiceDef` / `ServiceWorker` | `Shops/ServiceDef.cs`, `Shops/ServiceWorker.cs` | A thing a business sells that isn't a shelf item — a drink, a meal, a haircut. The embedded worker supplies the type-specific behaviour: what it can act on, how much a customer wants it, what effect it applies once paid for. |
-| `ShopStock` | `Shops/ShopStock.cs` | What's on the shelves, what a given customer would buy, and which service a shop can currently perform. |
+| `ServiceDef` / `ServiceWorker` | `Shops/ServiceDef.cs`, `Shops/ServiceWorker.cs` | A thing a business sells that isn't a shelf item — a drink, a meal, a haircut, a night's stay. The embedded worker supplies the type-specific behaviour: what it can act on, how much a customer wants it, what effect it applies once paid for — including, for a stay, a `Thing` it claims for longer than the sale itself. |
+| `CompRentableBed` | `Shops/CompRentableBed.cs` | A bed a guest has paid to sleep in. Passive shared state, exactly like `CompBusiness`'s own staff flag — the guest's own sleep job is what notices it and acts on it, never a handshake with the desk that sold the stay. |
+| `ShopStock` | `Shops/ShopStock.cs` | What's on the shelves, what a given customer would buy, which service a shop can currently perform, and which of its beds are free. |
 | `ShopPricing` | `Shops/ShopPricing.cs` | The only place a price is decided — for goods or a service — so UI, AI and transaction can't disagree. |
 | `ShopTransaction` | `Shops/ShopTransaction.cs` | The single point where silver, goods and service effects move. Re-validates everything. |
 | `TownEconomy` | `Shops/TownEconomy.cs` | `MapComponent`. Shop register, daily ledger, reputation, and `Appeal`. |
 | `JobGiver_BuyFromShop`, `JobDriver_PatronizeBusiness` (`JobDriver_BuyFromShop`, `JobDriver_UseService`) | `AI/` | Customer side: picks a business — goods or a service, whichever scores best — and runs the shared walk/wait/patience shape. |
-| `WorkGiver_/JobDriver_ManShop` | `AI/` | Colonist side. Kind-agnostic: it staffs any `CompBusiness` with something to offer. |
-| `LordJob_ShopVisit`, `LordToil_Shop` | `Lords/` | The visiting group, and per-customer records. |
+| `JobGiver_SleepInRentedBed`, `JobDriver_SleepInRentedBed` | `AI/` | A checked-in guest's other job: go to bed once tired, sleep until rested. Never references the desk or colonist that sold the stay — only `CompRentableBed` and its own `CustomerRecord`. |
+| `WorkGiver_/JobDriver_ManShop` | `AI/` | Colonist side. Kind-agnostic: it staffs any `CompBusiness` with something to offer, a hotel desk included. |
+| `LordJob_ShopVisit`, `LordToil_Shop` | `Lords/` | The visiting group, and per-customer records — including, now, who's checked into a bed. |
 | `IncidentWorker_ShopCustomers` | `Incidents/` | Turns town appeal into arrivals. |
 
 ### Why the lord graph is flat
@@ -121,6 +123,72 @@ service's value is already counted once, as stock — `ServiceValue` only adds t
 no `Thing` behind them at all, so a saloon's beer isn't counted twice for being sellable two
 ways.
 
+### Lodging: a service whose effect outlives the transaction
+
+Renting a room (`OWT_Lodging`, worked by `ServiceWorker_Lodging`) is a service for exactly the
+same reason a haircut is — no `Thing` changes hands, a colonist's time behind the desk is what's
+being sold, and check-in reuses `JobDriver_UseService` / `ShopTransaction.TryServe` completely
+unmodified. What makes it different from every service before it is that paying for it isn't the
+whole experience: paying for a haircut *is* the haircut, but paying for a room is just the
+booking — the stay happens later, unattended, quite possibly after the shopkeeper who sold it
+has gone home for the night.
+
+That gap is bridged by widening `ServiceWorker.ApplyEffect` to return a `Thing` a service has
+claimed for longer than the sale itself. Every worker from before this stage returns `null`;
+`ServiceWorker_Lodging` is the first to return something — the bed it just booked, found by
+`ShopStock.ChooseVacantBed`, which generalizes the same room-or-radius traversal `ScanFor`
+already used for sellable goods into "everything on this floor," filtered by type instead of by
+stock rules. `JobDriver_UseService.CompleteService` is the one place a Shops-layer output
+crosses into Lords-layer state: whatever got claimed, if it's a bed, goes straight onto the
+guest's own `CustomerRecord.rentedBed`. Nothing else in the mod needs to know a stay is a
+two-part transaction.
+
+`CompRentableBed` is the passive comp that remembers the claim — it mirrors `CompBusiness`'s own
+`lastShopkeeper` / `lastStaffedTick` pair on purpose: a plain fact for other code to read, never
+a job, never a reservation. `JobGiver_SleepInRentedBed` and `JobDriver_SleepInRentedBed` are the
+active side: a guest goes to bed once tired, and the driver re-checks every tick that the claim
+is still theirs, using the bed's live occupancy (`Building_Bed.CurOccupants`) rather than
+vanilla bed ownership — deliberately, so a colonist who simply climbs into the same bed is
+caught with no assignment mechanism involved at all. No handshake exists anywhere in this: a bed
+that's destroyed, a bed a colonist takes, and a guest harmed in a raid all end the sleep job the
+same one way — the claim releases, a reputation cost lands if the stay was cut short, and the
+group's own exit trigger notices the claim is gone. A claim that goes stale *before* the guest
+ever starts sleeping (the bed destroyed while they're still out shopping) is cleared by
+`JobGiver_SleepInRentedBed` itself rather than handed to the driver — creating a job whose very
+first toil reads a despawned bed's position is a crash risk, not just a stale-claim one.
+
+A stay is exactly one paid night per transaction. There is no multi-night booking and no
+unstaffed nightly billing: a guest who wants another night simply queues and pays again once
+awake, through the same purchase-repeat machinery every other service already gets for free.
+That also means there is no "can't afford night two" failure mode to design around — it isn't
+reachable.
+
+### Settled in town: the day boundary without a second lord state
+
+An overnight guest needs the group's visit to survive past its base duration, which is the one
+genuinely load-bearing change: `LordJob_ShopVisit` needed a "settled in town" state distinct
+from shopping. It turns out not to need a second `LordToil` — staffing, duties and the harmed
+transition are all identical whether anyone's asleep or not, so a second toil would do nothing a
+`Trigger` couldn't already decide by itself. Instead, the single existing toil is untouched; only
+its exit condition changed. `Trigger_VisitComplete` replaces the flat `Trigger_TicksPassed` and
+additionally requires every currently-owned pawn's `CustomerRecord.rentedBed` to be null. For a
+group with nobody lodging — still the overwhelming majority of visits — this is bit-for-bit the
+same trigger it replaces, since that condition is vacuously true from the first tick. New check-
+ins are cut off once the group's base visit duration has elapsed (`PastCheckInCutoff`), and each
+sleep job carries its own hard tick cap independent of `Need_Rest` ever reporting rested — between
+the two, the trigger is always reachable in finite time. A departed or dead guest's own stale
+claim is excluded from the check entirely (records are never removed from the lord, so a pawn
+who died holding one would otherwise hold the whole group hostage), and `ServiceWorker_Lodging`
+refuses to sell a room to a non-humanlike pawn at all, since nothing would ever make it tired
+enough to check out.
+
+This is also the first time a customer group has members doing genuinely different things at
+once — one pawn asleep in a bed while another is still haggling over the price of a shirt.
+Nothing about that needs the duty think tree to know: `JobGiver_SleepInRentedBed` simply runs
+ahead of `JobGiver_BuyFromShop` in the same `OWT_Shop` duty every pawn in the group already
+carries, and a pawn who isn't tired, or hasn't rented anywhere, falls through to the existing
+logic completely unchanged.
+
 ## The economy loop
 
 ```
@@ -166,9 +234,17 @@ goods loop and the service loop without double-counting; and `_Haircut` (a new *
 business, pure time, a mood thought plus a visible hair change). Bath and Doctor are left as
 XML-only additions once their buildings exist — same seam, no new lesson to teach.
 
-**3. Lodging.** A `CompRentableBed`: customers with no bed of their own pay per night and stay
-across the day boundary. Requires extending the visit duration past one day and giving the
-lord a "settled in town" state.
+**3. Lodging — done.** A hotel is both a `ServiceWorker` (the priced, staffed check-in) and a
+bed comp (`CompRentableBed`, the durable claim no single transaction can hold) — see "Lodging"
+and "Settled in town" above for why it needs both and how the two stay out of each other's way.
+Shipped: `OWT_Hotel`, a fourth business kind (desk + beds), staffed by the existing Shopkeeping
+work type with zero new staffing code; one paid night per transaction, no multi-night
+pre-booking; occupancy on the inspect string and the town ledger, in the same vocabulary as
+everything else there; and a staged `OWT_SleptAtHotel` mood thought, keyed to the room's own
+Impressiveness stat and granted on waking rather than at check-in — the only service in the mod
+whose experience is deferred past payment. Deliberately deferred: multi-night pre-booking,
+unstaffed nightly billing, per-desk room association (any hotel desk currently offers any vacant
+bed on its own sales floor), vanilla bed ownership, and private suites.
 
 **4. Town roles.** Sheriff, barkeep, banker as assignable posts with their own work givers and
 gizmos. A sheriff suppresses the drunk/brawl events a saloon starts generating.
@@ -248,3 +324,26 @@ competitive rather than solitaire.
   involved is confirmed against the real 1.6 reference assembly, but the exact in-game outcome
   (whether a customer visibly gets `AlcoholHigh`, whether a hair change reliably repaints a
   transient visitor) hasn't been confirmed in a live game.
+- Lodging is what makes `Need_Rest`, `Toils_LayDown.LayDown` and `Building_Bed` load-bearing for
+  the first time. Every signature is confirmed against the reference assembly, but not what a
+  non-colonist, lord-controlled pawn's rest gain actually looks like in play, or whether vanilla's
+  own long-need rest-seeking (already enabled for this duty since stage 1) ever wins a race
+  against `JobGiver_SleepInRentedBed` for a tired, housed guest and sends them to some other bed
+  first. `JobDriver_SleepInRentedBed`'s own rested-threshold check and hard tick cap are the
+  backstop either way, but expect to retune both after first play.
+- `OWT_HotelBed`'s `statBases` (`Comfort`, `BedRestEffectiveness`, `RestRateMultiplier`) and
+  `building` fields are plausible values, not ones checked against a real single bed def — this
+  sandbox has no access to Core's Defs XML, only confirmation that the field *names* are real.
+  Worth eyeballing against the player's own installed vanilla bed before shipping.
+- `OWT_SleptAtHotel`'s three stage thresholds (room Impressiveness `< 20` / `< 60` / else) are a
+  tuning guess with no reference point for what a bare bunkroom versus a lavish suite actually
+  scores.
+- A hotel desk reads "a customer is near" (`WorkGiver_ManShop.AnyCustomerNear`) for as long as
+  *any* pawn on the `OWT_Shop` duty is nearby — including one who's currently asleep elsewhere in
+  the same building. That's a pre-existing level of imprecision in that scan (it never checked
+  whether a nearby customer wants *this* shop specifically), not a new correctness bug.
+- Two hotel desks sharing one bunkroom can both offer the same vacant bed to two different guests
+  in the same scoring pass; two guests' JobGivers can likewise both pick the same bed in the same
+  tick. Both are the same class of race this file already accepts for stock — the pre-payment
+  availability recheck in `ShopTransaction.TryServe` closes the paid-then-nothing version of it,
+  and the loser's job fails gracefully with no refund.

@@ -25,7 +25,8 @@ namespace OldWestTown.AI
             TownEconomy econ = pawn.Map.GetComponent<TownEconomy>();
             if (econ == null) return null;
 
-            CustomerRecord record = (pawn.GetLord()?.LordJob as LordJob_ShopVisit)?.RecordFor(pawn);
+            LordJob_ShopVisit lordJob = pawn.GetLord()?.LordJob as LordJob_ShopVisit;
+            CustomerRecord record = lordJob?.RecordFor(pawn);
 
             CompBusiness bestShop = null;
             Thing bestTarget = null;
@@ -59,6 +60,23 @@ namespace OldWestTown.AI
                 // Service candidates — scored on the same footing as goods, no ordering bias.
                 foreach (ServiceDef service in shop.AvailableServices)
                 {
+                    if (service.worker is ServiceWorker_Lodging)
+                    {
+                        // An already-housed guest is never offered a second room, and nobody is
+                        // offered a *new* stay once the visit's base duration has elapsed —
+                        // goods and every other service are unaffected by either guard.
+                        if (record?.rentedBed != null || lordJob?.PastCheckInCutoff == true) continue;
+
+                        // AvailableServices only confirms *some* bed on this floor is vacant,
+                        // customer-agnostically (there's no specific pawn to check reachability
+                        // against at that call site) — the same shape ChooseService already
+                        // has. Goods and stock-consuming services both re-check reachability for
+                        // *this* customer before ever being scored; Lodging needs the same
+                        // check, or paying at the desk could still leave a guest with no bed
+                        // they can actually reach.
+                        if (ShopStock.ChooseVacantBed(shop, pawn) == null) continue;
+                    }
+
                     Thing consumable = null;
                     int price;
                     if (service.worker.ConsumesStock)
