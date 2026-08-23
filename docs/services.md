@@ -1,6 +1,6 @@
 ---
 title: Services
-summary: Drink, meal and haircut — businesses that sell time rather than goods.
+summary: Drink, meal, haircut and lodging — businesses that sell time rather than goods.
 ---
 
 A **service** is something a business sells that isn't an item off a shelf. It is priced, queued
@@ -8,9 +8,9 @@ for and paid for through exactly the same steps as a sale — there just isn't a
 home at the end of it, or, for a haircut, nothing physical involved at all.
 
 Each [business kind](businesses.md) lists the services it offers. A general store offers none; a
-saloon offers two; a barber shop is nothing but one.
+saloon offers two; a barber shop and a hotel are each nothing but one.
 
-## The three that ship
+## The four that ship
 
 ### Drink
 
@@ -61,27 +61,68 @@ The hair change is deliberate: a business that changes nothing visible is a weak
 anything happened. The new style is picked the same way the game picks one when a colonist
 restyles, so it suits the customer's age and gender.
 
+### Lodging
+
+A night's stay at the [hotel](businesses.md#hotel).
+
+| | |
+| --- | --- |
+| Serve time | a few seconds at normal speed — this is just the check-in |
+| Uses up stock | no — it claims a vacant [hotel bed](buildings.md#hotel-bed) instead |
+| Price | a flat **40 silver**, then the shop's markup and the town's reputation |
+| Self-service | **never** — an empty desk can't hand anyone a key |
+| Effect | books the bed; the mood payoff comes later, on waking |
+
+Lodging is the odd one out: paying for it isn't the whole experience. Every other service in this
+list is over the moment it's paid for — the drink is drunk, the hair is cut — but a room is just
+booked at the desk. The stay itself happens later, unattended, once the guest is actually tired,
+possibly long after the colonist who checked them in has gone off shift.
+
+**Checking in.** A guest only books a room once they're a little sleepy, and never while wide
+awake — booking a bed you don't need yet is a weak impulse next to an occasional drink. A desk
+with no vacant bed on its own sales floor has nothing to sell, exactly like a shop with an empty
+shelf. A guest with no need for rest at all (which, in practice, means a non-humanlike visitor)
+never books a room in the first place — nothing would ever make them tired enough to check out,
+which would otherwise strand the whole group in town indefinitely.
+
+**Sleeping it off.** Once genuinely tired, a checked-in guest heads for their bed ahead of any
+more shopping, sleeps until well-rested (or until a generous night's cap runs out regardless), and
+wakes with a mood thought — **staged by the room's own Impressiveness**: a plain bunkroom earns a
+smaller boost than a well-appointed suite. A stay is exactly one paid night: there's no
+pre-booking several nights at once, and a guest who wants another simply queues and pays again
+once they're up.
+
+**Eviction.** A booking can end before the guest ever wakes rested: someone deconstructs the bed,
+a colonist climbs into it, or you use the bed's own **Evict guest** button. However it happens,
+the guest loses the room they already paid for — **no refund** — and it costs the town
+[reputation](economy.md#reputation) exactly like any other walkout. A whole customer group won't
+leave town while any of its members is still checked in, so an evicted guest is free to leave with
+the rest of the party rather than being stuck waiting on a room that no longer exists.
+
 ## Services that consume stock
 
 A drink is the interesting case: a service that still moves goods off the shelf, and so has to
 count as both without being counted twice.
 
-- **Availability.** A service that uses up nothing is available whenever the business offers it.
-  One that uses up stock also needs something matching on display right now — filtered by the
-  same Stock tab you already curate for goods.
+- **Availability.** A service that uses up nothing is normally available whenever the business
+  offers it. One that uses up stock also needs something matching on display right now — filtered
+  by the same Stock tab you already curate for goods. [Lodging](#lodging) is the one exception on
+  the stock-free side: it needs nothing from the Stock tab, but it does need an actual vacant
+  [hotel bed](buildings.md#hotel-bed) somewhere on the desk's sales floor.
 - **Pricing.** A service that uses up stock is priced from whatever it actually consumes. Only a
   service with nothing behind it has a price of its own.
 - **Appeal.** A saloon's beer already counts once, as stock on the shelf. Only services with
   nothing physical behind them add to [appeal](economy.md#appeal) separately, so a bottle isn't
   counted twice for being sellable two ways.
 - **The trip.** A customer buying a drink fetches the bottle first and carries it to the bar; a
-  customer wanting a haircut goes straight to waiting.
+  customer wanting a haircut or a room goes straight to waiting.
 
 ## How a service visit runs
 
 A service visit and a goods purchase are the same four steps:
 
-1. **Fetch** — walk to the item and pick it up. *(Skipped entirely for a haircut.)*
+1. **Fetch** — walk to the item and pick it up. *(Skipped entirely for a haircut or a room —
+   neither has anything to carry.)*
 2. **Walk** to the customer side of the counter.
 3. **Wait to be served.** Patience burns down while the business is unstaffed; being attended
    restores it. Serving has to be **continuous** — a shopkeeper who drifts off halfway through

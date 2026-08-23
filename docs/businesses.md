@@ -1,9 +1,9 @@
 ---
 title: Business kinds
-summary: What a business kind decides, and the three that ship — general store, saloon, barber shop.
+summary: What a business kind decides, and the four that ship — general store, saloon, barber shop, hotel.
 ---
 
-A **business kind** is what a counter *is*: a general store, a saloon, a barber shop. The
+A **business kind** is what a counter *is*: a general store, a saloon, a barber shop, a hotel. The
 building is just furniture; the kind supplies everything that makes one behave differently from
 another — what it stocks by default, what it may charge, how much it draws customers to town,
 how patient those customers are, and which [services](services.md) it offers.
@@ -83,3 +83,24 @@ The only kind that stocks nothing. Its entire trade is one service that uses up 
 makes it the cheapest distinct business you can add to a town — no supply chain, just a
 colonist's time. That also makes it the clearest demonstration of the appeal rule: adding a
 barber to a town of general stores raises appeal more than another store would.
+
+## Hotel
+
+*"A front desk and a row of rented beds. Travellers with nowhere else to sleep pay by the
+night."*
+
+| | |
+| --- | --- |
+| Building | [Hotel desk](buildings.md#hotel-desk) |
+| Customers called | guests |
+| Default markup | **160%**, adjustable 50%–350% |
+| Appeal | 1.3 |
+| Patience | **just over an hour** — the most patient of the four kinds, nearly twice a saloon patron's |
+| Services | [Lodging](services.md#lodging) |
+| Default stock | none — it sells nothing off a shelf |
+
+Like the barber shop, a hotel stocks nothing of its own; unlike every other kind, what it sells
+isn't consumed the moment it's paid for. A guest checks in and pays at the desk, then keeps
+shopping and only heads for a [hotel bed](buildings.md#hotel-bed) once they're actually tired —
+see [lodging](services.md#lodging) for the rest of how a stay plays out. A hotel desk needs a
+vacant bed somewhere on its own sales floor to have anything to sell at all.

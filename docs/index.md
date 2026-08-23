@@ -11,9 +11,11 @@ up with silver and spend it.
 
 Hospitality gets guests onto your map. This is about what they do once they're there.
 
-> **Status:** goods and services both work. A customer arrives, then either picks something off
-> your shelves or orders a drink, a meal or a haircut — queues, and pays either way. The breadth
-> (hotels, banks, stables, town roles) is designed but not built. See the [roadmap](roadmap.md).
+> **Status:** goods and services both work, and the town has a main street to put them on. A
+> customer arrives, then either picks something off your shelves, orders a drink, a meal or a
+> haircut, or checks into a room for the night — queues, and pays either way. Town roles (a
+> sheriff, a dedicated barkeep) and a few more business kinds (banks, stables) are designed but
+> not built. See the [roadmap](roadmap.md).
 
 This mod is standalone. It does not require Hospitality, and is written to sit alongside it.
 

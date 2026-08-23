@@ -12,13 +12,22 @@ how much they carry is a direct result of what you have built.
 | --- | --- |
 | How often | Mostly set by the [appeal clock](economy.md#the-arrival-clock), plus a small background chance |
 | Minimum gap between groups | 0.6 days |
-| Visit length | about 16 in-game hours — a bit over two-thirds of a day |
+| Visit length | about 16 in-game hours — a bit over two-thirds of a day, longer for a group with guests still checked in |
 | Letter | *Customers arriving (N)* |
 
 A group **will not turn up at all** unless town appeal is at least 0.5. That is what makes the
 event feel earned rather than random: no shop worth walking to means no customers.
 
 Group size scales with appeal, and with the *Customer volume* setting.
+
+### Which faction turns up
+
+Every arriving group belongs to some faction, same as a vanilla visitor party — but which faction
+isn't purely random. The town keeps its own **standing** with each faction it has actually done
+business with, separately from the one town-wide [reputation](economy.md#reputation) number, and
+a faction the town has treated well is drawn more often than one it hasn't. See
+[standing with a faction](economy.md#standing-with-a-faction) for the numbers, and the town ledger
+for the two relationships worth knowing about.
 
 ### What they bring
 
@@ -47,6 +56,15 @@ Two things end the visit:
 While they're here, they treat your open businesses as the centre of their visit and range about
 30 tiles around it. They're allowed to eat, drink and sleep between purchases — they're here for
 a day out, not a supply run.
+
+**A group with checked-in guests waits for them.** If anyone in the party has paid for a night at
+the [hotel](businesses.md#hotel), the whole group stays until every rented room is empty — a
+guest still asleep (or one who's booked a room but hasn't gone to bed yet) holds up everyone
+else's ride home, even after the visit's own 16-hour clock has run out. New check-ins stop being
+offered once that clock runs out, so this can't stretch a visit indefinitely: every sleep job has
+its own hard cap regardless of how rested the guest feels, which is what guarantees the group
+eventually leaves. A guest who dies mid-stay, or one who's no longer part of the group for any
+other reason, doesn't hold anyone up.
 
 ### What the game remembers about each of them
 
@@ -112,6 +130,11 @@ reads as one event in the log rather than a screenful.
 Patience is restored, not just paused, whenever the counter is attended — and serving has to be
 *continuous*, so a shopkeeper who drifts off mid-sale starts the sale over rather than resuming
 it.
+
+A checked-in hotel guest doesn't wait out a patience timer the same way — they've already paid,
+and there's nobody to keep waiting for. Losing a room early is an **eviction** instead; see
+[lodging](services.md#lodging) for how one happens, but the cost is the same as a walkout: no
+refund, and a reputation hit.
 
 ### The alert
 

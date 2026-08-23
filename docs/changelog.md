@@ -20,6 +20,19 @@ change itself, and update the [wiki page](contributing.md#the-workflow) it affec
 
 ### Added
 
+- **The wiki now fully covers stages 2, 3, 5 and 6** — services, lodging, per-faction standing,
+  and the main-street content pass. The last three shipped on this branch before the wiki
+  existed, so this is the wiki catching up rather than the mod changing: [hotel desk and hotel
+  bed](buildings.md#hotel-desk), the [hotel business kind](businesses.md#hotel) and its
+  [lodging service](services.md#lodging), [overnight guests](customers.md#which-faction-turns-up)
+  and evictions, [standing with a faction](economy.md#standing-with-a-faction), and
+  [main-street buildings and terrain](buildings.md#main-street) including
+  [curb appeal](economy.md#curb-appeal) — plus the matching rows in the
+  [reference tables](reference.md), the [code map](architecture.md) and its
+  [known risks](architecture.md#known-risks), and new [gallery](art.md) entries for every
+  texture involved. `tools/validate_docs.py`'s `ART_SOURCES` now also watches
+  `Textures/Things/Building/MainStreet` and `Textures/Terrain/Surfaces`, which is what
+  caught the gallery gap in the first place.
 - **This wiki.** A GitHub Pages site under `docs/`, covering every building, business, service
   and system in the mod — [buildings](buildings.md), [business kinds](businesses.md),
   [services](services.md), [the town economy](economy.md), [customers](customers.md),
@@ -119,6 +132,107 @@ Businesses that sell **time**, not just goods. The interesting half of a town.
   room indoors, instead of stacking on one tile.
 - The *Customers waiting* alert counts waiting **customers** while jumping the camera between
   **counters**, and stays silent for a patron whose service honours the self-service setting.
+
+---
+
+## Stage 6 — Old west content pass — 2026-08-23
+
+Boardwalk terrain and five pieces of street furniture, dressing a main street that stages 1–5
+already made functional.
+
+### Added
+
+- **[Boardwalk](buildings.md#boardwalk)** (`OWT_Boardwalk`) terrain: no movement penalty, a
+  couple of points of Beauty, 2 wood a tile.
+- **[False front](buildings.md#false-front)** (`OWT_FalseFront`, `CompFalseFront`,
+  `FalseFrontRegistry`) — the only mechanical piece in the set. Folds a small, capped
+  [curb-appeal](economy.md#curb-appeal) bonus (+0.10 for one qualifying facade near a shop's
+  customer-facing side, +0.15 for two or more) into `ShopPricing.ValueAppeal`, the same function
+  `JobGiver_BuyFromShop` already calls to score every candidate. `FalseFrontRegistry` is a
+  `MapComponent` roster of spawned facades, registered the same way `TownEconomy` registers shops,
+  so the scoring hot path never scans the whole map.
+- **[Hitching post](buildings.md#hitching-post)** (`OWT_HitchingPost`), **[gallows](buildings.md#gallows)**
+  (`OWT_Gallows`, the one deliberately Beauty-negative piece), and **[faro table](buildings.md#faro-table)**
+  (`OWT_FaroTable`, with vanilla's own `CompGatherSpot` so idle colonists gather at it) — all
+  honestly decorative. The faro table deliberately does not gamble; wagering is reserved for the
+  [gambling hall](roadmap.md#beyond-the-staged-plan--thematic-expansions).
+- **[Batwing doors](buildings.md#batwing-doors)** (`OWT_BatwingDoor`) — a reskin of vanilla's own
+  `Door` that also undercuts its `costStuffCount`, so the swinging half-doors genuinely cost less
+  lumber, not just less light-blocking.
+
+---
+
+## Stage 5 — Reputation with depth — 2026-08-23
+
+Split the town's single reputation number into a per-faction dimension, so a faction can become a
+regular.
+
+### Added
+
+- **[Standing with a faction](economy.md#standing-with-a-faction)**: a sparse per-`Faction`
+  `standings` dictionary on `TownEconomy`, alongside the untouched, town-wide `reputation` float.
+  An untracked faction reads as the town's own reputation (`StandingWith`), so an existing save
+  needs nothing seeded. A staffed sale nudges that customer's own faction's standing sharply
+  upward (`FactionStandingSaleDelta`, +0.05); any walkout, hotel eviction included, nudges it
+  sharply downward (`FactionStandingWalkoutDelta`, −0.10); a self-service sale touches only the
+  town-wide number, exactly as before. Standing decays toward the town's own name at the same 5%
+  daily rate reputation itself does.
+- **Which faction arrives is now biased by standing.** `IncidentWorker_ShopCustomers` lets
+  vanilla's own `TryResolveParms` run to completion untouched, then re-picks the faction
+  afterward by weighted draw over `ArrivalWeight` (`lerp(0.15, 3, standing)`) — never by
+  pre-seeding `parms.faction`, since `TryResolveParms` is confirmed non-virtual and whether it
+  would honor a pre-set faction can't be proven from reference-assembly metadata alone.
+  `IsEligibleFaction` excludes the player, hostile factions, and anyone with no settlement to
+  actually send customers from.
+- **The town ledger** names the single best and worst *recorded* relationship
+  (`OWT_LedgerRegularLine`, `OWT_LedgerColdLine`) once either has genuinely diverged from the
+  town's own reputation by more than `LedgerStandingDivergenceThreshold` (0.1), and stays silent
+  otherwise — a fresh game's ledger is unchanged.
+
+### Save compatibility
+
+- An existing save has no `standings` node at all; every faction it already knew about simply
+  starts exactly where its own reputation number already put it.
+
+---
+
+## Stage 3 — Lodging — 2026-08-23
+
+Rentable beds: guests who pay for a room up front and stay past midnight.
+
+### Added
+
+- **[Hotel desk](buildings.md#hotel-desk)** (`OWT_HotelDesk`) and **[hotel bed](buildings.md#hotel-bed)**
+  (`OWT_HotelBed`, `CompRentableBed`) — a fourth business kind, **[hotel](businesses.md#hotel)**
+  (`OWT_Hotel`), staffed by the existing Shopkeeping work type with no new staffing code at all.
+- **[Lodging](services.md#lodging)** (`OWT_Lodging`, `ServiceWorker_Lodging`): the first service
+  whose effect outlives the transaction. Check-in reuses `JobDriver_UseService` /
+  `ShopTransaction.TryServe` completely unmodified; `ServiceWorker_Lodging.ApplyEffect` is the
+  first worker to return a `Thing` — the bed it just booked via `ShopStock.ChooseVacantBed` — for
+  `JobDriver_UseService.CompleteService` to hand to the guest's own `CustomerRecord.rentedBed`.
+  One paid night per transaction; no multi-night pre-booking, no unstaffed nightly billing.
+- **`JobGiver_SleepInRentedBed` / `JobDriver_SleepInRentedBed`** (jobs `OWT_ServeLodging`,
+  `OWT_SleepInRentedBed`): a checked-in guest heads to bed once genuinely tired, sleeps until
+  rested (or a hard tick cap), and gains the **`OWT_SleptAtHotel`** mood thought — staged by the
+  room's own Impressiveness, and granted on waking rather than at check-in, the only service in
+  the mod whose experience is deferred past payment.
+- **`Trigger_VisitComplete`** replaces `LordJob_ShopVisit`'s flat `Trigger_TicksPassed`: the group
+  can't leave town while any member's `CustomerRecord.rentedBed` is still set. For a group with
+  nobody lodging — still the overwhelming majority of visits — this is bit-for-bit the trigger it
+  replaces. New check-ins are cut off once the group's base visit duration has elapsed
+  (`PastCheckInCutoff`), so this can't stretch a visit indefinitely.
+- **Eviction**: a bed's own **Evict guest** gizmo, a deconstructed bed, or a colonist simply
+  climbing into an occupied one all end a stay the same way — no refund, and the same reputation
+  hit as a walkout (`OWT_GuestEvicted`).
+- Inspect-pane additions: a hotel desk's **Rooms** line (`OWT_RoomsLine`, vacant of total), and a
+  hotel bed's occupant / **Evict guest** button (`OWT_BedVacant`, `OWT_BedOccupiedBy`,
+  `OWT_CmdEvictGuest`).
+
+### Deliberately deferred
+
+- Multi-night pre-booking, unstaffed nightly billing, per-desk room association (any hotel desk
+  currently offers any vacant bed on its own sales floor), vanilla bed ownership, and private
+  suites.
 
 ---
 
