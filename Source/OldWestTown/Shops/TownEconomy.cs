@@ -112,6 +112,13 @@ namespace OldWestTown.Shops
             reputation = Mathf.Clamp01(reputation - 0.02f);
         }
 
+        /// <summary>A saloon boiling over costs the town more than one shrugged-off walkout —
+        /// word of an actual disturbance travels further than word of slow service.</summary>
+        public void RecordDisturbance()
+        {
+            reputation = Mathf.Clamp01(reputation - 0.05f);
+        }
+
         public override void MapComponentTick()
         {
             base.MapComponentTick();

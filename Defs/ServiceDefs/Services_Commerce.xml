@@ -12,6 +12,9 @@
     <worker Class="OldWestTown.Shops.ServiceWorker_Ingest">
       <foodType>Liquor</foodType>
       <needHook>Joy</needHook>
+      <!-- The one service in the mod that generates trouble — see TroubleUtility. Meal leaves
+           this at its default of zero: a hot meal doesn't make anyone rowdier. -->
+      <rowdinessPerServing>0.2</rowdinessPerServing>
     </worker>
   </OldWestTown.Shops.ServiceDef>
 

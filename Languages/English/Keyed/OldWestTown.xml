@@ -66,4 +66,17 @@
   <OWT_FalseFrontAdvertising>Currently advertising for: {0}</OWT_FalseFrontAdvertising>
   <OWT_FalseFrontIdle>No open shop nearby to advertise for</OWT_FalseFrontIdle>
 
+  <!-- Sheriff's office: assignment gizmo and inspect panel -->
+  <OWT_CmdAssignSheriff>Assign sheriff</OWT_CmdAssignSheriff>
+  <OWT_CmdAssignSheriffDesc>Assign a colonist to hold this post as sheriff. While they're on duty here, saloon patrons town-wide get rowdy more slowly, and the sheriff can step in to calm a specific patron down before they cause a disturbance.</OWT_CmdAssignSheriffDesc>
+  <OWT_PostVacant>No sheriff assigned</OWT_PostVacant>
+  <OWT_PostOnDuty>Sheriff: {0} (on duty)</OWT_PostOnDuty>
+  <OWT_PostOffDuty>Sheriff: {0} (off duty)</OWT_PostOffDuty>
+
+  <!-- Saloon trouble -->
+  <OWT_SaloonTrouble>{0} caused a scene at {1}. Word of the disturbance spreads, and they've had enough for one visit.</OWT_SaloonTrouble>
+  <OWT_DisturbanceLine>Disturbances today: {0}</OWT_DisturbanceLine>
+  <OWT_AlertRowdyPatrons>Rowdy patrons ({0})</OWT_AlertRowdyPatrons>
+  <OWT_AlertRowdyPatronsDesc>A patron is getting loud at a saloon. If nothing steps in, it will turn into a disturbance — losing you their custom for the rest of their visit and hurting the town's reputation. An assigned, on-duty sheriff can calm them down first.</OWT_AlertRowdyPatronsDesc>
+
 </LanguageData>

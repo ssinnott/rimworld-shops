@@ -28,6 +28,11 @@ namespace OldWestTown.AI
             LordJob_ShopVisit lordJob = pawn.GetLord()?.LordJob as LordJob_ShopVisit;
             CustomerRecord record = lordJob?.RecordFor(pawn);
 
+            // A customer who caused a disturbance is done spending for this visit — the same
+            // "legible consequence, no second pawn involved" shape a walkout already has. They
+            // fall through to the duty's own wander node for the rest of their stay.
+            if (record != null && record.causedTrouble) return null;
+
             CompBusiness bestShop = null;
             Thing bestTarget = null;
             int bestCount = 0;

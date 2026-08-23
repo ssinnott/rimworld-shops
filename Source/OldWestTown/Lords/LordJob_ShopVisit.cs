@@ -23,6 +23,12 @@ namespace OldWestTown.Lords
         /// to decide whether the whole group can leave yet.</summary>
         public Thing rentedBed;
 
+        /// <summary>Set once by TroubleUtility.Notify_ServiceRound if this customer tipped a
+        /// saloon into a disturbance. JobGiver_BuyFromShop reads it to stop offering them
+        /// anything else for the rest of the visit — the same legible consequence a walkout
+        /// already has, just for a different cause.</summary>
+        public bool causedTrouble;
+
         public void ExposeData()
         {
             Scribe_Values.Look(ref spent, "spent");
@@ -31,6 +37,7 @@ namespace OldWestTown.Lords
             Scribe_Values.Look(ref walkouts, "walkouts");
             Scribe_Collections.Look(ref refusedShops, "refusedShops", LookMode.Reference);
             Scribe_References.Look(ref rentedBed, "rentedBed");
+            Scribe_Values.Look(ref causedTrouble, "causedTrouble");
             if (Scribe.mode == LoadSaveMode.PostLoadInit && refusedShops == null)
             {
                 refusedShops = new List<Thing>();

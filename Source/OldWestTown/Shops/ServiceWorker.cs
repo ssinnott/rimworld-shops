@@ -22,6 +22,11 @@ namespace OldWestTown.Shops
         /// or leaves it to StockValue, and the staffing/appeal gate.</summary>
         public virtual bool ConsumesStock => false;
 
+        /// <summary>How much one round of this service riles up a rowdy customer (see
+        /// TroubleUtility.Notify_ServiceRound), before the sheriff/shopkeeper mitigation factors
+        /// apply. Zero for every service but Drink.</summary>
+        public virtual float RowdinessPerUse => 0f;
+
         /// <summary>For a stock-consuming service: does this Thing qualify? Never called
         /// otherwise.</summary>
         public virtual bool CanUse(Thing t) => false;
@@ -65,7 +70,13 @@ namespace OldWestTown.Shops
         /// <summary>Which need this feeds, for Desirability scoring.</summary>
         public ServiceNeedHook needHook = ServiceNeedHook.None;
 
+        /// <summary>XML dial for how much one round riles up a rowdy customer — only OWT_Drink's
+        /// worker sets this above zero; OWT_Meal leaves it at the default.</summary>
+        public float rowdinessPerServing = 0f;
+
         public override bool ConsumesStock => true;
+
+        public override float RowdinessPerUse => rowdinessPerServing;
 
         public override bool CanUse(Thing t)
         {

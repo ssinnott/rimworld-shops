@@ -74,6 +74,11 @@ BUILDINGS = {
         cells=(1, 2), body=(96, 66, 40), edge=(54, 36, 22),
         surface=(214, 205, 186), accent=None),
 
+    # Town roles (stage 4). A gunmetal body with a badge-gold accent stripe.
+    "Roles/SheriffOffice": dict(
+        cells=(2, 1), body=(70, 65, 60), edge=(35, 32, 28),
+        surface=(110, 102, 92), accent=(180, 150, 60)),
+
     # Street furniture (stage 6). cells is the def's actual footprint; draw_cells, where
     # given, is what gets drawn instead — the false front is drawn taller than it stands on.
     "MainStreet/FalseFront": dict(

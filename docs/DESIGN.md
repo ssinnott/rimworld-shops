@@ -60,10 +60,13 @@ hotel clerk, a bank teller, a gambling dealer) should use the same shape.
 | `CompFalseFront` | `Shops/CompFalseFront.cs` | A false front's one mechanical hook: `CurbAppealBonus` folds a small, capped bonus for a nearby dressed-up storefront into `ShopPricing.ValueAppeal`. Walks `FalseFrontRegistry` rather than the map, since `ValueAppeal` is a customer-AI hot path. Nothing here is persisted. |
 | `FalseFrontRegistry` | `Shops/FalseFrontRegistry.cs` | `MapComponent`. Live roster of spawned `CompFalseFront`s, registered the same way `TownEconomy` registers shops — so curb-appeal scoring never has to scan every Thing on the map. |
 | `TownEconomy` | `Shops/TownEconomy.cs` | `MapComponent`. Shop register, daily ledger, reputation, and `Appeal`. |
+| `CompRolePost` | `Roles/CompRolePost.cs` | A named post one specific colonist holds — vanilla's own `CompAssignableToPawn`, narrowed to free colonists and given a passive on-duty flag. Distinct from Shopkeeping, which is a priority any colonist can pick up, not an identity. |
+| `TroubleUtility` | `Roles/TroubleUtility.cs` | The saloon's one mechanical hook into town roles: bumps a customer's `OWT_Rowdy` hediff per drink served, halves the climb for an on-duty sheriff or a skilled shopkeeper, and turns a topped-out hediff into a scripted disturbance — see "Town roles" below. |
 | `JobGiver_BuyFromShop`, `JobDriver_PatronizeBusiness` (`JobDriver_BuyFromShop`, `JobDriver_UseService`) | `AI/` | Customer side: picks a business — goods or a service, whichever scores best — and runs the shared walk/wait/patience shape. |
 | `JobGiver_SleepInRentedBed`, `JobDriver_SleepInRentedBed` | `AI/` | A checked-in guest's other job: go to bed once tired, sleep until rested. Never references the desk or colonist that sold the stay — only `CompRentableBed` and its own `CustomerRecord`. |
 | `WorkGiver_/JobDriver_ManShop` | `AI/` | Colonist side. Kind-agnostic: it staffs any `CompBusiness` with something to offer, a hotel desk included. |
-| `LordJob_ShopVisit`, `LordToil_Shop` | `Lords/` | The visiting group, and per-customer records — including, now, who's checked into a bed. |
+| `WorkGiver_/JobDriver_Patrol`, `WorkGiver_/JobDriver_CalmTrouble` | `AI/` | The sheriff's two suppression jobs: stand the post ambiently, or walk up to one specific rowdy patron and calm them down reactively. Both gated on being the specifically assigned sheriff, never on any colonist with a Sheriffing priority. |
+| `LordJob_ShopVisit`, `LordToil_Shop` | `Lords/` | The visiting group, and per-customer records — including, now, who's checked into a bed and who's caused trouble. |
 | `IncidentWorker_ShopCustomers` | `Incidents/` | Turns town appeal into arrivals. |
 
 ### Why the lord graph is flat
@@ -191,6 +194,56 @@ ahead of `JobGiver_BuyFromShop` in the same `OWT_Shop` duty every pawn in the gr
 carries, and a pawn who isn't tired, or hasn't rented anywhere, falls through to the existing
 logic completely unchanged.
 
+### Town roles: a badge, not a work type
+
+Shopkeeping already answers "who works this counter" for any counter — it's a priority, not an
+identity, and any colonist who has it can staff any business. A *role* has to answer a different
+question: which colonist, specifically. `CompRolePost` answers it by being a thin subclass of
+vanilla's own `CompAssignableToPawn` — the same base class a throne room, a grave or a meditation
+spot already build "this pawn, and only this pawn, owns this" on, rather than a bespoke
+assignment system invented for this mod. It needs almost no code of its own: reflection against
+the real 1.6 assemblies confirms `CompAssignableToPawn` isn't abstract, `AssigningCandidates` is
+the only member worth overriding (narrowed here to free colonists), and `MaxAssignedPawnsCount`
+is a plain, non-virtual property — the one-sheriff-per-office limit is set with an XML field
+(`<maxAssignedPawnsCount>`), not an override, because the property genuinely can't be overridden.
+
+Two of the three roles the roadmap once named didn't survive being asked "does this add
+something beyond a work priority?" **Barkeep** folds into the existing Shopkeeping loop as a
+Social-skill factor on the saloon's own trouble math (see below) rather than a second badge —
+there was nothing left for a separate post to do. **Banker** is cut outright: there's no bank yet
+to be a banker of. **Sheriff** is the one role that clears the bar, because the roadmap gave it an
+actual mechanic — suppressing trouble a saloon generates — and that trouble didn't exist before
+this stage either, so it had to be built alongside the badge, not after.
+
+`OWT_Rowdy` is a bespoke hediff, deliberately not vanilla's own `AlcoholHigh` (a system this mod
+doesn't own, and can't cleanly reach into to calm someone down) and deliberately not a real
+`MentalState_SocialFighting` (whose opponent-selection and harmed-transition timing this mod
+doesn't control either — if it resolves near-instantly, the sheriff's whole suppression window
+collapses to nothing). A drink service bumps it (`ServiceWorker.RowdinessPerUse`, read by
+`TroubleUtility.Notify_ServiceRound` from inside `JobDriver_UseService.CompleteService` — the one
+place a shop and its customer are already local variables in scope, so no periodic scan or
+tracked reference is needed); vanilla's own `HediffCompProperties_SeverityPerDay` decays it back
+down on its own, with no custom `HediffComp` anywhere in this. Crossing the top stage fires a
+scripted disturbance — a message, a reputation hit, a per-shop counter, and the offender stops
+buying for the rest of their visit — and resets severity to zero in the very same call. That's
+also why the top stage is never the sheriff's target: nothing outside `Notify_ServiceRound` can
+ever observe it before it's gone. The stage below it ("getting loud") is the real, designed
+window, and `TroubleUtility.IsWorthCalming` is what the sheriff's reactive job scans for.
+
+Suppression is two read-only checks, both gated on `TroubleUtility.IsAssignedSheriff` — the
+specific badge-holder, never "anyone with a Sheriffing priority" — and neither is a handshake.
+Ambient: `JobDriver_Patrol` calls `CompRolePost.NotifyOnDuty` every tick it stands the post, the
+same shape `CompBusiness.NotifyStaffedBy` already established, and while any office reads
+`OnDuty` the accrual rate is halved map-wide. Reactive: `JobDriver_CalmTrouble` walks up to one
+specific rowdy pawn and unilaterally zeroes their severity. The patron's own job never
+references a sheriff and has no idea one exists; if the sheriff is drafted, downed, or
+reassigned mid-walk, that patron's rowdiness simply keeps accruing or decaying on its own passive
+schedule — the same failure shape an unattended counter already has for a customer waiting on a
+shopkeeper who wandered off. The disturbance itself never involves a second pawn either: no
+fight, no mental break, just a scripted event resolved entirely through the same shared
+comp/economy state (`CompBusiness`, `TownEconomy`, `CustomerRecord`) every other transaction in
+this mod already reads and writes.
+
 ## The economy loop
 
 ```
@@ -248,8 +301,14 @@ whose experience is deferred past payment. Deliberately deferred: multi-night pr
 unstaffed nightly billing, per-desk room association (any hotel desk currently offers any vacant
 bed on its own sales floor), vanilla bed ownership, and private suites.
 
-**4. Town roles.** Sheriff, barkeep, banker as assignable posts with their own work givers and
-gizmos. A sheriff suppresses the drunk/brawl events a saloon starts generating.
+**4. Town roles — done.** One role shipped, not three — see "Town roles" above for why Barkeep
+and Banker didn't clear the bar. **Sheriff** is a badge (`CompRolePost`, on a new, comp-only
+`OWT_SheriffOffice` building) assignable the same way a throne room or a grave already is, and
+it suppresses a saloon's own newly-added trouble mechanic (`OWT_Rowdy`, a bespoke hediff — not a
+vanilla mental state) two ways: halving how fast it climbs while on duty, and a reactive job that
+walks up to a specific patron and calms them down before they boil over into a scripted
+disturbance. Neither path is a handshake, and the disturbance itself never involves a second
+pawn.
 
 **5. Reputation with depth.** Split the single reputation float into per-faction standing, so
 specific factions become regulars. Feeds arrival frequency by faction.
@@ -369,3 +428,25 @@ competitive rather than solitaire.
   its actual pull on idle colonists is unconfirmed in a live game. The false front's curb-appeal
   numbers (+0.10 / +0.15, a 7-tile radius) are a first-pass estimate and want a playtest to
   confirm they nudge trade rather than doing nothing or dominating price.
+- Every tuning constant Town roles introduces — `rowdinessPerServing` (0.2), `OWT_Rowdy`'s decay
+  (-0.5/day) and stage thresholds (0 / 0.5 / 1.0), the sheriff-on-duty and shopkeeper-skill
+  factors (both 0.5×), `TownEconomy.RecordDisturbance`'s reputation debit (-0.05), and the
+  calm-down job's wait duration — is a first-pass guess, exactly like every other constant this
+  mod has shipped with. Expect retuning once a sheriff is actually watching a busy saloon.
+- `OWT_CalmDownPatron`'s higher `priorityInType` than `OWT_PatrolPost` is meant to make a sheriff
+  break off an ambient patrol to go calm a specific patron down first. Whether a higher
+  `priorityInType` really does outrank a lower one for an in-progress job, and how often a
+  running job gets reconsidered against a WorkGiver scan at all, are scheduling behaviours, not
+  type signatures — unconfirmed here the same way every other job-driver timing question in this
+  file is.
+- This mod has never targeted a `Pawn`, rather than a building, item, or cell, from a `WorkGiver`
+  before. `JobDriver_CalmTrouble` reserving and reaching a moving, lord-controlled pawn is
+  API-compatible (`ReservationUtility.CanReserveAndReach`/`.Reserve` both take a generic
+  `LocalTargetInfo`), but the reservation's release behaviour if the target despawns, dies, or
+  the customer group leaves mid-reservation wants first-play confirmation.
+- Whether one sheriff's throughput keeps pace with a busy, multi-drinker saloon — is the "getting
+  loud" window wide enough relative to how often `WorkGiver_CalmTrouble` gets reconsidered — is a
+  balance question no static check answers. If it's too narrow, disturbances will still fire with
+  a sheriff assigned and nominally on duty.
+- `OWT_SheriffOffice`'s texture is generated art from `tools/make_textures.py`'s shared recipe,
+  same as every other building in this mod, not hand-checked against anything.

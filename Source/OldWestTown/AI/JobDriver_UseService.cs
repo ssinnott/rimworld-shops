@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using OldWestTown.Lords;
+using OldWestTown.Roles;
 using OldWestTown.Shops;
 using RimWorld;
 using Verse;
@@ -110,6 +111,8 @@ namespace OldWestTown.AI
                     // depends on both, so it's the natural seam rather than a new one.
                     if (claimed is Building_Bed bed) record.rentedBed = bed;
                 }
+
+                TroubleUtility.Notify_ServiceRound(pawn, shop, service.worker.RowdinessPerUse);
             };
             return toil;
         }

@@ -6,13 +6,14 @@ spend it.
 
 Hospitality gets guests onto your map. This is about what they do once they're there.
 
-**Status: goods, services and lodging all work, on a street that looks the part.** A customer
-arrives, then either picks something off your shelves, orders a drink, a meal or a haircut, or
-checks into a hotel room for the night — queues, and pays either way. A guest who rents a room
-stays until they've slept it off, so the whole visit can now run past a single day. There's
-boardwalk to lay and a false front to nail over your store while you wait for them. Town roles
-and per-faction standing (banks, stables, a sheriff) are designed but not built; see
-[docs/DESIGN.md](docs/DESIGN.md) for the architecture and the staged plan.
+**Status: goods, services, lodging and a sheriff all work, on a street that looks the part.** A
+customer arrives, then either picks something off your shelves, orders a drink, a meal or a
+haircut, or checks into a hotel room for the night — queues, and pays either way. A guest who
+rents a room stays until they've slept it off, so the whole visit can now run past a single day.
+Leave a saloon unwatched long enough and it starts real trouble; assign a sheriff to keep the
+peace. There's boardwalk to lay and a false front to nail over your store while you wait for
+them. Per-faction standing is designed but not built; see [docs/DESIGN.md](docs/DESIGN.md) for
+the architecture and the staged plan.
 
 This mod is standalone. It does not require Hospitality, and is written to sit alongside it.
 
@@ -53,6 +54,14 @@ This mod is standalone. It does not require Hospitality, and is written to sit a
   and its own *Evict guest* gizmo; hotels show their room occupancy alongside every other
   counter's stock and services. A guest whose bed is taken out from under them (deconstructed,
   or claimed by a colonist) is evicted outright — no refund, and word gets around.
+- **A saloon that can turn ugly, and a sheriff to keep the peace.** Every round of drinks a
+  saloon serves makes that patron a little rowdier; leave it unwatched long enough and it boils
+  over into a real disturbance — a reputation hit, a message, and that patron is done spending
+  for the rest of their visit. Build a **sheriff's office** and assign a colonist to it, the same
+  way you'd assign an owner to a throne or a grave, to push back: on duty, they slow down how
+  fast the whole town's patrons get rowdy, and can walk over and calm a specific patron down
+  before it's too late. A skilled shopkeeper behind the bar helps too — an unstaffed saloon gets
+  no such discount, same as everywhere else in this mod.
 - **A main street that looks like one.** Boardwalk underfoot, false-front facades, a hitching
   post, batwing doors, a faro table and a gallows — all under the same Commerce category and
   Frontier commerce research. A false front is the one with teeth: it gives a shop a small,
@@ -91,6 +100,13 @@ desk, and a tired traveller with money to spare will pay for the night and go fi
 They sleep until rested, so don't be surprised if some of a customer group is still in town well
 past when the rest have gone home — the whole visit now waits for every rented room to empty out
 before anyone leaves.
+
+A saloon left to run itself eventually gets rowdy — build a **sheriff's office** and assign a
+colonist to it from the office's own gizmo to keep the peace. Unlike Shopkeeping, that colonist
+also needs a **Sheriffing** priority in the Work tab — being assigned is who holds the post,
+the work priority is whether they're currently out there doing it, same as any other job. While
+they're on duty, patrons town-wide get rowdy more slowly; if one starts "getting loud" anyway,
+the sheriff can break off and walk over to calm them down before it turns into a disturbance.
 
 ## Building from source
 

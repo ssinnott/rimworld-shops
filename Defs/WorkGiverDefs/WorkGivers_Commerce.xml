@@ -16,4 +16,37 @@
     <prioritizeSustains>true</prioritizeSustains>
   </WorkGiverDef>
 
+  <!-- Ambient half of suppression: stand the post so CompRolePost.OnDuty reads true. Mirrors
+       OWT_ManShopCounter's own shape closely — see WorkGiver_Patrol. -->
+  <WorkGiverDef>
+    <defName>OWT_PatrolPost</defName>
+    <label>patrol sheriff's office</label>
+    <giverClass>OldWestTown.AI.WorkGiver_Patrol</giverClass>
+    <workType>OWT_Sheriffing</workType>
+    <verb>patrol</verb>
+    <gerund>patrolling</gerund>
+    <priorityInType>100</priorityInType>
+    <requiredCapacities>
+      <li>Manipulation</li>
+      <li>Talking</li>
+    </requiredCapacities>
+    <prioritizeSustains>true</prioritizeSustains>
+  </WorkGiverDef>
+
+  <!-- Reactive half: a higher priorityInType than OWT_PatrolPost, so a sheriff already on
+       patrol is meant to break off for a patron who needs calming down first. -->
+  <WorkGiverDef>
+    <defName>OWT_CalmDownPatron</defName>
+    <label>calm down patron</label>
+    <giverClass>OldWestTown.AI.WorkGiver_CalmTrouble</giverClass>
+    <workType>OWT_Sheriffing</workType>
+    <verb>calm</verb>
+    <gerund>calming down</gerund>
+    <priorityInType>200</priorityInType>
+    <requiredCapacities>
+      <li>Manipulation</li>
+      <li>Talking</li>
+    </requiredCapacities>
+  </WorkGiverDef>
+
 </Defs>

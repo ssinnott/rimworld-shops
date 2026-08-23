@@ -61,6 +61,8 @@ namespace OldWestTown.Shops
         public int lifetimeSales;
         public int lifetimeRevenue;
         public int walkoutsToday;
+        public int disturbancesToday;
+        public int lifetimeDisturbances;
 
         private List<Thing> cachedStock = new List<Thing>();
         private int cachedStockTick = -99999;
@@ -350,6 +352,15 @@ namespace OldWestTown.Shops
             walkoutsToday++;
         }
 
+        /// <summary>A saloon-only concern today (see TroubleUtility), but kept here rather than
+        /// on a saloon-specific type — the same reasoning RecordSale/RecordWalkout already
+        /// follow for every other kind-agnostic counter.</summary>
+        public void RecordDisturbance()
+        {
+            disturbancesToday++;
+            lifetimeDisturbances++;
+        }
+
         /// <summary>
         /// At most one walkout message per counter per patience-window, so a whole group
         /// giving up at once reads as one event in the log, not a flood.
@@ -368,6 +379,7 @@ namespace OldWestTown.Shops
             salesToday = 0;
             revenueToday = 0;
             walkoutsToday = 0;
+            disturbancesToday = 0;
         }
 
         // ---------------------------------------------------------------- lifecycle
@@ -413,6 +425,8 @@ namespace OldWestTown.Shops
             Scribe_Values.Look(ref lifetimeSales, "lifetimeSales");
             Scribe_Values.Look(ref lifetimeRevenue, "lifetimeRevenue");
             Scribe_Values.Look(ref walkoutsToday, "walkoutsToday");
+            Scribe_Values.Look(ref disturbancesToday, "disturbancesToday");
+            Scribe_Values.Look(ref lifetimeDisturbances, "lifetimeDisturbances");
             Scribe_References.Look(ref lastShopkeeper, "lastShopkeeper");
 
             if (Scribe.mode == LoadSaveMode.PostLoadInit)
@@ -451,6 +465,10 @@ namespace OldWestTown.Shops
             {
                 int total = ShopStock.CountBeds(this, out int vacant);
                 sb.AppendLine("OWT_RoomsLine".Translate(vacant, total));
+            }
+            if (Kind != null && Kind.services.Any(sd => sd.worker.RowdinessPerUse > 0f))
+            {
+                sb.AppendLine("OWT_DisturbanceLine".Translate(disturbancesToday));
             }
             sb.AppendLine("OWT_MarkupLine".Translate(Markup.ToStringPercent()));
             sb.Append("OWT_TillLine".Translate(((float)TillSilver).ToStringMoney(), ((float)revenueToday).ToStringMoney()));
@@ -545,6 +563,10 @@ namespace OldWestTown.Shops
                 {
                     int total = ShopStock.CountBeds(shop, out int vacant);
                     sb.AppendLine("OWT_RoomsLine".Translate(vacant, total));
+                }
+                if (shop.Kind != null && shop.Kind.services.Any(sd => sd.worker.RowdinessPerUse > 0f))
+                {
+                    sb.AppendLine("OWT_DisturbanceLine".Translate(shop.disturbancesToday));
                 }
             }
             return sb.ToString().TrimEndNewlines();
