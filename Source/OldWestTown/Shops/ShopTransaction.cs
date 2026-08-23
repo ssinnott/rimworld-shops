@@ -45,13 +45,14 @@ namespace OldWestTown.Shops
 
             if (purse < price)
             {
-                // Trim the order down to what they can actually pay for rather than
-                // sending them away empty-handed over a rounding difference.
-                int unit = ShopPricing.PriceFor(shop, goods, 1);
-                if (unit <= 0 || purse < unit) return Result.CannotAfford;
-                count = Mathf.Min(count, purse / unit);
+                // Trim the order to what they can actually pay for rather than sending them away
+                // empty-handed over a rounding difference. Same rule the AI sized the order with,
+                // which is why this converges instead of re-deriving the same unaffordable total.
+                // Whatever is trimmed off stays unpaid in the customer's hands, and the driver's
+                // finish action puts it back on the floor.
+                count = ShopPricing.MaxAffordable(shop, goods, purse, count);
+                if (count <= 0) return Result.CannotAfford;
                 price = ShopPricing.PriceFor(shop, goods, count);
-                if (count <= 0 || purse < price) return Result.CannotAfford;
             }
 
             if (!TakeSilver(customer, price, shop)) return Result.CannotAfford;

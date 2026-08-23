@@ -69,9 +69,13 @@ namespace OldWestTown.Shops
 
         /// <summary>
         /// Picks what a given customer would like to buy from this shop, or null if nothing here
-        /// tempts them or nothing is within their means.
+        /// tempts them or nothing is within their means. <paramref name="skipDefs"/> is what this
+        /// particular customer has already given up on here — passing it in, rather than filtering
+        /// the winner afterwards, is what lets the runner-up stack win instead of the shop dropping
+        /// out of the running entirely.
         /// </summary>
-        public static Thing ChoosePurchase(CompBusiness shop, Pawn customer, int budget, out int count)
+        public static Thing ChoosePurchase(CompBusiness shop, Pawn customer, int budget, out int count,
+            List<ThingDef> skipDefs = null)
         {
             count = 0;
             List<Thing> stock = shop.StockOnDisplay;
@@ -85,14 +89,12 @@ namespace OldWestTown.Shops
             {
                 Thing t = stock[i];
                 if (!t.Spawned || t.Destroyed) continue;
-
-                int unitPrice = ShopPricing.PriceFor(shop, t, 1);
-                if (unitPrice > budget) continue;
+                if (skipDefs != null && skipDefs.Contains(t.def)) continue;
 
                 // Buy as much of the stack as they can afford, capped so one shopper can't
                 // strip a shelf in a single visit.
-                int affordable = unitPrice > 0 ? budget / unitPrice : 0;
-                int wanted = Mathf.Clamp(affordable, 1, Mathf.Min(t.stackCount, MaxUnitsPerPurchase(t)));
+                int cap = Mathf.Min(t.stackCount, MaxUnitsPerPurchase(t));
+                int wanted = ShopPricing.MaxAffordable(shop, t, budget, cap);
                 if (wanted <= 0) continue;
 
                 if (!customer.CanReach(t, PathEndMode.ClosestTouch, Danger.Deadly)) continue;

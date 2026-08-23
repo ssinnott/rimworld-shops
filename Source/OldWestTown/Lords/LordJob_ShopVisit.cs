@@ -17,6 +17,46 @@ namespace OldWestTown.Lords
         /// <summary>Shops this customer has already given up on, so they don't queue there again.</summary>
         public List<Thing> refusedShops = new List<Thing>();
 
+        /// <summary>
+        /// Goods this customer tried to buy at a given business and couldn't, as (business, def)
+        /// pairs, so a rejected sale costs one trip instead of repeating for the rest of the visit.
+        ///
+        /// Keyed on the def rather than the stack: the goods a customer carries to the counter are
+        /// split off the shelf stack, so the Thing that fails the sale is not the Thing the shelf
+        /// scan offers up next time — and a split-off pile is routinely absorbed back into its
+        /// parent and destroyed, which a saved Thing reference would not survive. Every stack of a
+        /// def on one counter's floor prices identically anyway, so the def is the honest key.
+        /// </summary>
+        private List<Thing> refusedGoodsShops = new List<Thing>();
+        private List<ThingDef> refusedGoodsDefs = new List<ThingDef>();
+
+        /// <summary>Remember that <paramref name="def"/> would not sell at <paramref name="business"/>.</summary>
+        public void RefuseGoods(Thing business, ThingDef def)
+        {
+            if (business == null || def == null) return;
+            for (int i = 0; i < refusedGoodsShops.Count; i++)
+            {
+                if (refusedGoodsShops[i] == business && refusedGoodsDefs[i] == def) return;
+            }
+            refusedGoodsShops.Add(business);
+            refusedGoodsDefs.Add(def);
+        }
+
+        /// <summary>What this customer has given up on at <paramref name="business"/>, or null if
+        /// nothing — null rather than an empty list because the job giver asks once per shop per
+        /// decision and the answer is almost always "nothing".</summary>
+        public List<ThingDef> RefusedGoodsAt(Thing business)
+        {
+            List<ThingDef> refused = null;
+            for (int i = 0; i < refusedGoodsShops.Count; i++)
+            {
+                if (refusedGoodsShops[i] != business) continue;
+                if (refused == null) refused = new List<ThingDef>();
+                refused.Add(refusedGoodsDefs[i]);
+            }
+            return refused;
+        }
+
         public void ExposeData()
         {
             Scribe_Values.Look(ref spent, "spent");
@@ -24,9 +64,28 @@ namespace OldWestTown.Lords
             Scribe_Values.Look(ref arrivedTick, "arrivedTick");
             Scribe_Values.Look(ref walkouts, "walkouts");
             Scribe_Collections.Look(ref refusedShops, "refusedShops", LookMode.Reference);
-            if (Scribe.mode == LoadSaveMode.PostLoadInit && refusedShops == null)
+            Scribe_Collections.Look(ref refusedGoodsShops, "refusedGoodsShops", LookMode.Reference);
+            Scribe_Collections.Look(ref refusedGoodsDefs, "refusedGoodsDefs", LookMode.Def);
+            if (Scribe.mode == LoadSaveMode.PostLoadInit)
             {
-                refusedShops = new List<Thing>();
+                if (refusedShops == null) refusedShops = new List<Thing>();
+                if (refusedGoodsShops == null) refusedGoodsShops = new List<Thing>();
+                if (refusedGoodsDefs == null) refusedGoodsDefs = new List<ThingDef>();
+
+                // The two lists are one table read down the middle. A counter deconstructed
+                // mid-visit comes back as a null reference, so drop any pair that lost half of
+                // itself rather than letting the columns drift out of step.
+                int pairs = refusedGoodsShops.Count < refusedGoodsDefs.Count
+                    ? refusedGoodsShops.Count
+                    : refusedGoodsDefs.Count;
+                refusedGoodsShops.RemoveRange(pairs, refusedGoodsShops.Count - pairs);
+                refusedGoodsDefs.RemoveRange(pairs, refusedGoodsDefs.Count - pairs);
+                for (int i = pairs - 1; i >= 0; i--)
+                {
+                    if (refusedGoodsShops[i] != null && refusedGoodsDefs[i] != null) continue;
+                    refusedGoodsShops.RemoveAt(i);
+                    refusedGoodsDefs.RemoveAt(i);
+                }
             }
         }
     }

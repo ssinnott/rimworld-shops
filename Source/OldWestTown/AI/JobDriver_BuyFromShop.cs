@@ -69,11 +69,37 @@ namespace OldWestTown.AI
                     return;
                 }
 
+                // Sell the order the job giver sized, not whatever the customer happens to be
+                // holding. They are normally carrying exactly that, but on the path where they
+                // reach the counter empty-handed `goods` is the whole shelf stack, and the trim
+                // above would happily sell all of it — past the per-visit cap ShopStock applies.
+                int count = job.count > 0 && job.count < goods.stackCount ? job.count : goods.stackCount;
+
                 ShopTransaction.Result result =
-                    ShopTransaction.TrySell(shop, pawn, goods, goods.stackCount, out int price);
+                    ShopTransaction.TrySell(shop, pawn, goods, count, out int price);
 
                 if (result != ShopTransaction.Result.Sold)
                 {
+                    // Remember it only when the refusal is about these goods and this purse. A
+                    // shop that shut or went unstaffed is not the stack's fault — and neither can
+                    // reach here anyway, since the job fails on a closed shop and an unserved
+                    // customer walks out before this toil runs.
+                    if (result == ShopTransaction.Result.CannotAfford || result == ShopTransaction.Result.NoStock)
+                    {
+                        (pawn.GetLord()?.LordJob as LordJob_ShopVisit)?.RecordFor(pawn)
+                            ?.RefuseGoods(shop.parent, goods.def);
+                    }
+
+                    // CannotAfford here means the two sides of the price disagreed, which is the
+                    // one failure that should never happen — worth a line in a dev log, and worth
+                    // saying what it means rather than just naming the enum.
+                    if (Prefs.DevMode && result == ShopTransaction.Result.CannotAfford)
+                    {
+                        Log.Warning("[OldWestTown] " + pawn.LabelShort + " could not pay for an order sized "
+                            + "for their purse at " + shop.parent.LabelCap
+                            + " — ShopPricing.MaxAffordable and PriceFor disagree.");
+                    }
+
                     EndJobWith(JobCondition.Incompletable);
                     return;
                 }

@@ -54,7 +54,7 @@ hotel clerk, a bank teller, a gambling dealer) should use the same shape.
 | `CompBusiness` | `Shops/CompBusiness.cs` | Makes a building a business — goods, services, or both. Owns the till, filter, markup, ledger, staff flag, and the staff/customer cell pair. |
 | `ServiceDef` / `ServiceWorker` | `Shops/ServiceDef.cs`, `Shops/ServiceWorker.cs` | A thing a business sells that isn't a shelf item — a drink, a meal, a haircut. The embedded worker supplies the type-specific behaviour: what it can act on, how much a customer wants it, what effect it applies once paid for. |
 | `ShopStock` | `Shops/ShopStock.cs` | What's on the shelves, what a given customer would buy, and which service a shop can currently perform. |
-| `ShopPricing` | `Shops/ShopPricing.cs` | The only place a price is decided — for goods or a service — so UI, AI and transaction can't disagree. |
+| `ShopPricing` | `Shops/ShopPricing.cs` | The only place a price is decided — for goods or a service — so the inspect pane, AI and transaction can't disagree. `MaxAffordable` settles a purse against `PriceFor` itself, so the order the AI sizes is always one the counter can charge for. |
 | `ShopTransaction` | `Shops/ShopTransaction.cs` | The single point where silver, goods and service effects move. Re-validates everything. |
 | `TownEconomy` | `Shops/TownEconomy.cs` | `MapComponent`. Shop register, daily ledger, reputation, and `Appeal`. |
 | `JobGiver_BuyFromShop`, `JobDriver_PatronizeBusiness` (`JobDriver_BuyFromShop`, `JobDriver_UseService`) | `AI/` | Customer side: picks a business — goods or a service, whichever scores best — and runs the shared walk/wait/patience shape. |
@@ -239,7 +239,10 @@ competitive rather than solitaire.
   Goods a colonist has already reserved are excluded from the shelves, which removes most of
   the churn, but a hauler can still start a job on goods (or a service's consumable) a customer
   is mid-walk toward — and two customers can race for the same stack. The loser's job fails
-  gracefully.
+  gracefully: it ends on the goto/carry fail conditions, before the counter. A refusal that only
+  surfaces *at* the counter — the goods pulled from the stock filter mid-walk, or a price that
+  moved under them — is remembered per customer as "this kind of goods, at this counter, this
+  visit", so it costs one trip instead of repeating. It is not a walkout and costs no reputation.
 - `Appeal` walks every open shop's stock. It's cached per shop for a second, which is fine for
   a main street and would want revisiting for a hundred counters.
 - Two vanilla calls the services path leans on — `FoodUtility.IngestFromInventoryNow` for

@@ -41,8 +41,11 @@ namespace OldWestTown.AI
                 float distanceFactor = 1f + pawn.Position.DistanceTo(shop.parent.Position) / 40f;
                 float staffBonus = shop.Staffed ? 1.5f : 1f;
 
-                // Goods candidate.
-                Thing goods = ShopStock.ChoosePurchase(shop, pawn, purse, out int count);
+                // Goods candidate. Anything that already failed to sell here would fail again
+                // identically, so it is excluded from the pick — the customer moves on to the
+                // next-best stack at this counter rather than writing the whole shop off.
+                Thing goods = ShopStock.ChoosePurchase(shop, pawn, purse, out int count,
+                    record?.RefusedGoodsAt(shop.parent));
                 if (goods != null && count > 0)
                 {
                     float score = ShopPricing.ValueAppeal(shop) * staffBonus / distanceFactor;
