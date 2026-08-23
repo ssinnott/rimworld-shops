@@ -62,7 +62,10 @@ namespace OldWestTown.Incidents
             for (int i = 0; i < pawns.Count; i++)
             {
                 GivePurse(pawns[i], appeal);
-                if (pawns[i].needs?.food != null) pawns[i].needs.food.CurLevelPercentage = 1f;
+                // A band, not a flat top-up: a Meal service wants genuinely hungry customers to
+                // sell to, not a group who all arrive fully fed.
+                if (pawns[i].needs?.food != null)
+                    pawns[i].needs.food.CurLevelPercentage = Rand.Range(0.4f, 0.9f);
             }
 
             LordMaker.MakeNewLord(
@@ -86,7 +89,7 @@ namespace OldWestTown.Incidents
         {
             IntVec3 sum = IntVec3.Zero;
             int count = 0;
-            foreach (CompShopCounter shop in econ.OpenShops())
+            foreach (CompBusiness shop in econ.OpenShops())
             {
                 sum += shop.parent.Position;
                 count++;
@@ -98,7 +101,7 @@ namespace OldWestTown.Incidents
             if (centre.InBounds(map) && centre.Walkable(map)) return centre;
 
             // The average of several shops can land inside a wall; fall back to a real shop door.
-            foreach (CompShopCounter shop in econ.OpenShops()) return shop.parent.Position;
+            foreach (CompBusiness shop in econ.OpenShops()) return shop.parent.Position;
             return map.Center;
         }
 

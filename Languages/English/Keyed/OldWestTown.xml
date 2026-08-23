@@ -13,6 +13,7 @@
   <OWT_StatusClosed>Closed</OWT_StatusClosed>
   <OWT_Unattended>unattended</OWT_Unattended>
   <OWT_StockLine>On sale: {0} items ({1})</OWT_StockLine>
+  <OWT_ServicesLine>Services offered: {0}</OWT_ServicesLine>
   <OWT_MarkupLine>Markup: {0} of market value</OWT_MarkupLine>
   <OWT_TillLine>Till: {0} (today: {1})</OWT_TillLine>
   <OWT_TownLine>Town appeal: {0} — reputation: {1}</OWT_TownLine>
@@ -47,6 +48,7 @@
   <OWT_CustomersLeaving>The {0} from {1} are heading home.</OWT_CustomersLeaving>
   <OWT_CustomersScared>Violence in town. The customers from {0} are leaving.</OWT_CustomersScared>
   <OWT_CustomerWalkedOut>{0} gave up waiting at {1} and left the goods behind. Word of the poor service spreads.</OWT_CustomerWalkedOut>
+  <OWT_CustomerWalkedOutService>{0} gave up waiting at {1} and left. Word of the poor service spreads.</OWT_CustomerWalkedOutService>
 
   <!-- Alerts -->
   <OWT_AlertUnattended>Customers waiting ({0})</OWT_AlertUnattended>

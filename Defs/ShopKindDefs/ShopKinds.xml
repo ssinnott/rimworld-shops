@@ -35,6 +35,24 @@
       <li>Drugs</li>
       <li>FoodMeals</li>
     </defaultStockCategories>
+    <services>
+      <li>OWT_Drink</li>
+      <li>OWT_Meal</li>
+    </services>
+  </OldWestTown.Shops.ShopKindDef>
+
+  <OldWestTown.Shops.ShopKindDef>
+    <defName>OWT_Barber</defName>
+    <label>barber shop</label>
+    <description>A chair, a mirror, and a steady hand. Customers pay for a haircut and a bit of conversation.</description>
+    <customerNoun>customer</customerNoun>
+    <defaultMarkup>1.5</defaultMarkup>
+    <markupRange>0.5~3.0</markupRange>
+    <appeal>1.1</appeal>
+    <customerPatienceTicks>2200</customerPatienceTicks>
+    <services>
+      <li>OWT_Haircut</li>
+    </services>
   </OldWestTown.Shops.ShopKindDef>
 
 </Defs>

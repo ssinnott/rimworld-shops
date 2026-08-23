@@ -8,7 +8,7 @@ using Verse.AI;
 
 namespace OldWestTown.Shops
 {
-    public class CompProperties_ShopCounter : CompProperties
+    public class CompProperties_Business : CompProperties
     {
         public ShopKindDef shopKind;
 
@@ -18,20 +18,30 @@ namespace OldWestTown.Shops
         /// </summary>
         public float openAirRadius = 9.9f;
 
-        public CompProperties_ShopCounter()
+        public CompProperties_Business()
         {
-            compClass = typeof(CompShopCounter);
+            compClass = typeof(CompBusiness);
         }
     }
 
+    /// <summary>Marker a customer-side JobDriver implements so business-layer code (which must
+    /// not depend on the AI namespace) can recognize "is this pawn patronizing ANY business"
+    /// without naming a concrete driver type or JobDef.</summary>
+    public interface IBusinessPatron
+    {
+        bool WaitingForService { get; }
+    }
+
     /// <summary>
-    /// Turns a building into a storefront: it owns the sales floor, the price list and the till.
+    /// Turns a building into a business: it owns the sales floor (goods, services, or both),
+    /// the price list and the till.
     ///
-    /// The two pawn-side loops (a colonist manning the counter, a customer buying something)
-    /// never talk to each other directly — they only read and write state here. That keeps a
-    /// shopkeeper wandering off mid-sale from stranding a customer in a broken job.
+    /// The two pawn-side loops (a colonist manning the counter, a customer buying something or
+    /// using a service) never talk to each other directly — they only read and write state
+    /// here. That keeps a shopkeeper wandering off mid-sale from stranding a customer in a
+    /// broken job.
     /// </summary>
-    public class CompShopCounter : ThingComp, IThingHolder
+    public class CompBusiness : ThingComp, IThingHolder
     {
         private const int StaffPresenceGraceTicks = 60;
         private const int StockCacheTicks = 60;
@@ -55,7 +65,7 @@ namespace OldWestTown.Shops
         private List<Thing> cachedStock = new List<Thing>();
         private int cachedStockTick = -99999;
 
-        public CompProperties_ShopCounter Props => (CompProperties_ShopCounter)props;
+        public CompProperties_Business Props => (CompProperties_Business)props;
 
         public ShopKindDef Kind => Props.shopKind;
 
@@ -99,8 +109,8 @@ namespace OldWestTown.Shops
 
         public Pawn Shopkeeper => Staffed ? lastShopkeeper : null;
 
-        /// <summary>A shop only trades when it is open, staffed, powered (if it needs power) and has goods.</summary>
-        public bool TradingNow => open && Staffed && Powered && StockOnDisplay.Count > 0;
+        /// <summary>A shop only trades when it is open, staffed, powered (if it needs power) and has something to offer.</summary>
+        public bool TradingNow => open && Staffed && Powered && HasAnythingToOffer;
 
         private bool Powered
         {
@@ -179,7 +189,7 @@ namespace OldWestTown.Shops
             for (int i = 0; i < pawns.Count; i++)
             {
                 Pawn p = pawns[i];
-                if (p == customer || p.CurJobDef != OWTDefOf.OWT_BuyFromShop) continue;
+                if (p == customer || !(p.jobs?.curDriver is IBusinessPatron)) continue;
                 if (p.CurJob.GetTarget(TargetIndex.C).Cell == c) return false;
             }
             return true;
@@ -221,6 +231,48 @@ namespace OldWestTown.Shops
         public void DirtyStock()
         {
             cachedStockTick = -99999;
+        }
+
+        // ---------------------------------------------------------------- services
+
+        /// <summary>True once this business has SOMETHING a customer could pay for right now —
+        /// stock on the shelf, or an available service. Feeds staffing (WorkGiver_ManShop),
+        /// TradingNow, and town appeal identically.</summary>
+        public bool HasAnythingToOffer => StockOnDisplay.Count > 0 || AvailableServices.Any();
+
+        /// <summary>Services this business can currently perform. A Thought-type service is always
+        /// available while the kind offers it; an Ingest-type one additionally needs a matching item
+        /// on display right now — the same StockFilter the player already curates for goods.</summary>
+        public IEnumerable<ServiceDef> AvailableServices
+        {
+            get
+            {
+                ShopKindDef kind = Kind;
+                if (kind == null) yield break;
+                foreach (ServiceDef sd in kind.services)
+                {
+                    if (!sd.worker.ConsumesStock) { yield return sd; continue; }
+                    if (ShopStock.ChooseService(this, sd) != null) yield return sd;
+                }
+            }
+        }
+
+        /// <summary>The service-side equivalent of StockValue, for town appeal. Only counts
+        /// non-stock-backed services (Haircut) — a stock-backed one (Drink, Meal) is already
+        /// reflected in StockValue via the item it would consume, and double-counting it here would
+        /// inflate appeal from the same physical stack twice.</summary>
+        public int ServiceValue
+        {
+            get
+            {
+                int total = 0;
+                foreach (ServiceDef sd in AvailableServices)
+                {
+                    if (sd.worker.ConsumesStock) continue;
+                    total += ShopPricing.PriceForService(this, sd);
+                }
+                return total;
+            }
         }
 
         public void ResetStockFilterToDefault()
@@ -389,6 +441,11 @@ namespace OldWestTown.Shops
 
             List<Thing> stock = StockOnDisplay;
             sb.AppendLine("OWT_StockLine".Translate(stock.Count, ((float)StockValue).ToStringMoney()));
+            if (Kind != null && Kind.services.Count > 0)
+            {
+                sb.AppendLine("OWT_ServicesLine".Translate(
+                    string.Join(", ", Kind.services.Select(s => s.LabelCap))));
+            }
             sb.AppendLine("OWT_MarkupLine".Translate(Markup.ToStringPercent()));
             sb.Append("OWT_TillLine".Translate(((float)TillSilver).ToStringMoney(), ((float)revenueToday).ToStringMoney()));
 
@@ -471,7 +528,7 @@ namespace OldWestTown.Shops
                 econ.customersServedToday, econ.walkoutsToday, ((float)econ.revenueToday).ToStringMoney()));
             sb.AppendLine("OWT_LedgerLifetimeLine".Translate(((float)econ.lifetimeRevenue).ToStringMoney()));
             sb.AppendLine();
-            foreach (CompShopCounter shop in econ.Shops)
+            foreach (CompBusiness shop in econ.Shops)
             {
                 if (shop?.parent == null || !shop.parent.Spawned) continue;
                 sb.AppendLine("OWT_LedgerShopLine".Translate(

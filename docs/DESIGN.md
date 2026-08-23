@@ -22,39 +22,43 @@ finishes their shift, and the customer is left in a job whose partner no longer 
 Instead, the two loops only ever touch shared state on the counter:
 
 ```
- colonist                       CompShopCounter                      customer
- ────────                       ───────────────                      ────────
+ colonist                       CompBusiness                         customer
+ ────────                       ────────────                         ────────
  WorkGiver_ManShop              open / closed                        JobGiver_BuyFromShop
-   ↓  picks a counter           markup                                 ↓  picks a counter + item
- JobDriver_ManShop              stock filter          ← reads →      JobDriver_BuyFromShop
-   └─ every tick:                                                      ├─ walk to shelf
-      NotifyStaffedBy(pawn) ──→ lastStaffedTick                        ├─ browse
-                                     │                                 ├─ carry to counter
+   ↓  picks a business          markup                                 ↓  picks goods or a service
+ JobDriver_ManShop              stock filter, services   ← reads →   JobDriver_BuyFromShop /
+   └─ every tick:                                                    JobDriver_UseService
+      NotifyStaffedBy(pawn) ──→ lastStaffedTick                        ├─ walk to shelf (goods/
+                                     │                                 │  a stock-consuming service)
                                      └──────── Staffed ───────────────→├─ wait to be served
-                                                                       └─ ShopTransaction.TrySell
+                                                                       └─ ShopTransaction.TrySell /
+                                                                          TryServe
                                                                               ↓
-                                                                          till + ledger
+                                                                    till, ledger, hediff/thought
 ```
 
 Neither driver can strand the other. A shopkeeper who wanders off just flips `Staffed` to
-false; the customer's wait toil notices, runs down its patience, drops the goods and leaves
-annoyed. That failure is *legible to the player* — it's a message and a reputation hit — which
-turns a robustness measure into a game mechanic.
+false; the customer's wait toil notices, runs down its patience, drops whatever they're
+carrying (if anything) and leaves annoyed. That failure is *legible to the player* — it's a
+message and a reputation hit — which turns a robustness measure into a game mechanic.
 
-Everything added later (a hotel clerk, a bank teller, a barber) should use the same shape.
+`JobDriver_BuyFromShop` and `JobDriver_UseService` share this wait/patience/walkout shape from
+a common base, `JobDriver_PatronizeBusiness` — see "Services" below. Everything added later (a
+hotel clerk, a bank teller, a gambling dealer) should use the same shape.
 
 ## Component map
 
 | Piece | File | Job |
 | --- | --- | --- |
-| `ShopKindDef` | `Shops/ShopKindDef.cs` | Data-driven business type: default stock, price band, appeal, patience. Adding a business kind is XML, not code. |
-| `CompShopCounter` | `Shops/CompShopCounter.cs` | Makes a building a storefront. Owns the till, filter, markup, ledger, staff flag, and the staff/customer cell pair. |
-| `ShopStock` | `Shops/ShopStock.cs` | What's on the shelves, and what a given customer would buy. |
-| `ShopPricing` | `Shops/ShopPricing.cs` | The only place a price is decided, so UI, AI and transaction can't disagree. |
-| `ShopTransaction` | `Shops/ShopTransaction.cs` | The single point where silver and goods move. Re-validates everything. |
+| `ShopKindDef` | `Shops/ShopKindDef.cs` | Data-driven business type: default stock, price band, appeal, patience, and which services it offers. Adding a business kind is XML, not code. |
+| `CompBusiness` | `Shops/CompBusiness.cs` | Makes a building a business — goods, services, or both. Owns the till, filter, markup, ledger, staff flag, and the staff/customer cell pair. |
+| `ServiceDef` / `ServiceWorker` | `Shops/ServiceDef.cs`, `Shops/ServiceWorker.cs` | A thing a business sells that isn't a shelf item — a drink, a meal, a haircut. The embedded worker supplies the type-specific behaviour: what it can act on, how much a customer wants it, what effect it applies once paid for. |
+| `ShopStock` | `Shops/ShopStock.cs` | What's on the shelves, what a given customer would buy, and which service a shop can currently perform. |
+| `ShopPricing` | `Shops/ShopPricing.cs` | The only place a price is decided — for goods or a service — so UI, AI and transaction can't disagree. |
+| `ShopTransaction` | `Shops/ShopTransaction.cs` | The single point where silver, goods and service effects move. Re-validates everything. |
 | `TownEconomy` | `Shops/TownEconomy.cs` | `MapComponent`. Shop register, daily ledger, reputation, and `Appeal`. |
-| `JobGiver_/JobDriver_BuyFromShop` | `AI/` | Customer side. |
-| `WorkGiver_/JobDriver_ManShop` | `AI/` | Colonist side. |
+| `JobGiver_BuyFromShop`, `JobDriver_PatronizeBusiness` (`JobDriver_BuyFromShop`, `JobDriver_UseService`) | `AI/` | Customer side: picks a business — goods or a service, whichever scores best — and runs the shared walk/wait/patience shape. |
+| `WorkGiver_/JobDriver_ManShop` | `AI/` | Colonist side. Kind-agnostic: it staffs any `CompBusiness` with something to offer. |
 | `LordJob_ShopVisit`, `LordToil_Shop` | `Lords/` | The visiting group, and per-customer records. |
 | `IncidentWorker_ShopCustomers` | `Incidents/` | Turns town appeal into arrivals. |
 
@@ -77,6 +81,46 @@ naturally ("this room is the store"), it costs nothing to set up, and it makes t
 stats you already care about matter commercially. Outdoors it falls back to a radius so market
 stalls still work.
 
+### Services: the same seam, without a `Thing` changing hands
+
+A service (a drink, a meal, a haircut) is priced and served through the identical seam as a
+sale — there just isn't a `Thing` changing hands at the end of it, or, for a haircut, no
+`Thing` involved at all. `ShopKindDef.services` is a list of `ServiceDef`s alongside its stock
+categories. Each `ServiceDef` embeds one `ServiceWorker` — the same "instance carries its own
+XML fields" idiom the customer duty's think tree already uses for `DutyDef.thinkNode` — which
+decides what it can act on (`CanUse`), how much a given customer wants it right now
+(`Desirability`, weighed against a need like Food or Joy), and what happens once it's paid for
+(`ApplyEffect`: a hediff via vanilla's own ingestion outcome, a thought, a visible hair change).
+
+Two core worker classes cover the three services this stage ships, plus a three-line subclass
+for Haircut's visual flourish. `ServiceWorker_Ingest` is one class parameterized two ways —
+Drink wants `FoodTypeFlags.Liquor`, Meal wants `IngestibleProperties.IsMeal` — because a drink
+and a meal are the same mechanic (consume a matching item already on the shelf, then let
+`FoodUtility.IngestFromInventoryNow` do what vanilla already does for anyone eating from their
+inventory) with different filters and a different need behind the demand curve.
+`ServiceWorker_Thought` is a bare "grant a thought" primitive; `ServiceWorker_Haircut` adds a
+visible hair change on top of it, because a business that changes nothing visible is a weaker
+proof that a service happened.
+
+Every `ServiceDef` gets its own `JobDef` rather than sharing one — `Verse.AI.Job` has no
+generic slot to carry a `Def` reference, so a service driver has no other reliable way to
+recover which service it's running. The cost is one small XML stanza per service; the
+alternative is a driver that has to guess.
+
+The customer side factors the shared "walk up, wait to be served, get served or walk out" shape
+into `JobDriver_PatronizeBusiness`, with `JobDriver_BuyFromShop` and `JobDriver_UseService` as
+its two concrete shapes — a goods sale (or a stock-consuming service) fetches an item first; a
+stock-free service (Haircut) skips straight to waiting. A small marker interface,
+`IBusinessPatron`, lets `CompBusiness` recognize "a pawn is patronizing something" for
+queue-spacing and the waiting-customers alert without the Shops layer ever depending on the AI
+namespace.
+
+A service business counts toward town appeal the same way a stocked one does
+(`CompBusiness.HasAnythingToOffer`, `AvailableServices`), with one wrinkle: a stock-consuming
+service's value is already counted once, as stock — `ServiceValue` only adds the services with
+no `Thing` behind them at all, so a saloon's beer isn't counted twice for being sellable two
+ways.
+
 ## The economy loop
 
 ```
@@ -89,7 +133,7 @@ stalls still work.
    IncidentWorker_ShopCustomers: how often, how many, how rich│
                      │                                        │
                      ▼                                        │
-              customers arrive ──── buy things ───────────────┘
+        customers arrive ──── buy goods or use a service ─────┘
                      │
                      ▼
                 silver in the till
@@ -111,11 +155,16 @@ Staged so each step is playable on its own.
 **1. Vertical slice — done.** Counter, stock, pricing, till, shopkeeping work type, customer
 arrival and purchase, appeal and reputation.
 
-**2. Services (no goods change hands).** The interesting half of a town sells *time*, not
-items. Generalise `CompShopCounter` into a `CompBusiness` with a pluggable
-`ServiceWorker` — `ServiceWorker_Drink`, `_Meal`, `_Room`, `_Haircut`, `_Bath`, `_Doctor`.
-The customer job becomes: walk to the service point, wait to be served, pay, receive a hediff
-or a thought instead of an item. The wait-to-be-served toil is already the shape this needs.
+**2. Services (no goods change hands) — done.** The interesting half of a town sells *time*,
+not items. `CompShopCounter` is generalised into `CompBusiness` with a pluggable
+`ServiceWorker`; the customer job becomes walk to the service point (skipped for a service
+that consumes nothing), wait to be served, pay, receive a hediff or a thought instead of an
+item — see "Services" above. Shipped: `_Ingest`, parameterized as both **Drink** (a Liquor item
+off the saloon's own shelves, feeding Joy) and **Meal** (any meal, feeding Food) — the
+interesting hybrid case, since a service that still moves stock has to answer to both the
+goods loop and the service loop without double-counting; and `_Haircut` (a new **barber shop**
+business, pure time, a mood thought plus a visible hair change). Bath and Doctor are left as
+XML-only additions once their buildings exist — same seam, no new lesson to teach.
 
 **3. Lodging.** A `CompRentableBed`: customers with no bed of their own pay per night and stay
 across the day boundary. Requires extending the visit duration past one day and giving the
@@ -188,7 +237,14 @@ competitive rather than solitaire.
   (`CustomerCellFor`), but a dedicated "customer side" marker would still be better.
 - Customers can't reserve items against colonists (RimWorld reservations are per-faction).
   Goods a colonist has already reserved are excluded from the shelves, which removes most of
-  the churn, but a hauler can still start a job on goods a customer is mid-walk toward — and
-  two customers can race for the same stack. The loser's job fails gracefully.
+  the churn, but a hauler can still start a job on goods (or a service's consumable) a customer
+  is mid-walk toward — and two customers can race for the same stack. The loser's job fails
+  gracefully.
 - `Appeal` walks every open shop's stock. It's cached per shop for a second, which is fine for
   a main street and would want revisiting for a hundred counters.
+- Two vanilla calls the services path leans on — `FoodUtility.IngestFromInventoryNow` for
+  Drink/Meal, and the `PawnStyleItemChooser.RandomHairFor` + `SetAllGraphicsDirty` pair for a
+  Haircut's visible hair change — are exercised by this mod for the first time. Every signature
+  involved is confirmed against the real 1.6 reference assembly, but the exact in-game outcome
+  (whether a customer visibly gets `AlcoholHigh`, whether a hair change reliably repaints a
+  transient visitor) hasn't been confirmed in a live game.

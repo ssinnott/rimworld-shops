@@ -24,20 +24,20 @@ namespace OldWestTown.AI
         {
             TownEconomy econ = pawn.Map?.GetComponent<TownEconomy>();
             if (econ == null) yield break;
-            foreach (CompShopCounter shop in econ.OpenShops()) yield return shop.parent;
+            foreach (CompBusiness shop in econ.OpenShops()) yield return shop.parent;
         }
 
         public override bool ShouldSkip(Pawn pawn, bool forced = false)
         {
             TownEconomy econ = pawn.Map?.GetComponent<TownEconomy>();
             if (econ == null) return true;
-            foreach (CompShopCounter _ in econ.OpenShops()) return false;
+            foreach (CompBusiness _ in econ.OpenShops()) return false;
             return true;
         }
 
         public override bool HasJobOnThing(Pawn pawn, Thing t, bool forced = false)
         {
-            CompShopCounter shop = t.TryGetComp<CompShopCounter>();
+            CompBusiness shop = t.TryGetComp<CompBusiness>();
             if (shop == null || !shop.Open) return false;
             if (shop.Shopkeeper != null && shop.Shopkeeper != pawn) return false;
 
@@ -48,19 +48,19 @@ namespace OldWestTown.AI
             // Forced by the player: always allowed, even with the shop empty.
             if (forced) return true;
 
-            if (shop.StockOnDisplay.Count == 0) return false;
+            if (!shop.HasAnythingToOffer) return false;
             return AnyCustomerNear(shop);
         }
 
         public override Job JobOnThing(Pawn pawn, Thing t, bool forced = false)
         {
-            CompShopCounter shop = t.TryGetComp<CompShopCounter>();
+            CompBusiness shop = t.TryGetComp<CompBusiness>();
             if (shop == null) return null;
             return JobMaker.MakeJob(OWTDefOf.OWT_ManShop, t, shop.StaffCell);
         }
 
         /// <summary>True if any non-hostile visitor is close enough to be a prospective customer.</summary>
-        internal static bool AnyCustomerNear(CompShopCounter shop)
+        internal static bool AnyCustomerNear(CompBusiness shop)
         {
             Map map = shop.parent.Map;
             if (map == null) return false;

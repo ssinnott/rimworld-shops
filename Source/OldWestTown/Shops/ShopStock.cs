@@ -14,7 +14,7 @@ namespace OldWestTown.Shops
         /// shop. Outdoors (a market stall, a boardwalk table) it falls back to a radius, so an
         /// open-air town square still trades.
         /// </summary>
-        public static IEnumerable<Thing> ScanFor(CompShopCounter shop)
+        public static IEnumerable<Thing> ScanFor(CompBusiness shop)
         {
             Thing counter = shop?.parent;
             Map map = counter?.Map;
@@ -47,7 +47,7 @@ namespace OldWestTown.Shops
             }
         }
 
-        private static bool Sellable(CompShopCounter shop, Thing t, Map map)
+        private static bool Sellable(CompBusiness shop, Thing t, Map map)
         {
             if (t == null || !t.Spawned || t.Destroyed) return false;
             if (t.def.category != ThingCategory.Item) return false;
@@ -71,7 +71,7 @@ namespace OldWestTown.Shops
         /// Picks what a given customer would like to buy from this shop, or null if nothing here
         /// tempts them or nothing is within their means.
         /// </summary>
-        public static Thing ChoosePurchase(CompShopCounter shop, Pawn customer, int budget, out int count)
+        public static Thing ChoosePurchase(CompBusiness shop, Pawn customer, int budget, out int count)
         {
             count = 0;
             List<Thing> stock = shop.StockOnDisplay;
@@ -116,6 +116,39 @@ namespace OldWestTown.Shops
         {
             // Stackable consumables move in bulk; gear goes one at a time.
             return t.def.stackLimit > 1 ? Mathf.Max(1, t.def.stackLimit / 4) : 1;
+        }
+
+        /// <summary>The item on display this service can use, or null if nothing currently
+        /// qualifies. The customer scoring pass and TownEconomy's AvailableServices share this one
+        /// scan instead of each re-deriving "is there stock for this." Pass <paramref name="customer"/>
+        /// to also require they can actually path to it — CompBusiness.AvailableServices calls this
+        /// customer-agnostically (there's no specific pawn to check reachability against yet), so
+        /// that parameter defaults to null and skips the reachability filter.</summary>
+        public static Thing ChooseService(CompBusiness shop, ServiceDef service, Pawn customer = null)
+        {
+            if (service?.worker == null || !service.worker.ConsumesStock) return null;
+            List<Thing> stock = shop.StockOnDisplay;
+
+            Thing best = null;
+            float bestScore = 0f;
+
+            for (int i = 0; i < stock.Count; i++)
+            {
+                Thing t = stock[i];
+                if (!t.Spawned || t.Destroyed || !service.worker.CanUse(t)) continue;
+                if (customer != null && !customer.CanReach(t, PathEndMode.ClosestTouch, Danger.Deadly)) continue;
+
+                // Same tie-break as ChoosePurchase: without it, every customer scoring this
+                // service in the same stock-cache window picks the identical first-qualifying
+                // stack and queues for it instead of spreading across equally good ones.
+                float score = ShopPricing.UnitValue(t) * Rand.Range(0.6f, 1.4f);
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    best = t;
+                }
+            }
+            return best;
         }
     }
 }

@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using OldWestTown.AI;
 using OldWestTown.Shops;
 using RimWorld;
 using RimWorld.Planet;
@@ -11,7 +10,9 @@ namespace OldWestTown.Alerts
     /// <summary>
     /// Raised while customers stand at an unattended counter burning patience — the window in
     /// which assigning a shopkeeper still saves the sale, and the reputation hit that follows
-    /// a walkout. Silent when self-service is on, because then nobody is actually stuck.
+    /// a walkout. Silent for a patron whose service honors the global self-service setting
+    /// while it's on, since nobody is actually stuck there — but a service that opts out of the
+    /// setting (a haircut, always) still leaves its patron stuck and still raises this.
     /// </summary>
     public class Alert_CustomersWaiting : Alert
     {
@@ -34,7 +35,6 @@ namespace OldWestTown.Alerts
         {
             culprits.Clear();
             waitingCustomers = 0;
-            if (OldWestTownMod.Settings.allowSelfService) return false;
 
             List<Map> maps = Find.Maps;
             for (int m = 0; m < maps.Count; m++)
@@ -46,8 +46,8 @@ namespace OldWestTown.Alerts
                 IReadOnlyList<Pawn> pawns = map.mapPawns.AllPawnsSpawned;
                 for (int i = 0; i < pawns.Count; i++)
                 {
-                    if (!(pawns[i].jobs?.curDriver is JobDriver_BuyFromShop buying)) continue;
-                    if (!buying.WaitingForService) continue;
+                    if (!(pawns[i].jobs?.curDriver is IBusinessPatron patronizing)) continue;
+                    if (!patronizing.WaitingForService) continue;
 
                     Thing counter = pawns[i].CurJob?.GetTarget(TargetIndex.B).Thing;
                     if (counter == null) continue;
