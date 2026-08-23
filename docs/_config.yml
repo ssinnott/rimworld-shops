@@ -1,0 +1,74 @@
+# Jekyll config for the Old West Town wiki, served at
+# https://ssinnott.github.io/rimworld-shops/ from the docs/ folder on main.
+#
+# Deliberately theme-free: the layout in _layouts/ and the stylesheet in
+# assets/css/ are the whole design, so a build needs nothing but Jekyll core and
+# can never break because a remote theme moved. Adding a page is a Markdown file
+# plus a line in `wiki_nav` below.
+
+title: Old West Town
+tagline: The wiki for the RimWorld frontier-commerce mod
+description: >-
+  Every building, business, service and system in Old West Town — a RimWorld 1.6
+  mod where your colony runs actual shops, and travellers turn up to spend money in them.
+
+# Project pages live under /<repo>/. Every internal link goes through the
+# `relative_url` filter, so this is the one place the prefix is written down.
+baseurl: /rimworld-shops
+url: https://ssinnott.github.io
+
+repository: ssinnott/rimworld-shops
+repo_url: https://github.com/ssinnott/rimworld-shops
+
+markdown: kramdown
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+  toc_levels: 2..3
+
+plugins:
+  - jekyll-relative-links
+
+# jekyll-relative-links rewrites Markdown links between .md files into site
+# links, so the same link works both on GitHub and on the built site.
+relative_links:
+  enabled: true
+  collections: false
+
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - vendor
+
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: default
+
+# The sidebar, in reading order: a player who starts at the top and works down
+# meets the game before the code. `page` is the source filename minus .md.
+wiki_nav:
+  - section: Playing
+    pages:
+      - { page: index,           title: Home }
+      - { page: getting-started, title: Getting started }
+      - { page: buildings,       title: Buildings }
+      - { page: businesses,      title: Business kinds }
+      - { page: services,        title: Services }
+  - section: Systems
+    pages:
+      - { page: economy,      title: The town economy }
+      - { page: customers,    title: Customers }
+      - { page: shopkeeping,  title: Shopkeeping }
+      - { page: reference,    title: Reference tables }
+  - section: Under the hood
+    pages:
+      - { page: architecture, title: Code map }
+      - { page: extending,    title: Adding content }
+      - { page: DESIGN,       title: Design notes }
+      - { page: roadmap,      title: Roadmap }
+  - section: Project
+    pages:
+      - { page: contributing, title: Contributing }
+      - { page: changelog,    title: Changelog }

@@ -1,0 +1,200 @@
+/* Old West Town wiki.
+   One stylesheet, no framework. Colours are tokens on :root so the dark block
+   below only has to restate the tokens, never the rules. */
+
+:root {
+  --ink:        #241d16;
+  --ink-soft:   #5c5044;
+  --ink-faint:  #8a7c6c;
+  --paper:      #f6f1e7;
+  --paper-2:    #ede4d5;
+  --rule:       #d9cdb8;
+  --accent:     #8c3b1e;   /* barn red */
+  --accent-2:   #a8761f;   /* brass */
+  --code-bg:    #eee6d7;
+  --note-bg:    #f0e7d3;
+  --shadow:     rgba(60, 44, 26, 0.10);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink:       #eae2d5;
+    --ink-soft:  #b7ab99;
+    --ink-faint: #8d8271;
+    --paper:     #1b1713;
+    --paper-2:   #241f19;
+    --rule:      #3b332a;
+    --accent:    #e08a63;
+    --accent-2:  #d8a94e;
+    --code-bg:   #262019;
+    --note-bg:   #262019;
+    --shadow:    rgba(0, 0, 0, 0.4);
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 16px/1.65 "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  -webkit-text-size-adjust: 100%;
+}
+
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+a:hover { color: var(--ink); }
+
+.skip {
+  position: absolute; left: -9999px;
+  background: var(--accent); color: #fff; padding: .5rem .9rem;
+}
+.skip:focus { left: .5rem; top: .5rem; z-index: 10; }
+
+/* ------------------------------------------------------------- masthead */
+
+.masthead {
+  background: var(--paper-2);
+  border-bottom: 3px double var(--rule);
+}
+.masthead-inner {
+  max-width: 1180px; margin: 0 auto; padding: 1.1rem 1.25rem;
+  display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+}
+.brand { text-decoration: none; color: inherit; display: block; }
+.brand-name {
+  display: block;
+  font-size: 1.6rem; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--ink);
+}
+.brand-sub { display: block; font-size: .88rem; color: var(--ink-faint); font-style: italic; }
+.repo-link { font-size: .88rem; }
+
+/* ------------------------------------------------------------- shell */
+
+.shell {
+  max-width: 1180px; margin: 0 auto; padding: 0 1.25rem 4rem;
+  display: grid; grid-template-columns: 232px minmax(0, 1fr); gap: 2.5rem;
+}
+
+.sidebar { padding-top: 1.75rem; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+.sidebar ul { list-style: none; margin: 0 0 1.4rem; padding: 0; }
+.sidebar li { margin: 0; }
+.sidebar a {
+  display: block; padding: .28rem .55rem; border-radius: 3px;
+  font-size: .92rem; text-decoration: none; color: var(--ink-soft);
+}
+.sidebar a:hover { background: var(--paper-2); color: var(--ink); }
+.sidebar li.current > a {
+  background: var(--paper-2); color: var(--ink); font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.nav-section {
+  margin: 0 0 .35rem; padding: 0 .55rem;
+  font-size: .72rem; letter-spacing: .13em; text-transform: uppercase;
+  color: var(--ink-faint); font-weight: 700;
+}
+
+.nav-toggle, .nav-toggle-label { display: none; }
+
+/* ------------------------------------------------------------- content */
+
+.content { padding-top: 1.75rem; min-width: 0; }
+
+.page-title {
+  margin: 0 0 .35rem; font-size: 2.1rem; line-height: 1.15;
+  letter-spacing: .01em;
+}
+.page-summary {
+  margin: 0 0 2rem; color: var(--ink-soft); font-size: 1.06rem; font-style: italic;
+  padding-bottom: 1.1rem; border-bottom: 1px solid var(--rule);
+}
+
+.content h2 {
+  margin: 2.4rem 0 .7rem; font-size: 1.42rem; line-height: 1.25;
+  padding-bottom: .3rem; border-bottom: 1px solid var(--rule);
+}
+.content h3 { margin: 1.8rem 0 .5rem; font-size: 1.13rem; }
+.content h4 { margin: 1.4rem 0 .4rem; font-size: 1rem; color: var(--ink-soft); }
+
+.content p, .content li { max-width: 42em; }
+.content ul, .content ol { padding-left: 1.3rem; }
+.content li { margin: .3rem 0; }
+
+blockquote {
+  margin: 1.3rem 0; padding: .8rem 1.1rem;
+  background: var(--note-bg); border-left: 3px solid var(--accent-2);
+  color: var(--ink-soft);
+}
+blockquote p { margin: .3rem 0; }
+
+hr { border: 0; border-top: 3px double var(--rule); margin: 2.5rem 0; }
+
+/* ------------------------------------------------------------- code */
+
+code, pre, kbd {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+code {
+  background: var(--code-bg); padding: .12em .35em; border-radius: 3px;
+  font-size: .87em;
+}
+pre {
+  background: var(--code-bg); border: 1px solid var(--rule); border-radius: 4px;
+  padding: .9rem 1rem; overflow-x: auto; font-size: .84rem; line-height: 1.5;
+}
+pre code { background: none; padding: 0; font-size: inherit; }
+
+/* ------------------------------------------------------------- tables */
+
+.table-wrap, .content > table { display: block; overflow-x: auto; }
+table {
+  border-collapse: collapse; width: 100%; margin: 1.3rem 0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-size: .89rem;
+}
+th, td {
+  border: 1px solid var(--rule); padding: .5rem .65rem;
+  text-align: left; vertical-align: top;
+}
+th { background: var(--paper-2); font-weight: 600; }
+tbody tr:nth-child(even) { background: color-mix(in srgb, var(--paper-2) 45%, transparent); }
+td code { white-space: nowrap; }
+
+/* ------------------------------------------------------------- cards */
+
+.cards {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr));
+  gap: 1rem; margin: 1.6rem 0; padding: 0; list-style: none;
+}
+.cards li {
+  margin: 0; max-width: none;
+  border: 1px solid var(--rule); border-radius: 4px;
+  background: var(--paper-2); padding: .9rem 1rem;
+  box-shadow: 0 1px 2px var(--shadow);
+}
+.cards li a { font-weight: 600; text-decoration: none; }
+.cards li p { margin: .3rem 0 0; font-size: .9rem; color: var(--ink-soft); max-width: none; }
+
+/* ------------------------------------------------------------- footer */
+
+.page-footer {
+  margin-top: 4rem; padding-top: 1rem; border-top: 1px solid var(--rule);
+  font-size: .82rem; color: var(--ink-faint);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.page-footer p { max-width: none; }
+
+/* ------------------------------------------------------------- narrow */
+
+@media (max-width: 760px) {
+  .shell { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .nav-toggle-label {
+    display: inline-block; margin: 1.1rem 0 0; padding: .45rem .9rem;
+    border: 1px solid var(--rule); border-radius: 3px; background: var(--paper-2);
+    font-family: system-ui, sans-serif; font-size: .88rem; cursor: pointer;
+  }
+  .sidebar { display: none; padding-top: .9rem; }
+  .nav-toggle:checked ~ .sidebar { display: block; }
+  .content { padding-top: 1.2rem; }
+  .page-title { font-size: 1.7rem; }
+}
