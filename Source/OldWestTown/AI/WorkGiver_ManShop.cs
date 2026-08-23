@@ -59,7 +59,16 @@ namespace OldWestTown.AI
             return JobMaker.MakeJob(OWTDefOf.OWT_ManShop, t, shop.StaffCell);
         }
 
-        /// <summary>True if any non-hostile visitor is close enough to be a prospective customer.</summary>
+        /// <summary>True if any non-hostile visitor nearby could still spend money here. Being nearby
+        /// is not enough on its own: a customer who has spent their last silver keeps the shopping duty
+        /// and keeps wandering the town centre until the visit clock runs out, and a customer taking a
+        /// nap is not shopping either — counting them is how a colonist ends up posted all day at a
+        /// counter that cannot make a sale.
+        ///
+        /// A customer who once gave up here still counts, deliberately. Their refusal lifts the moment
+        /// somebody stands at the counter, so they are precisely who staffing it wins back — filtering
+        /// them out would mean nobody is ever sent to staff the counter they are waiting to see
+        /// staffed.</summary>
         internal static bool AnyCustomerNear(CompBusiness shop)
         {
             Map map = shop.parent.Map;
@@ -71,8 +80,19 @@ namespace OldWestTown.AI
                 Pawn p = all[i];
                 if (p.Faction == Faction.OfPlayer || p.Dead || p.Downed) continue;
                 if (p.HostileTo(Faction.OfPlayer)) continue;
+                if (p.Position.DistanceTo(shop.parent.Position) > CustomerScanRadius) continue;
+
+                // Somebody at THIS counter counts whatever their purse or their duty says: silver
+                // leaves the customer partway through the transaction, and the group's exit
+                // transition swaps the shopping duty out from under a serve that is still running,
+                // so both of the tests below would drop a customer mid-sale. Walking off on one is
+                // never right. TargetIndex.B is the counter in every JobDriver_PatronizeBusiness.
+                if (p.jobs?.curDriver is IBusinessPatron
+                    && p.CurJob?.GetTarget(TargetIndex.B).Thing == shop.parent) return true;
+
                 if (p.mindState?.duty?.def != OWTDefOf.OWT_Shop) continue;
-                if (p.Position.DistanceTo(shop.parent.Position) <= CustomerScanRadius) return true;
+                if (!p.Awake()) continue;
+                if (ShopTransaction.SilverCarriedBy(p) > 0) return true;
             }
             return false;
         }

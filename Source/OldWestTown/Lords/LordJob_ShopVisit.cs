@@ -14,8 +14,10 @@ namespace OldWestTown.Lords
         public int arrivedTick;
         public int walkouts;
 
-        /// <summary>Shops this customer has already given up on, so they don't queue there again.</summary>
-        public List<Thing> refusedShops = new List<Thing>();
+        /// <summary>Counters this customer gave up waiting at this visit. Private because an entry
+        /// is a standing refusal, not a ban — read it through <see cref="WillQueueAt"/>, which is
+        /// where that distinction lives.</summary>
+        private List<Thing> refusedShops = new List<Thing>();
 
         /// <summary>
         /// Goods this customer tried to buy at a given business and couldn't, as (business, def)
@@ -58,6 +60,35 @@ namespace OldWestTown.Lords
                 refused.Add(refusedGoodsDefs[i]);
             }
             return refused;
+        }
+
+        /// <summary>Remember that this customer gave up waiting at <paramref name="business"/>.</summary>
+        public void RefuseShop(Thing business)
+        {
+            if (business == null || refusedShops.Contains(business)) return;
+            refusedShops.Add(business);
+        }
+
+        /// <summary>Whether this customer would walk up to <paramref name="business"/> again.
+        ///
+        /// A counter they gave up on is off their list only while it is STILL unattended: the refusal
+        /// is scoped to the condition that caused it, not to the visit and not to a stopwatch. Somebody
+        /// standing at the counter is the one thing that fixes what drove them off, and it is exactly
+        /// what the unattended-counter alert asks the player for, so it is the only thing that lifts
+        /// the refusal. Time was rejected as the key: it is not something the player did, so it marches
+        /// the same customer back to the same empty counter to walk out and pay for it a second time.
+        ///
+        /// The caller passes the counter's grace-free staffing reading, not the forgiving one the
+        /// serve loop uses: a keeper who left a second ago must not pull anybody back across town.
+        /// The honesty-box setting deliberately doesn't lift a refusal either — telling a
+        /// self-service-eligible visit from a haircut needs per-service knowledge this layer
+        /// doesn't have, and a haircut still needs a body behind the chair.
+        ///
+        /// Takes a plain bool rather than the comp — the Lords layer names nothing in Shops or AI.</summary>
+        public bool WillQueueAt(Thing business, bool staffedNow)
+        {
+            if (staffedNow) return true;
+            return business == null || !refusedShops.Contains(business);
         }
 
         public void ExposeData()

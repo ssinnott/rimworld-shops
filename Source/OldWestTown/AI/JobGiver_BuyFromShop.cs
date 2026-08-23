@@ -35,7 +35,10 @@ namespace OldWestTown.AI
 
             foreach (CompBusiness shop in econ.OpenShops())
             {
-                if (record != null && record.refusedShops.Contains(shop.parent)) continue;
+                // A counter this customer gave up on is off their list only while nobody is behind it —
+                // see CustomerRecord.WillQueueAt. Staff it and they come back on their next think tick,
+                // which is what makes the waiting-customers alert honest.
+                if (record != null && !record.WillQueueAt(shop.parent, shop.StaffedNow)) continue;
                 if (!shop.Open || !pawn.CanReach(shop.parent, PathEndMode.Touch, Danger.Deadly)) continue;
 
                 float distanceFactor = 1f + pawn.Position.DistanceTo(shop.parent.Position) / 40f;

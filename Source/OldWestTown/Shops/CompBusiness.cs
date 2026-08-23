@@ -107,6 +107,19 @@ namespace OldWestTown.Shops
             && !lastShopkeeper.Dead
             && Find.TickManager.TicksGame - lastStaffedTick <= StaffPresenceGraceTicks;
 
+        /// <summary>Staffed with no grace at all — somebody is behind this counter right now.
+        ///
+        /// <see cref="Staffed"/> forgives a 60-tick gap on purpose: a shopkeeper who blinks out
+        /// for a moment is still working the counter, and a sale in progress shouldn't be torn up
+        /// over it. Deciding to walk across town is a different question, and wants the stricter
+        /// answer — a customer sent on the strength of a keeper who left a second ago arrives at
+        /// an empty counter and waits out their patience for nothing. One tick of slack, not
+        /// zero, because the shopkeeper's job may not have ticked yet this frame.</summary>
+        public bool StaffedNow =>
+            lastShopkeeper != null
+            && !lastShopkeeper.Dead
+            && Find.TickManager.TicksGame - lastStaffedTick <= 1;
+
         public Pawn Shopkeeper => Staffed ? lastShopkeeper : null;
 
         /// <summary>A shop only trades when it is open, staffed, powered (if it needs power) and has something to offer.</summary>

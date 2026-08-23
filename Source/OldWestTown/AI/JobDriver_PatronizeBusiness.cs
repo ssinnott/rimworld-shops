@@ -121,8 +121,9 @@ namespace OldWestTown.AI
             if (record != null)
             {
                 record.walkouts++;
-                // Don't queue at this counter again this visit — it clearly isn't being worked.
-                record.refusedShops.Add(shop.parent);
+                // Don't queue at this counter again while it still isn't being worked. The sale
+                // and the reputation are already gone; the customer isn't.
+                record.RefuseShop(shop.parent);
             }
 
             // One message per counter per patience-window: a whole group giving up at once

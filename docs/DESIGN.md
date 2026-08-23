@@ -42,6 +42,21 @@ false; the customer's wait toil notices, runs down its patience, drops whatever 
 carrying (if anything) and leaves annoyed. That failure is *legible to the player* — it's a
 message and a reputation hit — which turns a robustness measure into a game mechanic.
 
+A walkout ends the sale, not the relationship. The customer stops queueing at that counter, and
+the refusal still dies with the visit like the rest of their record — but what *lifts* it is
+neither the visit running out nor a timer: it is the counter being worked again. That is what
+makes the alert honest. The one thing it asks the player for, a colonist behind the counter, has
+to be the thing that lifts the refusal, or the alert is asking for a reaction that can no longer
+work. Time was rejected as the key precisely because it isn't something the player did: a
+cooldown marches the same customer back to the same empty counter to walk out and pay for it
+again, turning the alert into a slow drain. For the same reason the dispatch side reads staffing
+without the grace window the serve loop allows — a keeper who left a second ago is not somebody
+to walk across town for. Nothing is refunded either: the reputation and the sale stay lost, so
+serving customers before their patience runs out remains strictly better than winning them back
+afterwards. The same scoping is what un-pins the shopkeeper — a refusal that holds only while the
+counter is empty is one a colonist arriving actually resolves, instead of leaving them posted
+while ex-customers who can never buy anything drift past inside the scan radius.
+
 `JobDriver_BuyFromShop` and `JobDriver_UseService` share this wait/patience/walkout shape from
 a common base, `JobDriver_PatronizeBusiness` — see "Services" below. Everything added later (a
 hotel clerk, a bank teller, a gambling dealer) should use the same shape.
@@ -70,9 +85,10 @@ chose), so a `LordToil_Travel` duty would just drag them back to a chill spot be
 purchases. The group state machine only handles *leaving* — because of time, or because
 someone started shooting.
 
-Per-customer state (budget spent, purchases, shops they've given up on) hangs off
-`LordJob_ShopVisit` rather than the pawn. That means it saves and loads with the group, needs
-no def patching of humanlike pawns, and disappears when the visit does.
+Per-customer state (budget spent, purchases, counters they've given up on for as long as those
+stay unattended) hangs off `LordJob_ShopVisit` rather than the pawn. That means it saves and
+loads with the group, needs no def patching of humanlike pawns, and disappears when the visit
+does.
 
 ### Why the sales floor is a room
 
@@ -245,6 +261,17 @@ competitive rather than solitaire.
   visit", so it costs them one trip instead of repeating. It is not a walkout and costs no
   reputation. The other refusals need no memory: goods pulled from the filter or forbidden simply
   leave the shelf scan until the player puts them back.
+- Staffing a counter lifts every refusal standing against it at once, so a colonist who takes the
+  post and then leaves for a full patience window can cost a second walkout from the same
+  customer. It is bounded rather than prevented: the customer is only ever dispatched to a counter
+  somebody is standing at *that tick*, the wait toil resets on any staffed tick after that, so the
+  colonist has to be continuously absent for a whole window, and each further walkout needs a
+  further staffing episode the player caused. Capping it would mean scribed per-(customer,
+  counter) state, which is a worse trade than an outcome the player can see themselves producing.
+- A customer who has spent their last silver, or who is asleep, no longer holds a colonist at a
+  counter — but nothing sends them home either. They keep the shopping duty and wander the town
+  centre until the visit clock runs out. Letting a spent-out customer leave early is a lord-graph
+  change, and belongs in its own commit.
 - `Appeal` walks every open shop's stock. It's cached per shop for a second, which is fine for
   a main street and would want revisiting for a hundred counters.
 - Two vanilla calls the services path leans on — `FoodUtility.IngestFromInventoryNow` for

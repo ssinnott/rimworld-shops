@@ -47,8 +47,8 @@
   <OWT_LetterCustomersText>{0} travellers from {1} have heard there is business to be done here, and have come to spend.\n\nThey will browse whatever your open shops have on display and pay across the counter — if there is someone there to serve them.</OWT_LetterCustomersText>
   <OWT_CustomersLeaving>The {0} from {1} are heading home.</OWT_CustomersLeaving>
   <OWT_CustomersScared>Violence in town. The customers from {0} are leaving.</OWT_CustomersScared>
-  <OWT_CustomerWalkedOut>{0} gave up waiting at {1} and left the goods behind. Word of the poor service spreads.</OWT_CustomerWalkedOut>
-  <OWT_CustomerWalkedOutService>{0} gave up waiting at {1} and left. Word of the poor service spreads.</OWT_CustomerWalkedOutService>
+  <OWT_CustomerWalkedOut>{0} gave up waiting at {1} and left the goods behind. Word of the poor service spreads. They won't go back to that counter until somebody is standing behind it.</OWT_CustomerWalkedOut>
+  <OWT_CustomerWalkedOutService>{0} gave up waiting at {1} and left. Word of the poor service spreads. They won't go back to that counter until somebody is standing behind it.</OWT_CustomerWalkedOutService>
 
   <!-- Alerts -->
   <OWT_AlertUnattended>Customers waiting ({0})</OWT_AlertUnattended>
