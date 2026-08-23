@@ -27,6 +27,10 @@ A round at the [saloon bar](buildings.md#saloon-bar).
 Patrons want a drink more when their recreation is low, but never so little that a contented one
 won't order.
 
+Every round poured also makes that one patron a little rowdier — see
+[trouble at the saloon](customers.md#trouble-at-the-saloon) for what that leads to, and how a
+sheriff or a skilled shopkeeper keeps it in check. A meal doesn't have this effect.
+
 ### Meal
 
 A hot meal at the bar.

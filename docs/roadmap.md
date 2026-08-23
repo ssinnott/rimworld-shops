@@ -3,8 +3,8 @@ title: Roadmap
 summary: What is built, what is next, and the larger directions that build on top of it.
 ---
 
-The plan is staged so each step is playable on its own. Stages 1, 2, 3, 5 and 6 are shipped;
-stages 4 and 7 are designed, not built.
+The plan is staged so each step is playable on its own. Stages 1 through 6 are shipped; stage 7
+is designed, not built, and is the only staged item left.
 
 For the reasoning behind the shipped stages, see the [design notes](DESIGN.md).
 
@@ -32,8 +32,17 @@ room early — the bed taken apart, or given to someone else by hand — costs t
 walkout does, with no refund. Deliberately left for later: booking several nights in advance,
 unstaffed nightly billing, and a private suite tied to one specific desk.
 
-**4. Town roles.** Sheriff, barkeep, banker as posts you assign a colonist to, each with its own
-work and its own controls on the building. A sheriff suppresses the drunk/brawl events a saloon starts generating.
+**4. Town roles — done.** The saloon generated no trouble at all before this stage, so trouble
+had to exist before anyone could be posted to suppress it. Now every round of drinks makes that
+one patron rowdier; left alone, it eventually boils over into a **disturbance** — a message, a
+reputation hit worse than a walkout, and that patron stops spending for the rest of their visit.
+The **sheriff** is the role that made it into this stage: assign a colonist to the new
+[sheriff's office](buildings.md#sheriffs-office) the same way you'd assign an owner to a bed,
+give them a Sheriffing priority, and they'll patrol the office — slowing how fast the whole town
+gets rowdy — and step in to calm a specific patron down before it turns. Of the two other roles
+this stage once named, **barkeep** turned out not to need a separate post: a skilled shopkeeper
+behind the bar already gets its own discount on rowdiness, no badge required. **Banker** is cut
+outright — there's no bank yet for one to run.
 
 **5. Reputation with depth — done.** The town's one reputation number is unchanged, and still the
 honest answer to "should anyone bother setting out for this town at all." Alongside it, each

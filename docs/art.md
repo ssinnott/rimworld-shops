@@ -120,6 +120,28 @@ counter's serving surface.
   <span class="swatch" style="background:#362416"></span><code>#362416</code> edge
 </div>
 
+### Sheriff's office
+
+2 × 1 tiles · [details](buildings.md#sheriffs-office)
+
+<div class="art-row">
+  <figure class="art-tile"><img src="assets/textures/Roles/SheriffOffice_north.png" alt="Sheriff's office, north facing"><figcaption>north · 256 × 128<br><span class="art-note">also the build-menu icon</span></figcaption></figure>
+  <figure class="art-tile"><img src="assets/textures/Roles/SheriffOffice_east.png" alt="Sheriff's office, east facing"><figcaption>east · 128 × 256</figcaption></figure>
+  <figure class="art-tile"><img src="assets/textures/Roles/SheriffOffice_south.png" alt="Sheriff's office, south facing"><figcaption>south · 256 × 128</figcaption></figure>
+  <figure class="art-tile"><img src="assets/textures/Roles/SheriffOffice_west.png" alt="Sheriff's office, west facing"><figcaption>west · 128 × 256</figcaption></figure>
+</div>
+
+Grey-brown rather than any counter's oiled wood — desk and gun-metal rather than a serving
+surface — with the same brass the faro table's dealing box uses for its one warm accent: here,
+the rifle rack.
+
+<div class="swatches">
+  <span class="swatch" style="background:#B4963C"></span><code>#B4963C</code> accent (rifle rack)
+  <span class="swatch" style="background:#6E665C"></span><code>#6E665C</code> surface
+  <span class="swatch" style="background:#46413C"></span><code>#46413C</code> body
+  <span class="swatch" style="background:#23201C"></span><code>#23201C</code> edge
+</div>
+
 ## Main street
 
 Five decorative pieces, plus one — the false front — with a small mechanical effect. See

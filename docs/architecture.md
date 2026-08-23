@@ -54,6 +54,17 @@ All under `Source/OldWestTown/`, namespace `OldWestTown`.
 | `JobDriver_ManShop.cs` | `JobDriver_ManShop` | Stands at the staff cell and pings `NotifyStaffedBy` every tick. |
 | `JobGiver_SleepInRentedBed.cs` | `JobGiver_SleepInRentedBed` | A checked-in [guest](services.md#lodging)'s other job: sends them to the bed they paid for once they're actually tired. Runs ahead of `JobGiver_BuyFromShop` in the same `OWT_Shop` duty. |
 | `JobDriver_SleepInRentedBed.cs` | `JobDriver_SleepInRentedBed` | Sleeps a guest until rested, or a hard tick cap. Never references the desk or colonist that sold the stay — only `CompRentableBed` and the guest's own `CustomerRecord`. |
+| `WorkGiver_Patrol.cs` | `WorkGiver_Patrol` | Sends the assigned [sheriff](shopkeeping.md#sheriffing) to stand watch at their own office — the ambient half of suppression. Skips entirely if the town has no rowdiness-capable saloon to patrol for. |
+| `JobDriver_Patrol.cs` | `JobDriver_Patrol` | Stands the post and pings `CompRolePost.NotifyOnDuty` every tick, mirroring `JobDriver_ManShop`. Also polls `TroubleUtility.AnyoneWorthCalming` and breaks the patrol off early when there's someone to calm. |
+| `WorkGiver_CalmTrouble.cs` | `WorkGiver_CalmTrouble` | The reactive half: sends the assigned sheriff to one specific [rowdy patron](customers.md#trouble-at-the-saloon) rather than a building. |
+| `JobDriver_CalmTrouble.cs` | `JobDriver_CalmTrouble` | Walks to the target and unilaterally zeroes their rowdiness. A no-op, not a false success, if the target's walked off mid-wait. |
+
+### `Roles/` — town roles
+
+| File | Type | Job |
+| --- | --- | --- |
+| `CompRolePost.cs` | `CompProperties_RolePost`, `CompRolePost` | A named post one specific colonist holds — the [sheriff's office](buildings.md#sheriffs-office)'s assignment, on `CompRolePost.OnDuty` other code reads. Built on vanilla's own `CompAssignableToPawn`, the same idiom a throne or a grave already uses. |
+| `TroubleUtility.cs` | `TroubleUtility` | The saloon's one hook into town roles: bumps a customer's `OWT_Rowdy` hediff per drink served, applies the sheriff/shopkeeper suppression factors, and fires the scripted [disturbance](customers.md#trouble-at-the-saloon) when it tops out. |
 
 ### `Lords/`, `Incidents/`, `Alerts/`, `UI/`
 
@@ -63,6 +74,7 @@ All under `Source/OldWestTown/`, namespace `OldWestTown`.
 | `Lords/LordToil_Shop.cs` | `LordToil_Shop` | Hands every group member the `OWT_Shop` duty. |
 | `Incidents/IncidentWorker_ShopCustomers.cs` | `IncidentWorker_ShopCustomers` | Turns town appeal into [arrivals](customers.md#arrival), purses and group size, and — per faction standing — biases [which faction](customers.md#which-faction-turns-up) actually shows up. |
 | `Alerts/Alert_CustomersWaiting.cs` | `Alert_CustomersWaiting` | Raised while customers burn patience at an unattended business. |
+| `Alerts/Alert_RowdyPatrons.cs` | `Alert_RowdyPatrons` | Raised while a patron is "getting loud" and still calmable — the sheriff's real window before a disturbance fires unattended. Mirrors `Alert_CustomersWaiting`'s shape. |
 | `UI/ITab_ShopStock.cs` | `ITab_ShopStock` | The Stock tab. Reuses vanilla's storage-filter widget, so it reads like a stockpile. |
 
 ### Root
@@ -174,3 +186,16 @@ anything changes hands.
   their group is still in town. `IsEligibleFaction` silently stops recording standing for them
   at that moment, which is a deliberate no-op matching this codebase's no-logging style, not a
   bug to "fix" on a later read.
+- **`OWT_CalmDownPatron`'s higher `priorityInType` does not preempt a running patrol.**
+  RimWorld's `priorityInType` only decides which `WorkGiver` wins once a pawn is jobless again —
+  it has no power to interrupt a toil already running with `ToilCompleteMode.Never`. That's why
+  `JobDriver_Patrol` itself polls `TroubleUtility.AnyoneWorthCalming` every 30 ticks and ends
+  itself with `JobCondition.InterruptForced` the moment there's someone to calm, rather than
+  relying on the WorkGiver priority order alone. Anyone touching either WorkGiver's priority
+  should know the polling loop, not the number, is what actually makes the handoff happen.
+- **The rowdiness numbers are first-pass guesses, untested in a live game** — `rowdinessPerServing`
+  (0.2 per drink), the hediff's own −0.5/day decay, the 0.5/1.0 stage thresholds, and both
+  suppression factors (`SheriffOnDutyFactor` and `MaxShopkeeperSocialFactor`, both 0.5). Whether a
+  saloon actually reaches "spoiling for a fight" at a sane pace, and whether an on-duty sheriff or
+  a skilled barkeep visibly changes that pace, wants a specific playtest, in the same spirit as
+  the false front's curb-appeal numbers above.

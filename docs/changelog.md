@@ -20,6 +20,17 @@ change itself, and update the [wiki page](contributing.md#the-workflow) it affec
 
 ### Added
 
+- **The wiki now also covers stage 4** — town roles. It shipped on this branch before the wiki
+  caught up to it, the same way the batch below did:
+  [sheriff's office](buildings.md#sheriffs-office), [sheriffing](shopkeeping.md#sheriffing) and
+  how it differs from the Shopkeeping work type, and
+  [trouble at the saloon](customers.md#trouble-at-the-saloon) — the rowdiness hediff, the
+  disturbance it fires, and the two ways to suppress it — plus the matching rows in the
+  [reference tables](reference.md), the [code map](architecture.md) and its
+  [known risks](architecture.md#known-risks), and a new [gallery](art.md) entry for the sheriff's
+  office art. `tools/validate_docs.py`'s `ART_SOURCES` never watched
+  `Textures/Things/Building/Roles` at all, which is why that art shipped invisible to the gallery
+  check instead of failing loudly — it now does.
 - **The wiki now fully covers stages 2, 3, 5 and 6** — services, lodging, per-faction standing,
   and the main-street content pass. The last three shipped on this branch before the wiki
   existed, so this is the wiki catching up rather than the mod changing: [hotel desk and hotel
@@ -83,6 +94,46 @@ change itself, and update the [wiki page](contributing.md#the-workflow) it affec
 ### Save compatibility
 
 - No gameplay change. Safe to drop into a save in progress.
+
+---
+
+## Stage 4 — Town roles — 2026-08-23
+
+The saloon generated no trouble at all before this stage — a sheriff needed something to
+suppress before the badge itself could mean anything.
+
+### Added
+
+- **[Sheriff's office](buildings.md#sheriffs-office)** (`OWT_SheriffOffice`) — a post, not a
+  fifth business kind: no `CompProperties_Business`, so it never registers with `TownEconomy`
+  and never enters the appeal or reputation math. Assigned through `CompRolePost`
+  (`CompProperties_RolePost`), built on vanilla's own `CompAssignableToPawn` — the same idiom a
+  throne or a grave already uses for "this pawn, and only this pawn, owns this."
+- **[Sheriffing](shopkeeping.md#sheriffing)** (`OWT_Sheriffing`): a work type that, unlike
+  Shopkeeping, only ever does anything for the one colonist actually assigned to the post.
+  `WorkGiver_Patrol` / `JobDriver_Patrol` (job `OWT_Patrol`) send the sheriff to stand the post —
+  the ambient half of suppression, halving how fast rowdiness accrues town-wide while they're on
+  duty. `WorkGiver_CalmTrouble` / `JobDriver_CalmTrouble` (job `OWT_CalmTrouble`) are the reactive
+  half: they target one specific rowdy patron directly and walk the sheriff over to calm them
+  down, granting the same 35 Social XP a shopkeeper earns for a served sale.
+- **[Trouble at the saloon](customers.md#trouble-at-the-saloon)**: a new `OWT_Rowdy` hediff that
+  a round of [drink](services.md#drink) — never a meal — nudges upward, decaying on its own via
+  vanilla's own `HediffCompProperties_SeverityPerDay`. Crossing its top stage fires a scripted
+  **disturbance** (`TroubleUtility.Notify_ServiceRound`): a message, a reputation hit worse than
+  a walkout (`CompBusiness.RecordDisturbance`, −0.05 against a walkout's −0.02), and the
+  offending patron stops buying for the rest of their visit. A skilled shopkeeper behind the bar
+  slows the climb on their own; an on-duty sheriff slows it further, town-wide; an unstaffed bar
+  gets neither discount.
+- **`Alert_RowdyPatrons`**: fires while a patron is "getting loud" and still calmable — the
+  sheriff's real window before a disturbance fires unattended. Mirrors `Alert_CustomersWaiting`'s
+  shape.
+
+### Deliberately deferred
+
+- **Barkeep** and **banker**, the other two roles this stage originally named. Barkeep folded
+  into the existing Shopkeeping loop as the skilled-shopkeeper discount above, rather than a
+  second post — there was nothing left for a separate badge to do. Banker is cut outright: there
+  is no bank yet for one to run.
 
 ---
 

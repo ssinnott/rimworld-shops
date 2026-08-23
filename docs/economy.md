@@ -58,11 +58,14 @@ and have something to offer — stock on the shelf, or an available service.
 | A staffed sale or service | **+0.01** |
 | A self-service sale | **−0.005** |
 | A customer walks out | **−0.02** |
+| A saloon disturbance | **−0.05** |
 | Every day | drifts 5% back toward 0.5 |
 
 A walkout costs twice what a sale earns, so a counter you leave unattended during a busy visit
-loses ground fast. And because reputation decays toward neutral every day, a town has to keep
-earning its name — a burst of good trade a quadrum ago doesn't hold the number up.
+loses ground fast. A [disturbance](customers.md#trouble-at-the-saloon) costs more than double a
+walkout again — an unpoliced saloon is the single fastest way to burn through a town's good name.
+And because reputation decays toward neutral every day, a town has to keep earning its name — a
+burst of good trade a quadrum ago doesn't hold the number up.
 
 Reputation feeds two things:
 

@@ -48,6 +48,7 @@ GALLERY = "art.md"
 ART_SOURCES = {
     "Textures/Things/Building/Commerce": "Commerce",
     "Textures/Things/Building/MainStreet": "MainStreet",
+    "Textures/Things/Building/Roles": "Roles",
     "Textures/Terrain/Surfaces": "Terrain",
     "About": None,   # Preview.png only, flattened to the top of the asset folder
 }

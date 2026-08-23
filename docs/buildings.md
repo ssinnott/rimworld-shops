@@ -139,6 +139,34 @@ there's no refund, and the town's [reputation](economy.md#reputation) takes the 
 other walkout. A bed that's deconstructed while occupied, or one a colonist simply climbs into,
 evicts its guest exactly the same way — nobody has to click anything for it to happen.
 
+## Sheriff's office
+
+*"A desk, a rifle rack, and a cell nobody's used yet. Doesn't sell anything — assign a colonist
+to it from the building's own gizmo, the same way you'd assign an owner to a throne or a grave.
+They also need a Sheriffing priority in the Work tab, same as any other job."*
+
+| | |
+| --- | --- |
+| Size | 2 × 1, rotatable |
+| Materials | Wood, metal or stone — 75 units |
+| Work to build | 1400 |
+| Beauty | 4 |
+| Research | Frontier commerce |
+
+Not a business — it sells nothing, and never enters the town's [appeal or
+reputation](economy.md) math. It's a **post**: right-click it and **Assign sheriff** picks one
+free colonist, the same idiom a throne room or a grave already uses for "this pawn, and only
+this pawn, owns this." That's a separate step from putting them to work — the assigned colonist
+also needs a priority on the **Sheriffing** work type in the Work tab before they actually patrol.
+See [sheriffing](shopkeeping.md#sheriffing) for how the two combine, and
+[trouble at the saloon](customers.md#trouble-at-the-saloon) for what the sheriff is actually
+suppressing.
+
+Rotating the office places the **post** — the one tile the sheriff stands watch at — the same
+"rotate the building to place it" idiom a shop counter's staff side already uses. The inspect
+pane names the current sheriff and whether they're on duty right now (*Sheriff: so-and-so (on
+duty)* / *(off duty)*), or *No sheriff assigned* if the post is vacant.
+
 ## Main street
 
 *Boardwalk terrain, and five pieces of street furniture — hitching post, gallows, faro table,

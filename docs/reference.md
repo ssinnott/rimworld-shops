@@ -30,12 +30,19 @@ Everything this mod adds is prefixed `OWT_`.
 | `OWT_FaroTable` | faro table | — | *same file* |
 | `OWT_BatwingDoor` | batwing doors | — (`ParentName="Door"`) | *same file* |
 | `OWT_StreetFurnitureBase` | *(abstract parent)* | — | *same file* |
+| `OWT_SheriffOffice` | sheriff's office | — (not a business; `CompRolePost`) | `Defs/ThingDefs_Buildings/Buildings_Roles.xml` |
 
 ### Terrain
 
 | defName | Label | File |
 | --- | --- | --- |
 | `OWT_Boardwalk` | boardwalk | `Defs/TerrainDefs/Terrain_MainStreet.xml` |
+
+### Hediffs
+
+| defName | Label | Stages | File |
+| --- | --- | --- | --- |
+| `OWT_Rowdy` | rowdy | feeling good / getting loud / spoiling for a fight | `Defs/HediffDefs/Hediffs_Commerce.xml` |
 
 ### Business kinds
 
@@ -66,6 +73,8 @@ Everything this mod adds is prefixed `OWT_`.
 | `OWT_ServeHaircut` | `JobDriver_UseService` | getting a haircut at TargetB. |
 | `OWT_ServeLodging` | `JobDriver_UseService` | checking in at TargetB. |
 | `OWT_SleepInRentedBed` | `JobDriver_SleepInRentedBed` | sleeping at TargetA. |
+| `OWT_Patrol` | `JobDriver_Patrol` | patrolling TargetA. |
+| `OWT_CalmTrouble` | `JobDriver_CalmTrouble` | calming down TargetA. |
 
 ### Everything else
 
@@ -75,6 +84,9 @@ Everything this mod adds is prefixed `OWT_`.
 | `OWT_FrontierCommerce` | `ResearchProjectDef` | 500 cost, Medieval, no prerequisites |
 | `OWT_Shopkeeping` | `WorkTypeDef` | Natural priority 460, Social skill |
 | `OWT_ManShopCounter` | `WorkGiverDef` | Priority 100 in type; needs Manipulation + Talking |
+| `OWT_Sheriffing` | `WorkTypeDef` | Natural priority 460, Social skill; `alwaysStartActive` false — only the assigned pawn ever has anything to do here |
+| `OWT_PatrolPost` | `WorkGiverDef` | Priority 100 in type; ambient half of suppression; needs Manipulation + Talking |
+| `OWT_CalmDownPatron` | `WorkGiverDef` | Priority 200 in type (outranks `OWT_PatrolPost`); reactive half; needs Manipulation + Talking |
 | `OWT_Shop` | `DutyDef` | HighPriority hook; buy-then-wander think tree |
 | `OWT_ShopCustomers` | `IncidentDef` | Misc, baseChance 3, minRefireDays 0.6 |
 | `OWT_FreshHaircut` | `ThoughtDef` | +5 mood, 1.5 days, stack limit 1 |
@@ -162,6 +174,21 @@ where it lives in C# it is a `const` in the named file.
 | `RestedThreshold` | 0.9 | Rest level at which a sleeping guest wakes and checks out |
 | `MaxSleepTicks` | 30000 | Hard cap on one sleep job, independent of `Need_Rest` |
 
+### Town roles — `Roles/CompRolePost.cs`, `Roles/TroubleUtility.cs`, `Defs/HediffDefs/Hediffs_Commerce.xml`, `Defs/ServiceDefs/Services_Commerce.xml`
+
+| Name | Value | Meaning |
+| --- | --- | --- |
+| `rowdinessPerServing` (`OWT_Drink`) | 0.2 | Severity a round of drinks adds to `OWT_Rowdy`. Meal leaves this at its default of zero |
+| `OWT_Rowdy` severity per day | −0.5 | Vanilla `HediffCompProperties_SeverityPerDay`; decays on its own, no custom `HediffComp` |
+| `OWT_Rowdy` stage thresholds | 0 / 0.5 / 1.0 | feeling good / getting loud / spoiling for a fight |
+| `SheriffOnDutyFactor` | 0.5 | An on-duty sheriff roughly halves rowdiness accrual, map-wide |
+| `MaxShopkeeperSocialFactor` | 0.5 | What a max-Social shopkeeper behind the bar discounts it to; an unstaffed bar gets no discount |
+| `OnDutyGraceTicks` (`CompRolePost`) | 60 | How stale a patrol ping may be and still count as on duty — mirrors `StaffPresenceGraceTicks` |
+| `IdlePatienceTicks` (`JobDriver_Patrol`) | 1250 | Safety valve that ends a patrol so the next think-tree tick can reconsider it |
+| `TroubleCheckIntervalTicks` (`JobDriver_Patrol`) | 30 | How often a standing patrol polls for a patron worth calming |
+| `CalmTicks` (`JobDriver_CalmTrouble`) | 200 | How long the sheriff spends talking a patron down |
+| Social XP for a calm-down | 35 | Same as a shopkeeper's XP for a served sale |
+
 ## Mod settings
 
 `OldWestTownSettings`, saved in RimWorld's mod-settings file.
@@ -189,6 +216,8 @@ otherwise.
 | Alerts | `OWT_AlertUnattended`, `OWT_AlertUnattendedDesc` |
 | Rentable bed inspect panel and gizmo | `OWT_BedVacant`, `OWT_BedOccupiedBy`, `OWT_CmdEvictGuest`, `OWT_CmdEvictGuestDesc` |
 | False front | `OWT_FalseFrontAdvertising`, `OWT_FalseFrontIdle` |
+| Sheriff's office gizmo and inspect panel | `OWT_CmdAssignSheriff`, `OWT_CmdAssignSheriffDesc`, `OWT_PostAlreadyFilled`, `OWT_PostVacant`, `OWT_PostOnDuty`, `OWT_PostOffDuty` |
+| Saloon trouble | `OWT_SaloonTrouble`, `OWT_DisturbanceLine`, `OWT_AlertRowdyPatrons`, `OWT_AlertRowdyPatronsDesc` |
 
 ## Saved state
 
@@ -205,6 +234,8 @@ What survives a save/load, and where it lives.
 | Wait/serve progress | `JobDriver_PatronizeBusiness` | So a mid-sale save resumes correctly |
 | Sleep progress (`ticksAsleep`) | `JobDriver_SleepInRentedBed` | So a mid-stay save resumes correctly |
 | Current guest, selling desk | `CompRentableBed` | References only; released if the guest is dead on load |
+| Sheriff assignment | `CompRolePost` (vanilla `CompAssignableToPawn`) | Persisted by the base class itself; `CompRolePost` adds no `ExposeData` of its own |
+| On-duty flag (`lastOnDutyTick`/`lastOnDutyPawn`) | `CompRolePost` | Deliberately **not** persisted, mirroring `CompBusiness`'s own staff flag — re-established within moments once the sheriff's patrol job re-ticks after a reload |
 | Mod settings | `OldWestTownSettings` | Global, not per save |
 
 `TownEconomy` rebuilds its business register in `FinalizeInit`, because comps register on spawn
