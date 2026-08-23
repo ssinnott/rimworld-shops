@@ -1,4 +1,7 @@
-# Old West Town — design notes
+---
+title: Design notes
+summary: The reasoning behind the mod's shape — the trade-offs considered, and why each one landed where it did.
+---
 
 ## The goal
 
@@ -46,25 +49,11 @@ message and a reputation hit — which turns a robustness measure into a game me
 a common base, `JobDriver_PatronizeBusiness` — see "Services" below. Everything added later (a
 hotel clerk, a bank teller, a gambling dealer) should use the same shape.
 
-## Component map
+## Where the parts live
 
-| Piece | File | Job |
-| --- | --- | --- |
-| `ShopKindDef` | `Shops/ShopKindDef.cs` | Data-driven business type: default stock, price band, appeal, patience, and which services it offers. Adding a business kind is XML, not code. |
-| `CompBusiness` | `Shops/CompBusiness.cs` | Makes a building a business — goods, services, or both. Owns the till, filter, markup, ledger, staff flag, and the staff/customer cell pair. |
-| `ServiceDef` / `ServiceWorker` | `Shops/ServiceDef.cs`, `Shops/ServiceWorker.cs` | A thing a business sells that isn't a shelf item — a drink, a meal, a haircut, a night's stay. The embedded worker supplies the type-specific behaviour: what it can act on, how much a customer wants it, what effect it applies once paid for — including, for a stay, a `Thing` it claims for longer than the sale itself. |
-| `CompRentableBed` | `Shops/CompRentableBed.cs` | A bed a guest has paid to sleep in. Passive shared state, exactly like `CompBusiness`'s own staff flag — the guest's own sleep job is what notices it and acts on it, never a handshake with the desk that sold the stay. |
-| `ShopStock` | `Shops/ShopStock.cs` | What's on the shelves, what a given customer would buy, which service a shop can currently perform, and which of its beds are free. |
-| `ShopPricing` | `Shops/ShopPricing.cs` | The only place a price is decided — for goods or a service — so UI, AI and transaction can't disagree. |
-| `ShopTransaction` | `Shops/ShopTransaction.cs` | The single point where silver, goods and service effects move. Re-validates everything. |
-| `CompFalseFront` | `Shops/CompFalseFront.cs` | A false front's one mechanical hook: `CurbAppealBonus` folds a small, capped bonus for a nearby dressed-up storefront into `ShopPricing.ValueAppeal`. Walks `FalseFrontRegistry` rather than the map, since `ValueAppeal` is a customer-AI hot path. Nothing here is persisted. |
-| `FalseFrontRegistry` | `Shops/FalseFrontRegistry.cs` | `MapComponent`. Live roster of spawned `CompFalseFront`s, registered the same way `TownEconomy` registers shops — so curb-appeal scoring never has to scan every Thing on the map. |
-| `TownEconomy` | `Shops/TownEconomy.cs` | `MapComponent`. Shop register, daily ledger, reputation, `Appeal`, and — per stage 5 — a sparse per-`Faction` standing that decides which faction the arrival clock actually produces. |
-| `JobGiver_BuyFromShop`, `JobDriver_PatronizeBusiness` (`JobDriver_BuyFromShop`, `JobDriver_UseService`) | `AI/` | Customer side: picks a business — goods or a service, whichever scores best — and runs the shared walk/wait/patience shape. |
-| `JobGiver_SleepInRentedBed`, `JobDriver_SleepInRentedBed` | `AI/` | A checked-in guest's other job: go to bed once tired, sleep until rested. Never references the desk or colonist that sold the stay — only `CompRentableBed` and its own `CustomerRecord`. |
-| `WorkGiver_/JobDriver_ManShop` | `AI/` | Colonist side. Kind-agnostic: it staffs any `CompBusiness` with something to offer, a hotel desk included. |
-| `LordJob_ShopVisit`, `LordToil_Shop` | `Lords/` | The visiting group, and per-customer records — including, now, who's checked into a bed. |
-| `IncidentWorker_ShopCustomers` | `Incidents/` | Turns town appeal into arrivals, and — per stage 5 — biases *which* faction arrives by that faction's own standing with the town. |
+The file-by-file component map moved to the wiki, so it sits next to the reference tables and
+stays under CI's eye: **[Code map](architecture.md)**. That page says what each source file
+owns; the sections below are the reasoning behind the shape it describes.
 
 ### Why the lord graph is flat
 
@@ -220,187 +209,10 @@ still caps the rate. The `IncidentDef` keeps a small `baseChance` as a backgroun
 
 ## Roadmap
 
-Staged so each step is playable on its own.
-
-**1. Vertical slice — done.** Counter, stock, pricing, till, shopkeeping work type, customer
-arrival and purchase, appeal and reputation.
-
-**2. Services (no goods change hands) — done.** The interesting half of a town sells *time*,
-not items. `CompShopCounter` is generalised into `CompBusiness` with a pluggable
-`ServiceWorker`; the customer job becomes walk to the service point (skipped for a service
-that consumes nothing), wait to be served, pay, receive a hediff or a thought instead of an
-item — see "Services" above. Shipped: `_Ingest`, parameterized as both **Drink** (a Liquor item
-off the saloon's own shelves, feeding Joy) and **Meal** (any meal, feeding Food) — the
-interesting hybrid case, since a service that still moves stock has to answer to both the
-goods loop and the service loop without double-counting; and `_Haircut` (a new **barber shop**
-business, pure time, a mood thought plus a visible hair change). Bath and Doctor are left as
-XML-only additions once their buildings exist — same seam, no new lesson to teach.
-
-**3. Lodging — done.** A hotel is both a `ServiceWorker` (the priced, staffed check-in) and a
-bed comp (`CompRentableBed`, the durable claim no single transaction can hold) — see "Lodging"
-and "Settled in town" above for why it needs both and how the two stay out of each other's way.
-Shipped: `OWT_Hotel`, a fourth business kind (desk + beds), staffed by the existing Shopkeeping
-work type with zero new staffing code; one paid night per transaction, no multi-night
-pre-booking; occupancy on the inspect string and the town ledger, in the same vocabulary as
-everything else there; and a staged `OWT_SleptAtHotel` mood thought, keyed to the room's own
-Impressiveness stat and granted on waking rather than at check-in — the only service in the mod
-whose experience is deferred past payment. Deliberately deferred: multi-night pre-booking,
-unstaffed nightly billing, per-desk room association (any hotel desk currently offers any vacant
-bed on its own sales floor), vanilla bed ownership, and private suites.
-
-**4. Town roles.** Sheriff, barkeep, banker as assignable posts with their own work givers and
-gizmos. A sheriff suppresses the drunk/brawl events a saloon starts generating.
-
-**5. Reputation with depth — done.** The single `reputation` float is untouched — still the
-honest, town-wide answer to "should anyone set out for this town at all" and "what will a
-stranger pay," because neither question has a coherent per-faction answer — and is joined, not
-replaced, by a sparse per-`Faction` `standings` dictionary on the same `TownEconomy`. A faction
-with no tracked history simply reads as the town's own reputation (`StandingWith`) until
-something happens to it specifically: a staffed sale nudges its own faction's standing sharply
-upward, any walkout (patience run out, or a hotel eviction) nudges it sharply downward, and a
-self-service sale — nobody chose to serve *this* customer in particular — touches only the
-town-wide number, exactly as before. The only mechanical consequence of standing is *which*
-faction the town's existing arrival clock actually produces: `IncidentWorker_ShopCustomers` lets
-vanilla's own `TryResolveParms` run to completion untouched (it's confirmed non-virtual, so
-pre-seeding `parms.faction` and hoping it's honored isn't a safe option), then re-picks the
-faction afterward by weighted draw over standing, from vanilla's own candidate pool —
-`IsEligibleFaction` excludes the player, hostile factions, and anyone with no settlement to
-actually send customers from. The town ledger names the single best and worst *recorded*
-relationship once either has genuinely diverged from the town's own name, and stays silent
-otherwise — a fresh game's ledger is unchanged. An existing save has no `standings` node at all;
-every faction it already knew about simply starts exactly where its own reputation number
-already put them. Deliberately deferred: faction-aware pricing or purse size (a second lever the
-ledger could never actually show the player), a per-shop notion of a regular, and any
-cross-colony scope — standing lives at the same town-wide granularity as the number it splits.
-
-**6. Old west content pass — done.** Boardwalk terrain, false-front facades, a hitching post,
-batwing doors, a faro table and a gallows dress the street stages 1–5 already made functional.
-Only the false front is mechanical: `CompFalseFront.CurbAppealBonus` folds a small, capped
-"curb appeal" bonus (+0.10 for one qualifying facade near a shop's customer-facing side, +0.15
-for two or more — diminishing, and capped there) into `ShopPricing.ValueAppeal`, the same
-function `JobGiver_BuyFromShop` already calls to score every candidate shop and service, so a
-dressed-up storefront wins close calls between similarly-priced rivals without ever outweighing
-price itself. Everything else earns its place for free through systems that already exist:
-boardwalk, false front and faro table add Beauty like any floor or furniture (the gallows
-subtracts it, on purpose — the one deliberately ugly thing in the set), the faro table's Beauty
-comes with vanilla's own `CompGatherSpot` so idle colonists actually gather at it, and batwing
-doors are a reskin of vanilla's `Door` that also undercuts its `costStuffCount` — the swinging
-half-doors it's advertising as genuinely cost less lumber, not just less light-blocking. The
-hitching post and the faro table's cards stay honestly decorative — a real wager is the
-roadmap's own future Gambling Hall below, and biasing where a visiting group gathers would mean
-editing the incident/lord-job files the Lodging stage is already extending.
-
-**7. Hospitality bridge (optional).** A soft-dependency assembly that gives Hospitality guests
-the `OWT_Shop` duty, so a single group can both lodge and shop.
-
-### Beyond the staged plan — thematic expansions
-
-Larger directions that build on the finished stages rather than slotting between them. Each is
-listed with what it reuses, roughly cheapest first.
-
-**Gambling hall.** A faro/poker table as the first business where the "transaction" is a wager
-rather than a purchase: patrons buy in, and a player-set house edge (the markup slider's twin)
-determines the expected take. Set it greedy and patrons lose fast, get angry, and reputation
-drops; set it fair and they stay all evening buying drinks. Colonist dealers use the
-Shopkeeping work type, with Social skill reducing cheating accusations. Mostly a step-2
-`ServiceWorker` plus a payout roll — it reuses the wait-to-be-served toil and the till
-wholesale, and adds the first income stream that isn't stock-driven.
-
-**Outlaws and the law.** A rich town becomes a target: the more silver sitting in tills
-(already tracked per counter), the higher the chance of a *stickup* — a small raider band that
-heads for counters instead of colonists, empties tills, and leaves unless resisted.
-Counterplay is the step-4 sheriff, plus a wanted board (bounty quests on recurring outlaw
-leaders) and a jail that converts captured outlaws into silver or reputation. Turns "collect
-the takings" from a chore into a real risk-management decision. New incident and lord job on
-the existing shapes.
-
-**Stagecoach line.** A coach depot that puts the town on a scheduled route: guaranteed
-high-budget customers every few days, outgoing mail contracts (deliver parcels for silver),
-and the occasional VIP passenger — a quest-giver or a shopper with a 5× budget. Appeal raises
-the route's tier, from irregular freight wagons up to a daily express, giving the compounding
-economy a visible milestone ladder on top of the shortening MTB clock.
-
-**Gold rush.** A map-wide *strike nearby* event that floods the town with prospectors for a
-quadrum: arrivals triple and budgets rise, but they only want a specific demand basket (tools,
-meals, booze, medicine) and they bring brawls and claim disputes. Price-gouging during the
-boom decays reputation faster; when the vein dries up, arrivals crash below baseline until
-reputation recovers. Exercises the markup slider and the breadth-over-depth appeal math
-dramatically, and gives long saves a narrative arc.
-
-**Rival towns.** One or two NPC towns as world-map neighbours with their own abstract appeal
-score. Customer groups *choose* between towns — your share of regional traffic is your appeal
-relative to theirs, so the arrival clock has an opponent. Rivals undercut prices, poach your
-best shopkeeper with a job-offer event, or send saboteurs; out-compete one long enough and it
-becomes a ghost town you can salvage. The most ambitious of the five (it adds world-map
-state), but the one that most directly deepens the pricing-and-appeal loop — it gives
-`TownEconomy`'s single appeal float an external yardstick and makes pricing genuinely
-competitive rather than solitaire.
+Moved to the wiki: **[Roadmap](roadmap.md)** — the staged plan, and the larger thematic
+expansions that build on top of it.
 
 ## Known risks
 
-- **None of this has run in RimWorld.** It compiles against the 1.6 reference assemblies and
-  passes `tools/validate_defs.py`, but job drivers, lord graphs and duty think trees are
-  exactly the code that static checking can't validate. First-play bugs are expected.
-- `CustomerCell` mirrors the interaction cell through the counter. For an unusually shaped or
-  awkwardly placed counter this can pick a cell the player didn't intend; there's a fallback to
-  any standable neighbour, and queueing customers fan out to free cells around it
-  (`CustomerCellFor`), but a dedicated "customer side" marker would still be better.
-- Customers can't reserve items against colonists (RimWorld reservations are per-faction).
-  Goods a colonist has already reserved are excluded from the shelves, which removes most of
-  the churn, but a hauler can still start a job on goods (or a service's consumable) a customer
-  is mid-walk toward — and two customers can race for the same stack. The loser's job fails
-  gracefully.
-- `Appeal` walks every open shop's stock. It's cached per shop for a second, which is fine for
-  a main street and would want revisiting for a hundred counters.
-- Two vanilla calls the services path leans on — `FoodUtility.IngestFromInventoryNow` for
-  Drink/Meal, and the `PawnStyleItemChooser.RandomHairFor` + `SetAllGraphicsDirty` pair for a
-  Haircut's visible hair change — are exercised by this mod for the first time. Every signature
-  involved is confirmed against the real 1.6 reference assembly, but the exact in-game outcome
-  (whether a customer visibly gets `AlcoholHigh`, whether a hair change reliably repaints a
-  transient visitor) hasn't been confirmed in a live game.
-- Lodging is what makes `Need_Rest`, `Toils_LayDown.LayDown` and `Building_Bed` load-bearing for
-  the first time. Every signature is confirmed against the reference assembly, but not what a
-  non-colonist, lord-controlled pawn's rest gain actually looks like in play, or whether vanilla's
-  own long-need rest-seeking (already enabled for this duty since stage 1) ever wins a race
-  against `JobGiver_SleepInRentedBed` for a tired, housed guest and sends them to some other bed
-  first. `JobDriver_SleepInRentedBed`'s own rested-threshold check and hard tick cap are the
-  backstop either way, but expect to retune both after first play.
-- `OWT_HotelBed`'s `statBases` (`Comfort`, `BedRestEffectiveness`, `RestRateMultiplier`) and
-  `building` fields are plausible values, not ones checked against a real single bed def — this
-  sandbox has no access to Core's Defs XML, only confirmation that the field *names* are real.
-  Worth eyeballing against the player's own installed vanilla bed before shipping.
-- `OWT_SleptAtHotel`'s three stage thresholds (room Impressiveness `< 20` / `< 60` / else) are a
-  tuning guess with no reference point for what a bare bunkroom versus a lavish suite actually
-  scores.
-- A hotel desk reads "a customer is near" (`WorkGiver_ManShop.AnyCustomerNear`) for as long as
-  *any* pawn on the `OWT_Shop` duty is nearby — including one who's currently asleep elsewhere in
-  the same building. That's a pre-existing level of imprecision in that scan (it never checked
-  whether a nearby customer wants *this* shop specifically), not a new correctness bug.
-- Two hotel desks sharing one bunkroom can both offer the same vacant bed to two different guests
-  in the same scoring pass; two guests' JobGivers can likewise both pick the same bed in the same
-  tick. Both are the same class of race this file already accepts for stock — the pre-payment
-  availability recheck in `ShopTransaction.TryServe` closes the paid-then-nothing version of it,
-  and the loser's job fails gracefully with no refund.
-- `OWT_BatwingDoor`'s `ParentName="Door"` assumes vanilla's own door `ThingDef` is genuinely
-  named `Door` — extremely well-established modding knowledge, but unverifiable in this sandbox
-  either way, since the reference assemblies carry compiled C# only, never Def XML. The faro
-  table's `RimWorld.CompGatherSpot` is confirmed to exist and expose the expected members, but
-  its actual pull on idle colonists is unconfirmed in a live game. The false front's curb-appeal
-  numbers (+0.10 / +0.15, a 7-tile radius) are a first-pass estimate and want a playtest to
-  confirm they nudge trade rather than doing nothing or dominating price.
-- Whether `IncidentWorker_PawnsArrive.CandidateFactions`, called independently of its one
-  presumed normal call site inside `TryResolveParms`, is genuinely side-effect-free can't be
-  proven from reference-assembly metadata alone — there's no IL to inspect. `ChooseWeightedFaction`
-  wraps the whole redraw in a silent try/catch that falls back to today's fully-random pick on
-  any failure, and, more importantly, never depends on the separate, equally unprovable question
-  of whether `TryResolveParms` would have honored a pre-set `parms.faction` — it only overwrites
-  the field after that method has already run to completion.
-- The new per-faction standing deltas (±0.05 / ±0.10), the arrival-weight curve
-  (`Lerp(0.15, 3)`), and the ledger's 0.1 divergence threshold are first-pass guesses, in the
-  same spirit as this file's existing constants — untested in a live game. Worth a specific
-  playtest: push one faction's standing to an extreme with repeated staffed sales and watch
-  whether they visibly show up more (or less) often over the next several arrivals.
-- A customer's faction can rarely turn hostile mid-visit — an unrelated relations swing while
-  their group is still in town. `IsEligibleFaction` silently stops recording standing for them
-  at that moment, which is a deliberate no-op matching this codebase's no-logging style, not a
-  bug to "fix" on a later read.
+Moved to the wiki, where they sit beside the code they apply to:
+**[Code map → Known risks](architecture.md#known-risks)**.

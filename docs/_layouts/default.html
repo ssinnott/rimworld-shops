@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if page.title and page.url != "/" %}{{ page.title }} · {{ site.title }}{% else %}{{ site.title }} · {{ site.tagline }}{% endif %}</title>
+  <meta name="description" content="{{ page.summary | default: site.description | strip_newlines | truncate: 200 }}">
+  <link rel="stylesheet" href="{{ '/assets/css/wiki.css' | relative_url }}">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='13' font-size='13'>&#129312;</text></svg>">
+</head>
+<body>
+
+<a class="skip" href="#content">Skip to content</a>
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <a class="brand" href="{{ '/' | relative_url }}">
+      <span class="brand-name">{{ site.title }}</span>
+      <span class="brand-sub">{{ site.tagline }}</span>
+    </a>
+    <a class="repo-link" href="{{ site.repo_url }}">Source on GitHub</a>
+  </div>
+</header>
+
+<div class="shell">
+
+  <input type="checkbox" id="nav-toggle" class="nav-toggle">
+  <label for="nav-toggle" class="nav-toggle-label">Contents</label>
+
+  <nav class="sidebar" aria-label="Wiki contents">
+    {% for group in site.wiki_nav %}
+    <p class="nav-section">{{ group.section }}</p>
+    <ul>
+      {% for item in group.pages %}
+        {% if item.page == 'index' %}
+          {% assign href = '/' %}
+        {% else %}
+          {% assign href = '/' | append: item.page | append: '.html' %}
+        {% endif %}
+        <li{% if page.url == href %} class="current"{% endif %}>
+          <a href="{{ href | relative_url }}">{{ item.title }}</a>
+        </li>
+      {% endfor %}
+    </ul>
+    {% endfor %}
+  </nav>
+
+  <main id="content" class="content">
+    {% if page.url != "/" %}
+      <h1 class="page-title">{{ page.title }}</h1>
+      {% if page.summary %}<p class="page-summary">{{ page.summary }}</p>{% endif %}
+    {% endif %}
+
+    {{ content }}
+
+    <footer class="page-footer">
+      <p>
+        <a href="{{ site.repo_url }}/edit/main/docs/{{ page.path | remove_first: 'docs/' }}">Edit this page</a>
+        &middot;
+        <a href="{{ '/changelog.html' | relative_url }}">Changelog</a>
+        &middot;
+        Code MIT. RimWorld is &copy; Ludeon Studios; this mod is not affiliated with Ludeon.
+      </p>
+    </footer>
+  </main>
+</div>
+
+</body>
+</html>
