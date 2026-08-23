@@ -1,4 +1,7 @@
-# Old West Town — design notes
+---
+title: Design notes
+summary: The reasoning behind the mod's shape — the trade-offs considered, and why each one landed where it did.
+---
 
 ## The goal
 
@@ -46,21 +49,11 @@ message and a reputation hit — which turns a robustness measure into a game me
 a common base, `JobDriver_PatronizeBusiness` — see "Services" below. Everything added later (a
 hotel clerk, a bank teller, a gambling dealer) should use the same shape.
 
-## Component map
+## Where the parts live
 
-| Piece | File | Job |
-| --- | --- | --- |
-| `ShopKindDef` | `Shops/ShopKindDef.cs` | Data-driven business type: default stock, price band, appeal, patience, and which services it offers. Adding a business kind is XML, not code. |
-| `CompBusiness` | `Shops/CompBusiness.cs` | Makes a building a business — goods, services, or both. Owns the till, filter, markup, ledger, staff flag, and the staff/customer cell pair. |
-| `ServiceDef` / `ServiceWorker` | `Shops/ServiceDef.cs`, `Shops/ServiceWorker.cs` | A thing a business sells that isn't a shelf item — a drink, a meal, a haircut. The embedded worker supplies the type-specific behaviour: what it can act on, how much a customer wants it, what effect it applies once paid for. |
-| `ShopStock` | `Shops/ShopStock.cs` | What's on the shelves, what a given customer would buy, and which service a shop can currently perform. |
-| `ShopPricing` | `Shops/ShopPricing.cs` | The only place a price is decided — for goods or a service — so UI, AI and transaction can't disagree. |
-| `ShopTransaction` | `Shops/ShopTransaction.cs` | The single point where silver, goods and service effects move. Re-validates everything. |
-| `TownEconomy` | `Shops/TownEconomy.cs` | `MapComponent`. Shop register, daily ledger, reputation, and `Appeal`. |
-| `JobGiver_BuyFromShop`, `JobDriver_PatronizeBusiness` (`JobDriver_BuyFromShop`, `JobDriver_UseService`) | `AI/` | Customer side: picks a business — goods or a service, whichever scores best — and runs the shared walk/wait/patience shape. |
-| `WorkGiver_/JobDriver_ManShop` | `AI/` | Colonist side. Kind-agnostic: it staffs any `CompBusiness` with something to offer. |
-| `LordJob_ShopVisit`, `LordToil_Shop` | `Lords/` | The visiting group, and per-customer records. |
-| `IncidentWorker_ShopCustomers` | `Incidents/` | Turns town appeal into arrivals. |
+The file-by-file component map moved to the wiki, so it sits next to the reference tables and
+stays under CI's eye: **[Code map](architecture.md)**. That page says what each source file
+owns; the sections below are the reasoning behind the shape it describes.
 
 ### Why the lord graph is flat
 
@@ -150,101 +143,10 @@ still caps the rate. The `IncidentDef` keeps a small `baseChance` as a backgroun
 
 ## Roadmap
 
-Staged so each step is playable on its own.
-
-**1. Vertical slice — done.** Counter, stock, pricing, till, shopkeeping work type, customer
-arrival and purchase, appeal and reputation.
-
-**2. Services (no goods change hands) — done.** The interesting half of a town sells *time*,
-not items. `CompShopCounter` is generalised into `CompBusiness` with a pluggable
-`ServiceWorker`; the customer job becomes walk to the service point (skipped for a service
-that consumes nothing), wait to be served, pay, receive a hediff or a thought instead of an
-item — see "Services" above. Shipped: `_Ingest`, parameterized as both **Drink** (a Liquor item
-off the saloon's own shelves, feeding Joy) and **Meal** (any meal, feeding Food) — the
-interesting hybrid case, since a service that still moves stock has to answer to both the
-goods loop and the service loop without double-counting; and `_Haircut` (a new **barber shop**
-business, pure time, a mood thought plus a visible hair change). Bath and Doctor are left as
-XML-only additions once their buildings exist — same seam, no new lesson to teach.
-
-**3. Lodging.** A `CompRentableBed`: customers with no bed of their own pay per night and stay
-across the day boundary. Requires extending the visit duration past one day and giving the
-lord a "settled in town" state.
-
-**4. Town roles.** Sheriff, barkeep, banker as assignable posts with their own work givers and
-gizmos. A sheriff suppresses the drunk/brawl events a saloon starts generating.
-
-**5. Reputation with depth.** Split the single reputation float into per-faction standing, so
-specific factions become regulars. Feeds arrival frequency by faction.
-
-**6. Old west content pass.** Boardwalk terrain, false-front facades, hitching posts, batwing
-doors, faro tables, a gallows. Mostly XML; the point is that step 1–5 already make a town
-*function*, and this makes it *look* like one.
-
-**7. Hospitality bridge (optional).** A soft-dependency assembly that gives Hospitality guests
-the `OWT_Shop` duty, so a single group can both lodge and shop.
-
-### Beyond the staged plan — thematic expansions
-
-Larger directions that build on the finished stages rather than slotting between them. Each is
-listed with what it reuses, roughly cheapest first.
-
-**Gambling hall.** A faro/poker table as the first business where the "transaction" is a wager
-rather than a purchase: patrons buy in, and a player-set house edge (the markup slider's twin)
-determines the expected take. Set it greedy and patrons lose fast, get angry, and reputation
-drops; set it fair and they stay all evening buying drinks. Colonist dealers use the
-Shopkeeping work type, with Social skill reducing cheating accusations. Mostly a step-2
-`ServiceWorker` plus a payout roll — it reuses the wait-to-be-served toil and the till
-wholesale, and adds the first income stream that isn't stock-driven.
-
-**Outlaws and the law.** A rich town becomes a target: the more silver sitting in tills
-(already tracked per counter), the higher the chance of a *stickup* — a small raider band that
-heads for counters instead of colonists, empties tills, and leaves unless resisted.
-Counterplay is the step-4 sheriff, plus a wanted board (bounty quests on recurring outlaw
-leaders) and a jail that converts captured outlaws into silver or reputation. Turns "collect
-the takings" from a chore into a real risk-management decision. New incident and lord job on
-the existing shapes.
-
-**Stagecoach line.** A coach depot that puts the town on a scheduled route: guaranteed
-high-budget customers every few days, outgoing mail contracts (deliver parcels for silver),
-and the occasional VIP passenger — a quest-giver or a shopper with a 5× budget. Appeal raises
-the route's tier, from irregular freight wagons up to a daily express, giving the compounding
-economy a visible milestone ladder on top of the shortening MTB clock.
-
-**Gold rush.** A map-wide *strike nearby* event that floods the town with prospectors for a
-quadrum: arrivals triple and budgets rise, but they only want a specific demand basket (tools,
-meals, booze, medicine) and they bring brawls and claim disputes. Price-gouging during the
-boom decays reputation faster; when the vein dries up, arrivals crash below baseline until
-reputation recovers. Exercises the markup slider and the breadth-over-depth appeal math
-dramatically, and gives long saves a narrative arc.
-
-**Rival towns.** One or two NPC towns as world-map neighbours with their own abstract appeal
-score. Customer groups *choose* between towns — your share of regional traffic is your appeal
-relative to theirs, so the arrival clock has an opponent. Rivals undercut prices, poach your
-best shopkeeper with a job-offer event, or send saboteurs; out-compete one long enough and it
-becomes a ghost town you can salvage. The most ambitious of the five (it adds world-map
-state), but the one that most directly deepens the pricing-and-appeal loop — it gives
-`TownEconomy`'s single appeal float an external yardstick and makes pricing genuinely
-competitive rather than solitaire.
+Moved to the wiki: **[Roadmap](roadmap.md)** — the staged plan, and the larger thematic
+expansions that build on top of it.
 
 ## Known risks
 
-- **None of this has run in RimWorld.** It compiles against the 1.6 reference assemblies and
-  passes `tools/validate_defs.py`, but job drivers, lord graphs and duty think trees are
-  exactly the code that static checking can't validate. First-play bugs are expected.
-- `CustomerCell` mirrors the interaction cell through the counter. For an unusually shaped or
-  awkwardly placed counter this can pick a cell the player didn't intend; there's a fallback to
-  any standable neighbour, and queueing customers fan out to free cells around it
-  (`CustomerCellFor`), but a dedicated "customer side" marker would still be better.
-- Customers can't reserve items against colonists (RimWorld reservations are per-faction).
-  Goods a colonist has already reserved are excluded from the shelves, which removes most of
-  the churn, but a hauler can still start a job on goods (or a service's consumable) a customer
-  is mid-walk toward — and two customers can race for the same stack. The loser's job fails
-  gracefully.
-- `Appeal` walks every open shop's stock. It's cached per shop for a second, which is fine for
-  a main street and would want revisiting for a hundred counters.
-- Two vanilla calls the services path leans on — `FoodUtility.IngestFromInventoryNow` for
-  Drink/Meal, and the `PawnStyleItemChooser.RandomHairFor` + `SetAllGraphicsDirty` pair for a
-  Haircut's visible hair change — are exercised by this mod for the first time. Every signature
-  involved is confirmed against the real 1.6 reference assembly, but the exact in-game outcome
-  (whether a customer visibly gets `AlcoholHigh`, whether a hair change reliably repaints a
-  transient visitor) hasn't been confirmed in a live game.
+Moved to the wiki, where they sit beside the code they apply to:
+**[Code map → Known risks](architecture.md#known-risks)**.

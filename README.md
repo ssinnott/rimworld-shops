@@ -8,8 +8,13 @@ Hospitality gets guests onto your map. This is about what they do once they're t
 
 **Status: goods and services both work.** A customer arrives, then either picks something off
 your shelves or orders a drink, a meal or a haircut — queues, and pays either way. The breadth
-(hotels, banks, stables, town roles) is designed but not built; see
-[docs/DESIGN.md](docs/DESIGN.md) for the architecture and the staged plan.
+(hotels, banks, stables, town roles) is designed but not built.
+
+📖 **[Read the wiki](https://ssinnott.github.io/rimworld-shops/)** — every building, business,
+service and system in the mod, plus the [code map](https://ssinnott.github.io/rimworld-shops/architecture.html),
+the [design notes](https://ssinnott.github.io/rimworld-shops/DESIGN.html), the
+[roadmap](https://ssinnott.github.io/rimworld-shops/roadmap.html) and the
+[changelog](https://ssinnott.github.io/rimworld-shops/changelog.html). Its source is `docs/`.
 
 This mod is standalone. It does not require Hospitality, and is written to sit alongside it.
 
@@ -125,13 +130,28 @@ python3 tools/make_textures.py     # draw art for anything that has none
 It never overwrites existing art unless you pass `--force`.
 
 CI (`.github/workflows/ci.yml`) runs all of the above plus a full build on every push.
+`.github/workflows/pages.yml` builds the wiki on every pull request and publishes it on
+every push to `main`.
+
+### Keeping the wiki current
+
+The wiki is checked, not just written: `tools/validate_docs.py` fails the build if a def, source
+file or translation key is undocumented, if an internal wiki link is broken, or if the changelog
+has no *Unreleased* section. A change to the mod updates the page it affects and the changelog in
+the same commit — see
+[Contributing](https://ssinnott.github.io/rimworld-shops/contributing.html).
+
+```sh
+python3 tools/validate_docs.py
+```
 
 ## Caveats
 
 - **This has not been run in RimWorld.** It compiles against the 1.6 reference assemblies and
   passes the static checks above, but the pawn AI — job drivers, the lord graph, the duty
   think tree — is the kind of code that only really proves itself in game. Expect to shake out
-  bugs on first play.
+  bugs on first play. The full list is in the
+  [wiki's known risks](https://ssinnott.github.io/rimworld-shops/architecture.html#known-risks).
 - Textures are programmer-art placeholders.
 
 ## Licence
