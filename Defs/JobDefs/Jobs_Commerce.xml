@@ -15,4 +15,25 @@
     <allowOpportunisticPrefix>true</allowOpportunisticPrefix>
   </JobDef>
 
+  <JobDef>
+    <defName>OWT_ServeDrink</defName>
+    <driverClass>OldWestTown.AI.JobDriver_UseService</driverClass>
+    <reportString>getting a drink at TargetB.</reportString>
+    <casualInterruptible>false</casualInterruptible>
+  </JobDef>
+
+  <JobDef>
+    <defName>OWT_ServeMeal</defName>
+    <driverClass>OldWestTown.AI.JobDriver_UseService</driverClass>
+    <reportString>getting a meal at TargetB.</reportString>
+    <casualInterruptible>false</casualInterruptible>
+  </JobDef>
+
+  <JobDef>
+    <defName>OWT_ServeHaircut</defName>
+    <driverClass>OldWestTown.AI.JobDriver_UseService</driverClass>
+    <reportString>getting a haircut at TargetB.</reportString>
+    <casualInterruptible>false</casualInterruptible>
+  </JobDef>
+
 </Defs>

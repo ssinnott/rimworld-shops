@@ -8,9 +8,10 @@ using Verse.AI.Group;
 namespace OldWestTown.AI
 {
     /// <summary>
-    /// Decides which shop a customer walks into next. Runs from the OWT_Shop duty's think tree,
-    /// above the wander node, so a customer with money and somewhere to spend it always shops
-    /// and only loiters when there's nothing to buy.
+    /// Decides which business a customer patronizes next — buying goods or using a service,
+    /// whichever scores best. Runs from the OWT_Shop duty's think tree, above the wander node,
+    /// so a customer with money and somewhere to spend it always shops and only loiters when
+    /// there's nothing to buy or use.
     /// </summary>
     public class JobGiver_BuyFromShop : ThinkNode_JobGiver
     {
@@ -26,37 +27,70 @@ namespace OldWestTown.AI
 
             CustomerRecord record = (pawn.GetLord()?.LordJob as LordJob_ShopVisit)?.RecordFor(pawn);
 
-            CompShopCounter bestShop = null;
-            Thing bestGoods = null;
+            CompBusiness bestShop = null;
+            Thing bestTarget = null;
             int bestCount = 0;
+            JobDef bestJobDef = null;
             float bestScore = 0f;
 
-            foreach (CompShopCounter shop in econ.OpenShops())
+            foreach (CompBusiness shop in econ.OpenShops())
             {
                 if (record != null && record.refusedShops.Contains(shop.parent)) continue;
-                if (!shop.Open) continue;
-                if (!pawn.CanReach(shop.parent, PathEndMode.Touch, Danger.Deadly)) continue;
+                if (!shop.Open || !pawn.CanReach(shop.parent, PathEndMode.Touch, Danger.Deadly)) continue;
 
+                float distanceFactor = 1f + pawn.Position.DistanceTo(shop.parent.Position) / 40f;
+                float staffBonus = shop.Staffed ? 1.5f : 1f;
+
+                // Goods candidate.
                 Thing goods = ShopStock.ChoosePurchase(shop, pawn, purse, out int count);
-                if (goods == null || count <= 0) continue;
-
-                // Prefer a well-priced shop that is actually staffed, and one that's close by.
-                float score = ShopPricing.ValueAppeal(shop);
-                if (shop.Staffed) score *= 1.5f;
-                score /= 1f + pawn.Position.DistanceTo(shop.parent.Position) / 40f;
-
-                if (score > bestScore)
+                if (goods != null && count > 0)
                 {
-                    bestScore = score;
-                    bestShop = shop;
-                    bestGoods = goods;
-                    bestCount = count;
+                    float score = ShopPricing.ValueAppeal(shop) * staffBonus / distanceFactor;
+                    if (score > bestScore)
+                    {
+                        bestScore = score;
+                        bestShop = shop;
+                        bestTarget = goods;
+                        bestCount = count;
+                        bestJobDef = OWTDefOf.OWT_BuyFromShop;
+                    }
+                }
+
+                // Service candidates — scored on the same footing as goods, no ordering bias.
+                foreach (ServiceDef service in shop.AvailableServices)
+                {
+                    Thing consumable = null;
+                    int price;
+                    if (service.worker.ConsumesStock)
+                    {
+                        consumable = ShopStock.ChooseService(shop, service, pawn);
+                        if (consumable == null) continue;
+                        price = ShopPricing.PriceFor(shop, consumable, 1);
+                    }
+                    else
+                    {
+                        price = ShopPricing.PriceForService(shop, service);
+                    }
+                    if (price > purse) continue;
+
+                    float score = ShopPricing.ValueAppeal(shop) * service.worker.Desirability(pawn) * staffBonus / distanceFactor;
+                    if (score > bestScore)
+                    {
+                        bestScore = score;
+                        bestShop = shop;
+                        bestTarget = consumable;
+                        bestCount = 1;
+                        bestJobDef = service.jobDef;
+                    }
                 }
             }
 
             if (bestShop == null) return null;
 
-            Job job = JobMaker.MakeJob(OWTDefOf.OWT_BuyFromShop, bestGoods, bestShop.parent, bestShop.CustomerCellFor(pawn));
+            // bestTarget is null for a Haircut-shaped service (nothing to fetch); Thing's
+            // implicit conversion to LocalTargetInfo turns that into an invalid-but-harmless
+            // target A, which the service driver never dereferences in that case.
+            Job job = JobMaker.MakeJob(bestJobDef, bestTarget, bestShop.parent, bestShop.CustomerCellFor(pawn));
             job.count = bestCount;
             return job;
         }

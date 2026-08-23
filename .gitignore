@@ -1,6 +1,8 @@
 # Build intermediates
 Source/**/obj/
 Source/**/bin/
+tools/**/obj/
+tools/**/bin/
 
 # The compiled mod assembly IS committed (see 1.6/Assemblies) so the repo can be
 # dropped straight into RimWorld/Mods without a toolchain. Ignore everything else
@@ -14,3 +16,6 @@ Source/**/bin/
 .idea/
 *.user
 .DS_Store
+
+# Python bytecode from the tools/ scripts
+__pycache__/

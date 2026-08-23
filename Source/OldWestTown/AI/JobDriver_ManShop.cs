@@ -21,7 +21,7 @@ namespace OldWestTown.AI
 
         private int idleTicks;
 
-        private CompShopCounter Shop => job.GetTarget(CounterInd).Thing?.TryGetComp<CompShopCounter>();
+        private CompBusiness Shop => job.GetTarget(CounterInd).Thing?.TryGetComp<CompBusiness>();
 
         public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
@@ -48,7 +48,7 @@ namespace OldWestTown.AI
             tend.initAction = () => idleTicks = 0;
             tend.tickAction = () =>
             {
-                CompShopCounter shop = Shop;
+                CompBusiness shop = Shop;
                 if (shop == null)
                 {
                     EndJobWith(JobCondition.Incompletable);

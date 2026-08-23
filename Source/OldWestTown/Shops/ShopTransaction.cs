@@ -21,7 +21,7 @@ namespace OldWestTown.Shops
             NotServed
         }
 
-        public static Result TrySell(CompShopCounter shop, Pawn customer, Thing goods, int count, out int pricePaid)
+        public static Result TrySell(CompBusiness shop, Pawn customer, Thing goods, int count, out int pricePaid)
         {
             pricePaid = 0;
             if (shop == null || customer == null || goods == null) return Result.NoStock;
@@ -73,9 +73,84 @@ namespace OldWestTown.Shops
             shop.RecordSale(price);
             shop.DirtyStock();
             shop.parent.Map?.GetComponent<TownEconomy>()?.RecordSale(price, selfService);
+            TrainShopkeeper(shop);
 
             pricePaid = price;
             return Result.Sold;
+        }
+
+        /// <summary>The service equivalent of TrySell: pays for one visit and applies the
+        /// service's effect. <paramref name="consumed"/> is the item a stock-consuming service
+        /// (Drink, Meal) picked up off the shelf, already carried by the customer; null for a
+        /// service that consumes nothing but time (Haircut).</summary>
+        public static Result TryServe(CompBusiness shop, Pawn customer, ServiceDef service, Thing consumed, out int pricePaid)
+        {
+            pricePaid = 0;
+            if (shop == null || customer == null || service?.worker == null) return Result.NoStock;
+            if (!shop.Open) return Result.ShopClosed;
+
+            bool selfService = !shop.Staffed;
+            if (selfService && !(service.allowsSelfService && OldWestTownMod.Settings.allowSelfService))
+                return Result.NotServed;
+
+            bool consumesStock = service.worker.ConsumesStock;
+            if (consumesStock)
+            {
+                if (consumed == null || !service.worker.CanUse(consumed)) return Result.NoStock;
+                if (!shop.StockFilter.Allows(consumed)) return Result.NoStock;
+                if (consumed.IsForbidden(Faction.OfPlayer)) return Result.NoStock;
+            }
+
+            int price = consumesStock
+                ? ShopPricing.PriceFor(shop, consumed, 1)
+                : ShopPricing.PriceForService(shop, service);
+
+            int purse = SilverCarriedBy(customer);
+            // Unlike TrySell, a service is one unit -- no affordable-partial-stack trimming.
+            if (purse < price) return Result.CannotAfford;
+            if (!TakeSilver(customer, price, shop)) return Result.CannotAfford;
+
+            Thing served = null;
+            if (consumesStock)
+            {
+                // Exactly one unit changes hands, because exactly one unit was priced. The job giver
+                // already asks for a single item, so this normally splits nothing; making it true here
+                // means a future caller can't quietly hand over a stack for the price of one drink.
+                // A remainder left in the customer's hands is unpaid, and the driver's finish action
+                // puts it back on the floor.
+                served = consumed.stackCount > 1 ? consumed.SplitOff(1) : consumed;
+
+                // Into the customer's inventory before the effect lands -- mirrors TrySell's goods handoff.
+                if (served.Spawned) served.DeSpawn();
+                if (customer.carryTracker?.CarriedThing == served)
+                {
+                    customer.carryTracker.innerContainer.TryTransferToContainer(
+                        served, customer.inventory.innerContainer, served.stackCount, out _);
+                }
+                else if (!customer.inventory.innerContainer.TryAdd(served, true))
+                {
+                    GenPlace.TryPlaceThing(served, customer.Position, customer.Map, ThingPlaceMode.Near);
+                }
+            }
+
+            service.worker.ApplyEffect(customer, served);
+
+            shop.RecordSale(price);
+            shop.DirtyStock();
+            shop.parent.Map?.GetComponent<TownEconomy>()?.RecordSale(price, selfService);
+            TrainShopkeeper(shop);
+
+            pricePaid = price;
+            return Result.Sold;
+        }
+
+        /// <summary>Serving a customer — goods or a service — is social work, and it should
+        /// train the skill that gates it. Shared by TrySell and TryServe so the two
+        /// customer-facing drivers don't each need their own copy.</summary>
+        private static void TrainShopkeeper(CompBusiness shop)
+        {
+            Pawn keeper = shop.Shopkeeper;
+            if (keeper != null) keeper.skills?.Learn(SkillDefOf.Social, 35f);
         }
 
         public static int SilverCarriedBy(Pawn pawn)
@@ -84,7 +159,7 @@ namespace OldWestTown.Shops
         }
 
         /// <summary>Moves <paramref name="amount"/> silver out of the customer's purse and into the till.</summary>
-        private static bool TakeSilver(Pawn customer, int amount, CompShopCounter shop)
+        private static bool TakeSilver(Pawn customer, int amount, CompBusiness shop)
         {
             if (amount <= 0) return true;
             ThingOwner<Thing> purse = customer.inventory.innerContainer;

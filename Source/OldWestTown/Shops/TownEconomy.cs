@@ -15,10 +15,20 @@ namespace OldWestTown.Shops
         /// <summary>Appeal below which no customer group will set out for this town.</summary>
         public const float MinAppealForCustomers = 0.5f;
 
+        /// <summary>
+        /// A stock-free service (a haircut) has no "quantity on the shelf" the way physical
+        /// stock does — ServiceValue is just the price of one visit, an order of magnitude
+        /// below a shelf's total value. Scaled up before it joins the same wealth curve, so one
+        /// instance of a shipped stock-free service can clear <see cref="MinAppealForCustomers"/>
+        /// on its own, the way a modestly-stocked general store already can, instead of being
+        /// drowned out by a /1000 normalization tuned for physical stock.
+        /// </summary>
+        private const float ServiceValueWeight = 30f;
+
         /// <summary>How often the arrival clock is consulted. MTB math corrects for the interval.</summary>
         private const int ArrivalCheckInterval = 600;
 
-        private readonly List<CompShopCounter> shops = new List<CompShopCounter>();
+        private readonly List<CompBusiness> shops = new List<CompBusiness>();
 
         private int lastDayRolled = -1;
 
@@ -34,24 +44,24 @@ namespace OldWestTown.Shops
 
         public float Reputation => Mathf.Clamp01(reputation);
 
-        public IReadOnlyList<CompShopCounter> Shops => shops;
+        public IReadOnlyList<CompBusiness> Shops => shops;
 
-        public void Register(CompShopCounter shop)
+        public void Register(CompBusiness shop)
         {
             if (shop != null && !shops.Contains(shop)) shops.Add(shop);
         }
 
-        public void Deregister(CompShopCounter shop)
+        public void Deregister(CompBusiness shop)
         {
             shops.Remove(shop);
         }
 
         /// <summary>Shops that could serve a customer right now.</summary>
-        public IEnumerable<CompShopCounter> OpenShops()
+        public IEnumerable<CompBusiness> OpenShops()
         {
             for (int i = 0; i < shops.Count; i++)
             {
-                CompShopCounter s = shops[i];
+                CompBusiness s = shops[i];
                 if (s != null && s.parent != null && s.parent.Spawned && s.Open) yield return s;
             }
         }
@@ -69,13 +79,13 @@ namespace OldWestTown.Shops
                 float stockScore = 0f;
                 HashSet<ShopKindDef> kinds = new HashSet<ShopKindDef>();
 
-                foreach (CompShopCounter shop in OpenShops())
+                foreach (CompBusiness shop in OpenShops())
                 {
-                    if (shop.StockOnDisplay.Count == 0) continue;
+                    if (!shop.HasAnythingToOffer) continue;
                     // Each additional business of a kind already present is worth less.
                     float weight = kinds.Add(shop.Kind) ? 1f : 0.35f;
                     kindScore += (shop.Kind?.appeal ?? 1f) * weight;
-                    stockScore += shop.StockValue;
+                    stockScore += shop.StockValue + shop.ServiceValue * ServiceValueWeight;
                 }
 
                 if (kindScore <= 0f) return 0f;
@@ -173,7 +183,7 @@ namespace OldWestTown.Shops
             shops.Clear();
             foreach (Thing t in map.listerThings.AllThings)
             {
-                CompShopCounter comp = t.TryGetComp<CompShopCounter>();
+                CompBusiness comp = t.TryGetComp<CompBusiness>();
                 if (comp != null) Register(comp);
             }
         }

@@ -11,8 +11,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Restore the RimWorld reference assemblies
+        # refdump reads these to answer "is this a real vanilla type?". Restoring the mod
+        # project is what puts them on disk.
+        run: dotnet restore Source/OldWestTown/OldWestTown.csproj
+      - name: Build refdump
+        # Without it the type check downgrades to a note and every vanilla type named in XML
+        # goes unverified — which is exactly the typo the validator exists to catch.
+        run: dotnet build tools/refdump/refdump.csproj -c Release
       - name: Run static def checks
         run: python3 tools/validate_defs.py
+
+  textures:
+    name: Check every building has art
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Pillow
+        run: pip install --quiet Pillow
+      - name: Check for buildings with no texture
+        run: python3 tools/make_textures.py --check
 
   build:
     name: Build assembly

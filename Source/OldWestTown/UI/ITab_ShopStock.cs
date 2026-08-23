@@ -22,13 +22,13 @@ namespace OldWestTown.UI
             labelKey = "OWT_TabStock";
         }
 
-        private CompShopCounter Shop => (SelThing as ThingWithComps)?.TryGetComp<CompShopCounter>();
+        private CompBusiness Shop => (SelThing as ThingWithComps)?.TryGetComp<CompBusiness>();
 
         public override bool IsVisible => Shop != null;
 
         protected override void FillTab()
         {
-            CompShopCounter shop = Shop;
+            CompBusiness shop = Shop;
             if (shop == null) return;
 
             Rect outer = new Rect(0f, 0f, WinSize.x, WinSize.y).ContractedBy(10f);

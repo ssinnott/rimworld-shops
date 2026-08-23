@@ -5,7 +5,7 @@ namespace OldWestTown.Shops
 {
     /// <summary>
     /// Describes a category of business — general store, saloon, gunsmith and so on.
-    /// A <see cref="CompShopCounter"/> points at one of these to get its default stock
+    /// A <see cref="CompBusiness"/> points at one of these to get its default stock
     /// selection, its pricing band, and how much it contributes to the town's draw.
     /// </summary>
     public class ShopKindDef : Def
@@ -31,5 +31,8 @@ namespace OldWestTown.Shops
 
         /// <summary>Ticks a customer will wait at the counter before giving up and leaving unhappy.</summary>
         public int customerPatienceTicks = 2500;
+
+        /// <summary>Services this business offers, alongside whatever it stocks.</summary>
+        public List<ServiceDef> services = new List<ServiceDef>();
     }
 }

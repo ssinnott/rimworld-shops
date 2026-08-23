@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+
+  <!-- A round at the saloon bar. Consumes a Liquor-flagged item already on the shelves —
+       the interesting hybrid case: a service that still moves stock. -->
+  <OldWestTown.Shops.ServiceDef>
+    <defName>OWT_Drink</defName>
+    <label>drink</label>
+    <jobDef>OWT_ServeDrink</jobDef>
+    <serveTicks>150</serveTicks>
+    <allowsSelfService>true</allowsSelfService>
+    <worker Class="OldWestTown.Shops.ServiceWorker_Ingest">
+      <foodType>Liquor</foodType>
+      <needHook>Joy</needHook>
+    </worker>
+  </OldWestTown.Shops.ServiceDef>
+
+  <!-- A hot meal at the saloon bar. Same worker class as OWT_Drink, parameterized differently —
+       requires an actual meal rather than a liquor, and feeds Food rather than Joy. -->
+  <OldWestTown.Shops.ServiceDef>
+    <defName>OWT_Meal</defName>
+    <label>meal</label>
+    <jobDef>OWT_ServeMeal</jobDef>
+    <serveTicks>150</serveTicks>
+    <allowsSelfService>true</allowsSelfService>
+    <worker Class="OldWestTown.Shops.ServiceWorker_Ingest">
+      <requireMeal>true</requireMeal>
+      <needHook>Food</needHook>
+    </worker>
+  </OldWestTown.Shops.ServiceDef>
+
+  <!-- The barber's whole trade: consumes nothing but time and chair space. -->
+  <OldWestTown.Shops.ServiceDef>
+    <defName>OWT_Haircut</defName>
+    <label>haircut</label>
+    <jobDef>OWT_ServeHaircut</jobDef>
+    <serveTicks>2200</serveTicks>
+    <basePrice>16</basePrice>
+    <allowsSelfService>false</allowsSelfService>
+    <worker Class="OldWestTown.Shops.ServiceWorker_Haircut">
+      <thoughtDef>OWT_FreshHaircut</thoughtDef>
+    </worker>
+  </OldWestTown.Shops.ServiceDef>
+
+</Defs>

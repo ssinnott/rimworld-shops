@@ -13,7 +13,7 @@ namespace OldWestTown.Shops
         public const int MinPrice = 1;
 
         /// <summary>Price for the whole stack of <paramref name="count"/> units.</summary>
-        public static int PriceFor(CompShopCounter shop, Thing thing, int count)
+        public static int PriceFor(CompBusiness shop, Thing thing, int count)
         {
             if (shop == null || thing == null || count <= 0) return 0;
             float unit = UnitValue(thing) * shop.Markup * shop.ReputationPriceFactor;
@@ -33,12 +33,23 @@ namespace OldWestTown.Shops
         /// How appealing this price is to a shopper: 1 at market value, falling as markup rises.
         /// Customers use it to choose between shops, so undercutting a rival actually wins trade.
         /// </summary>
-        public static float ValueAppeal(CompShopCounter shop)
+        public static float ValueAppeal(CompBusiness shop)
         {
             if (shop == null) return 0f;
             float effective = shop.Markup * shop.ReputationPriceFactor;
             // 1.0x markup -> 1.0, 2.0x -> ~0.5, 3.0x -> ~0.33.
             return Mathf.Clamp(1f / Mathf.Max(0.25f, effective), 0.1f, 2f);
+        }
+
+        /// <summary>Price for a service with no backing Thing to read a market value from (Haircut).
+        /// A stock-consuming service (Drink, Meal) is priced with the existing PriceFor against
+        /// whatever it actually consumes — there is exactly one place a price basis is decided
+        /// either way.</summary>
+        public static int PriceForService(CompBusiness shop, ServiceDef service)
+        {
+            if (shop == null || service == null) return 0;
+            float unit = service.basePrice * shop.Markup * shop.ReputationPriceFactor;
+            return Mathf.Max(MinPrice, Mathf.RoundToInt(unit));
         }
     }
 }
