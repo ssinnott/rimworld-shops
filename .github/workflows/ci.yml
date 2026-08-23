@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  validate-defs:
+    name: Validate defs and translation keys
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run static def checks
+        run: python3 tools/validate_defs.py
+
+  build:
+    name: Build assembly
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Build mod assembly
+        run: dotnet build Source/OldWestTown/OldWestTown.csproj -c Release
+      - name: Check committed assembly is current
+        # The build is deterministic, so a fresh build should be byte-identical to the
+        # committed DLL. A drift is a warning, not a failure: SDK differences can move bytes.
+        run: |
+          git diff --exit-code --stat 1.6/Assemblies/OldWestTown.dll \
+            || echo "::warning::Committed OldWestTown.dll differs from a fresh build — rebuild and commit it"

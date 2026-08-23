@@ -28,6 +28,11 @@ namespace OldWestTown.AI
         private int waitedTicks;
         private int servedTicks;
 
+        /// <summary>True while this customer stands at an unattended counter burning patience.
+        /// The unattended-counter alert reads it; not saved, since the wait toil re-derives it
+        /// within a tick of loading.</summary>
+        public bool WaitingForService { get; private set; }
+
         private Thing Goods => job.GetTarget(GoodsInd).Thing;
         private CompShopCounter Shop => job.GetTarget(CounterInd).Thing?.TryGetComp<CompShopCounter>();
 
@@ -50,6 +55,7 @@ namespace OldWestTown.AI
             // raid, or they could only afford part of the stack they picked up. Put it back.
             AddFinishAction(condition =>
             {
+                WaitingForService = false;
                 if (pawn.carryTracker?.CarriedThing != null && pawn.Map != null)
                 {
                     pawn.carryTracker.TryDropCarriedThing(pawn.Position, ThingPlaceMode.Near, out _);
@@ -87,7 +93,7 @@ namespace OldWestTown.AI
             toil.socialMode = RandomSocialMode.Normal;
             toil.handlingFacing = true;
 
-            toil.initAction = () => { waitedTicks = 0; servedTicks = 0; };
+            toil.initAction = () => { waitedTicks = 0; servedTicks = 0; WaitingForService = false; };
 
             toil.tickAction = () =>
             {
@@ -102,11 +108,17 @@ namespace OldWestTown.AI
 
                 if (shop.Staffed || OldWestTownMod.Settings.allowSelfService)
                 {
+                    // Being attended restores patience; service has to be continuous, so a
+                    // shopkeeper who drifts off mid-sale starts the serve over, not resumes it.
+                    WaitingForService = false;
+                    waitedTicks = 0;
                     servedTicks++;
                     if (servedTicks >= ServeTicks) ReadyForNextToil();
                     return;
                 }
 
+                WaitingForService = true;
+                servedTicks = 0;
                 waitedTicks++;
                 int patience = shop.Kind?.customerPatienceTicks ?? 2500;
                 if (waitedTicks >= patience) WalkOut(shop);
@@ -128,10 +140,15 @@ namespace OldWestTown.AI
                 record.refusedShops.Add(shop.parent);
             }
 
-            Messages.Message(
-                "OWT_CustomerWalkedOut".Translate(pawn.LabelShort, shop.parent.Label),
-                new LookTargets(shop.parent),
-                MessageTypeDefOf.NegativeEvent);
+            // One message per counter per patience-window: a whole group giving up at once
+            // is one piece of news, not a screenful.
+            if (shop.TryClaimWalkoutMessage())
+            {
+                Messages.Message(
+                    "OWT_CustomerWalkedOut".Translate(pawn.LabelShort, shop.parent.Label),
+                    new LookTargets(shop.parent),
+                    MessageTypeDefOf.NegativeEvent);
+            }
 
             EndJobWith(JobCondition.Incompletable);
         }

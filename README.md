@@ -27,10 +27,15 @@ This mod is standalone. It does not require Hospitality, and is written to sit a
   till. Collect the takings with a gizmo. Deconstructing a counter drops its till rather than
   voiding it.
 - **Customers who react to how you run the place.** An unattended counter makes shoppers wait,
-  then walk out and put the goods back — which costs you town reputation.
+  then walk out, leaving the goods by the counter — which costs you town reputation. An alert
+  fires while customers are still queueing, so you can staff up before they give up.
 - **A town economy that compounds.** Appeal is computed from how many *distinct* stocked
-  businesses you run, what's on display, and your reputation. Appeal drives how often
-  customers arrive and how much silver they bring, so investment pays forward.
+  businesses you run, what's on display, and your reputation. Appeal directly drives how often
+  customers arrive — the town runs its own arrival clock, which shortens as appeal grows — and
+  how much silver they bring, so investment pays forward.
+- **A town ledger.** Every counter has a *Town ledger* gizmo showing appeal, reputation,
+  today's sales and walkouts, and each shop's takings — the numbers the economy runs on,
+  readable in one place. Counters also show appeal and reputation in their inspect pane.
 
 ## Installing
 
@@ -50,7 +55,8 @@ to play.
 7. Wait for the *Customers arriving* event, then watch the till.
 
 If nobody is behind the counter, nothing sells. That's deliberate — it's what makes the
-Shopkeeping assignment matter. You can turn it off with the *Allow self-service* mod setting.
+Shopkeeping assignment matter. You can turn it off with the *Allow self-service* mod setting,
+at a price: every unattended sale quietly erodes the town's reputation.
 
 ## Building from source
 
@@ -75,6 +81,8 @@ python3 tools/validate_defs.py
 
 It verifies that every C# type named in XML exists, that every def reference resolves (or is
 on an explicit known-vanilla list), and that every `.Translate()` key has an English string.
+
+CI (`.github/workflows/ci.yml`) runs the same checks plus a full build on every push.
 
 ## Caveats
 

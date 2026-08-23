@@ -26,7 +26,11 @@ namespace OldWestTown.Shops
                 List<Thing> contained = room.ContainedAndAdjacentThings;
                 for (int i = 0; i < contained.Count; i++)
                 {
-                    if (Sellable(shop, contained[i], map)) yield return contained[i];
+                    Thing t = contained[i];
+                    // ContainedAndAdjacentThings also lists things merely next to the room —
+                    // in a doorway, or just outside the walls. Only what is inside is on sale.
+                    if (t.GetRoom() != room) continue;
+                    if (Sellable(shop, t, map)) yield return t;
                 }
                 yield break;
             }
@@ -53,7 +57,10 @@ namespace OldWestTown.Shops
             // Forbidding an item is the player's way of saying "not for sale".
             if (t.IsForbidden(Faction.OfPlayer)) return false;
 
-            // Don't sell things that are already promised elsewhere, still burning, or worthless.
+            // Goods a colonist has reserved are already promised elsewhere — a hauler is on the
+            // way. Selling them out from under the job would churn both sides.
+            if (map.reservationManager.IsReservedByAnyoneOf(t, Faction.OfPlayer)) return false;
+
             if (t.IsBurning()) return false;
             if (ShopPricing.UnitValue(t) <= 0f) return false;
 

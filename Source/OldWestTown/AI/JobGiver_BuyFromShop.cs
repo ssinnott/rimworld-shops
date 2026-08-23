@@ -56,7 +56,7 @@ namespace OldWestTown.AI
 
             if (bestShop == null) return null;
 
-            Job job = JobMaker.MakeJob(OWTDefOf.OWT_BuyFromShop, bestGoods, bestShop.parent, bestShop.CustomerCell);
+            Job job = JobMaker.MakeJob(OWTDefOf.OWT_BuyFromShop, bestGoods, bestShop.parent, bestShop.CustomerCellFor(pawn));
             job.count = bestCount;
             return job;
         }

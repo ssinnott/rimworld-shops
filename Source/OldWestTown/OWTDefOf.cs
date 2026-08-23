@@ -12,9 +12,7 @@ namespace OldWestTown
 
         public static DutyDef OWT_Shop;
 
-        public static WorkTypeDef OWT_Shopkeeping;
-
-        public static ThingDef OWT_ShopCounter;
+        public static IncidentDef OWT_ShopCustomers;
 
         static OWTDefOf()
         {

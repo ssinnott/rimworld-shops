@@ -17,7 +17,8 @@ namespace OldWestTown.Shops
             Sold,
             NoStock,
             CannotAfford,
-            ShopClosed
+            ShopClosed,
+            NotServed
         }
 
         public static Result TrySell(CompShopCounter shop, Pawn customer, Thing goods, int count, out int pricePaid)
@@ -25,6 +26,16 @@ namespace OldWestTown.Shops
             pricePaid = 0;
             if (shop == null || customer == null || goods == null) return Result.NoStock;
             if (!shop.Open) return Result.ShopClosed;
+
+            // No one behind the counter, no sale — unless the player runs an honesty box.
+            bool selfService = !shop.Staffed;
+            if (selfService && !OldWestTownMod.Settings.allowSelfService) return Result.NotServed;
+
+            // The walk from shelf to counter gives the player time to change their mind:
+            // an item pulled from the stock filter or forbidden mid-carry is not for sale.
+            if (goods.def == ThingDefOf.Silver) return Result.NoStock;
+            if (!shop.StockFilter.Allows(goods)) return Result.NoStock;
+            if (goods.IsForbidden(Faction.OfPlayer)) return Result.NoStock;
 
             count = Mathf.Clamp(count, 1, goods.stackCount);
             if (count <= 0) return Result.NoStock;
@@ -61,7 +72,7 @@ namespace OldWestTown.Shops
 
             shop.RecordSale(price);
             shop.DirtyStock();
-            shop.parent.Map?.GetComponent<TownEconomy>()?.RecordSale(price);
+            shop.parent.Map?.GetComponent<TownEconomy>()?.RecordSale(price, selfService);
 
             pricePaid = price;
             return Result.Sold;

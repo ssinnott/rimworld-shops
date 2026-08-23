@@ -12,6 +12,12 @@ namespace OldWestTown.Shops
     /// </summary>
     public class TownEconomy : MapComponent
     {
+        /// <summary>Appeal below which no customer group will set out for this town.</summary>
+        public const float MinAppealForCustomers = 0.5f;
+
+        /// <summary>How often the arrival clock is consulted. MTB math corrects for the interval.</summary>
+        private const int ArrivalCheckInterval = 600;
+
         private readonly List<CompShopCounter> shops = new List<CompShopCounter>();
 
         private int lastDayRolled = -1;
@@ -80,12 +86,14 @@ namespace OldWestTown.Shops
             }
         }
 
-        public void RecordSale(int price)
+        public void RecordSale(int price, bool selfService = false)
         {
             revenueToday += price;
             lifetimeRevenue += price;
             customersServedToday++;
-            reputation = Mathf.Clamp01(reputation + 0.01f);
+            // A staffed sale builds the town's name. An honesty-box sale slowly erodes it —
+            // customers remember a town where nobody stood behind the counter.
+            reputation = Mathf.Clamp01(reputation + (selfService ? -0.005f : 0.01f));
         }
 
         public void RecordWalkout()
@@ -106,6 +114,34 @@ namespace OldWestTown.Shops
                 if (lastDayRolled >= 0) RollOverDay();
                 lastDayRolled = day;
             }
+
+            TryAttractCustomers();
+        }
+
+        /// <summary>
+        /// Word of a good town spreads: appeal directly drives how often customer groups set
+        /// out, rather than leaving frequency to the storyteller's flat random roll. Firing
+        /// goes through the storyteller so the incident's own minRefireDays still applies —
+        /// a booming town gets frequent groups, never a flood of them.
+        /// </summary>
+        private void TryAttractCustomers()
+        {
+            if (Find.TickManager.TicksGame % ArrivalCheckInterval != 0) return;
+
+            float appeal = Appeal;
+            if (appeal < MinAppealForCustomers) return;
+
+            // A town scraping past the threshold sees a group every few days; a booming main
+            // street sees one most days. The volume setting scales the clock as well as the
+            // group size, since "more customers" should mean both.
+            float mtbDays = Mathf.Lerp(3.5f, 0.8f,
+                Mathf.Clamp01((appeal - MinAppealForCustomers) / 3.5f));
+            mtbDays /= Mathf.Max(0.25f, OldWestTownMod.Settings.customerVolume);
+            if (!Rand.MTBEventOccurs(mtbDays, 60000f, ArrivalCheckInterval)) return;
+
+            IncidentParms parms = StorytellerUtility.DefaultParmsNow(
+                OWTDefOf.OWT_ShopCustomers.category, map);
+            Find.Storyteller.TryFire(new FiringIncident(OWTDefOf.OWT_ShopCustomers, null, parms));
         }
 
         private void RollOverDay()

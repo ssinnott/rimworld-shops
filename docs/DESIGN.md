@@ -99,6 +99,11 @@ Appeal deliberately rewards **breadth over depth**: a second shop of a kind you 
 worth 35% of the first. One giant general store should not out-earn a street with a store, a
 saloon and a hotel. That's the pressure that turns a colony into a town.
 
+Arrival frequency is the town's own doing, not the storyteller's. `TownEconomy` runs an MTB
+clock that shortens as appeal grows (roughly one group every 3.5 days at the 0.5 threshold,
+most days at high appeal) and fires the incident through the storyteller, so `minRefireDays`
+still caps the rate. The `IncidentDef` keeps a small `baseChance` as a background trickle.
+
 ## Roadmap
 
 Staged so each step is playable on its own.
@@ -136,9 +141,11 @@ the `OWT_Shop` duty, so a single group can both lodge and shop.
   exactly the code that static checking can't validate. First-play bugs are expected.
 - `CustomerCell` mirrors the interaction cell through the counter. For an unusually shaped or
   awkwardly placed counter this can pick a cell the player didn't intend; there's a fallback to
-  any standable neighbour, but a dedicated "customer side" marker would be better.
-- Customers can't reserve items against colonists (RimWorld reservations are per-faction), so a
-  hauler can carry off goods a customer is walking toward. The job fails gracefully, but a
-  busy shop plus an aggressive hauling schedule will produce visible churn.
+  any standable neighbour, and queueing customers fan out to free cells around it
+  (`CustomerCellFor`), but a dedicated "customer side" marker would still be better.
+- Customers can't reserve items against colonists (RimWorld reservations are per-faction).
+  Goods a colonist has already reserved are excluded from the shelves, which removes most of
+  the churn, but a hauler can still start a job on goods a customer is mid-walk toward — and
+  two customers can race for the same stack. The loser's job fails gracefully.
 - `Appeal` walks every open shop's stock. It's cached per shop for a second, which is fine for
   a main street and would want revisiting for a hundred counters.

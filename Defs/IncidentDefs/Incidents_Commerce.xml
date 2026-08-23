@@ -9,7 +9,10 @@
       <li>Map_PlayerHome</li>
     </targetTags>
     <workerClass>OldWestTown.Incidents.IncidentWorker_ShopCustomers</workerClass>
-    <baseChance>55</baseChance>
+    <!-- Arrivals are mainly driven by TownEconomy, which fires this incident on a clock
+         that shortens as town appeal grows. This storyteller chance is only a low-rate
+         background trickle; minRefireDays caps the combined rate either way. -->
+    <baseChance>15</baseChance>
     <minRefireDays>0.6</minRefireDays>
     <pointsScaleable>false</pointsScaleable>
     <letterDef>PositiveEvent</letterDef>

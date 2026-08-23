@@ -32,7 +32,7 @@ namespace OldWestTown.Incidents
 
             // No shop worth walking to means no incident — this is what makes the event
             // feel earned rather than random.
-            return econ.Appeal >= 0.5f;
+            return econ.Appeal >= TownEconomy.MinAppealForCustomers;
         }
 
         protected override void ResolveParmsPoints(IncidentParms parms)

@@ -4,6 +4,7 @@ using System.Text;
 using RimWorld;
 using UnityEngine;
 using Verse;
+using Verse.AI;
 
 namespace OldWestTown.Shops
 {
@@ -42,6 +43,7 @@ namespace OldWestTown.Shops
 
         private int lastStaffedTick = -99999;
         private Pawn lastShopkeeper;
+        private int lastWalkoutMessageTick = -99999;
 
         // Ledger. Daily figures are rolled over by the map's TownEconomy component.
         public int salesToday;
@@ -134,6 +136,42 @@ namespace OldWestTown.Shops
                 }
                 return mirrored;
             }
+        }
+
+        /// <summary>
+        /// A standing spot for this particular customer: the customer cell if it's free, else
+        /// the nearest free cell around it, so a queue fans out beside the counter instead of
+        /// the whole group stacking on one tile.
+        /// </summary>
+        public IntVec3 CustomerCellFor(Pawn customer)
+        {
+            Map map = parent.Map;
+            IntVec3 primary = CustomerCell;
+            if (map == null || CellFreeFor(primary, customer, map)) return primary;
+
+            foreach (IntVec3 c in GenRadial.RadialCellsAround(primary, 3.9f, false))
+            {
+                if (!c.InBounds(map) || c == StaffCell) continue;
+                if (CellFreeFor(c, customer, map)) return c;
+            }
+            return primary;
+        }
+
+        private bool CellFreeFor(IntVec3 c, Pawn customer, Map map)
+        {
+            if (!c.Standable(map)) return false;
+            Pawn standing = c.GetFirstPawn(map);
+            if (standing != null && standing != customer) return false;
+
+            // A cell another customer is already queueing toward counts as taken.
+            IReadOnlyList<Pawn> pawns = map.mapPawns.AllPawnsSpawned;
+            for (int i = 0; i < pawns.Count; i++)
+            {
+                Pawn p = pawns[i];
+                if (p == customer || p.CurJobDef != OWTDefOf.OWT_BuyFromShop) continue;
+                if (p.CurJob.GetTarget(TargetIndex.C).Cell == c) return false;
+            }
+            return true;
         }
 
         // ---------------------------------------------------------------- stock
@@ -248,6 +286,19 @@ namespace OldWestTown.Shops
             walkoutsToday++;
         }
 
+        /// <summary>
+        /// At most one walkout message per counter per patience-window, so a whole group
+        /// giving up at once reads as one event in the log, not a flood.
+        /// </summary>
+        public bool TryClaimWalkoutMessage()
+        {
+            int now = Find.TickManager.TicksGame;
+            int window = Kind?.customerPatienceTicks ?? 2500;
+            if (now - lastWalkoutMessageTick < window) return false;
+            lastWalkoutMessageTick = now;
+            return true;
+        }
+
         public void RollOverDay()
         {
             salesToday = 0;
@@ -329,6 +380,13 @@ namespace OldWestTown.Shops
             sb.AppendLine("OWT_StockLine".Translate(stock.Count, ((float)StockValue).ToStringMoney()));
             sb.AppendLine("OWT_MarkupLine".Translate(Markup.ToStringPercent()));
             sb.Append("OWT_TillLine".Translate(((float)TillSilver).ToStringMoney(), ((float)revenueToday).ToStringMoney()));
+
+            TownEconomy econ = parent.Map?.GetComponent<TownEconomy>();
+            if (econ != null)
+            {
+                sb.AppendLine();
+                sb.Append("OWT_TownLine".Translate(econ.Appeal.ToString("0.0"), econ.Reputation.ToStringPercent()));
+            }
             return sb.ToString();
         }
 
@@ -372,6 +430,45 @@ namespace OldWestTown.Shops
                     action = CollectEarnings
                 };
             }
+
+            TownEconomy econ = parent.Map?.GetComponent<TownEconomy>();
+            if (econ != null)
+            {
+                yield return new Command_Action
+                {
+                    defaultLabel = "OWT_CmdLedger".Translate(),
+                    defaultDesc = "OWT_CmdLedgerDesc".Translate(),
+                    icon = TexButton.Info,
+                    action = () => Find.WindowStack.Add(new Dialog_MessageBox(TownLedgerText(econ)))
+                };
+            }
+        }
+
+        /// <summary>
+        /// The town's books, readable in one place: the two numbers that drive the economy
+        /// (appeal and reputation), today's trading, and each shop's takings.
+        /// </summary>
+        private static TaggedString TownLedgerText(TownEconomy econ)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine("OWT_LedgerTitle".Translate());
+            sb.AppendLine();
+            sb.AppendLine("OWT_LedgerAppealLine".Translate(econ.Appeal.ToString("0.0")));
+            sb.AppendLine("OWT_LedgerReputationLine".Translate(econ.Reputation.ToStringPercent()));
+            sb.AppendLine();
+            sb.AppendLine("OWT_LedgerTodayLine".Translate(
+                econ.customersServedToday, econ.walkoutsToday, ((float)econ.revenueToday).ToStringMoney()));
+            sb.AppendLine("OWT_LedgerLifetimeLine".Translate(((float)econ.lifetimeRevenue).ToStringMoney()));
+            sb.AppendLine();
+            foreach (CompShopCounter shop in econ.Shops)
+            {
+                if (shop?.parent == null || !shop.parent.Spawned) continue;
+                sb.AppendLine("OWT_LedgerShopLine".Translate(
+                    shop.parent.LabelCap,
+                    ((float)shop.revenueToday).ToStringMoney(),
+                    ((float)shop.TillSilver).ToStringMoney()));
+            }
+            return sb.ToString().TrimEndNewlines();
         }
     }
 }

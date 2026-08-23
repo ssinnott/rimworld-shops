@@ -4,7 +4,7 @@
   <!-- Mod settings -->
   <OWT_ModTitle>Old West Town</OWT_ModTitle>
   <OWT_SettingSelfService>Allow self-service</OWT_SettingSelfService>
-  <OWT_SettingSelfServiceDesc>Customers will buy from an unattended counter instead of walking out. Convenient, but a shop nobody works is a shop nobody remembers.</OWT_SettingSelfServiceDesc>
+  <OWT_SettingSelfServiceDesc>Customers will buy from an unattended counter instead of walking out. Convenient, but every self-service sale quietly erodes the town's reputation — nobody remembers a shop nobody works.</OWT_SettingSelfServiceDesc>
   <OWT_SettingVolume>Customer volume: {0}</OWT_SettingVolume>
   <OWT_SettingWealth>Customer wealth: {0}</OWT_SettingWealth>
 
@@ -15,6 +15,7 @@
   <OWT_StockLine>On sale: {0} items ({1})</OWT_StockLine>
   <OWT_MarkupLine>Markup: {0} of market value</OWT_MarkupLine>
   <OWT_TillLine>Till: {0} (today: {1})</OWT_TillLine>
+  <OWT_TownLine>Town appeal: {0} — reputation: {1}</OWT_TownLine>
 
   <!-- Counter gizmos -->
   <OWT_CmdOpen>Open for business</OWT_CmdOpen>
@@ -24,6 +25,16 @@
   <OWT_MarkupSlider>Charge {0} of market value</OWT_MarkupSlider>
   <OWT_CmdCollect>Collect takings ({0})</OWT_CmdCollect>
   <OWT_CmdCollectDesc>Empty the till onto the floor beside the counter, where a hauler can pick it up.</OWT_CmdCollectDesc>
+  <OWT_CmdLedger>Town ledger</OWT_CmdLedger>
+  <OWT_CmdLedgerDesc>How the town is trading: appeal, reputation, today's business, and every shop's takings. Appeal drives how often customers arrive and how much silver they carry.</OWT_CmdLedgerDesc>
+
+  <!-- Town ledger dialog -->
+  <OWT_LedgerTitle>Town ledger</OWT_LedgerTitle>
+  <OWT_LedgerAppealLine>Appeal: {0} — customers start arriving at 0.5; the higher it climbs, the more often they come and the richer they are. Grow it with more distinct, well-stocked, open businesses.</OWT_LedgerAppealLine>
+  <OWT_LedgerReputationLine>Reputation: {0} — served customers raise it; walkouts and self-service sales erode it. It sways both what customers will pay and how many come.</OWT_LedgerReputationLine>
+  <OWT_LedgerTodayLine>Today: {0} sales, {1} walkouts, {2} taken.</OWT_LedgerTodayLine>
+  <OWT_LedgerLifetimeLine>Lifetime takings: {0}.</OWT_LedgerLifetimeLine>
+  <OWT_LedgerShopLine>{0} — {1} today, {2} in the till.</OWT_LedgerShopLine>
 
   <!-- Stock tab -->
   <OWT_TabStock>Stock</OWT_TabStock>
@@ -35,6 +46,10 @@
   <OWT_LetterCustomersText>{0} travellers from {1} have heard there is business to be done here, and have come to spend.\n\nThey will browse whatever your open shops have on display and pay across the counter — if there is someone there to serve them.</OWT_LetterCustomersText>
   <OWT_CustomersLeaving>The {0} from {1} are heading home.</OWT_CustomersLeaving>
   <OWT_CustomersScared>Violence in town. The customers from {0} are leaving.</OWT_CustomersScared>
-  <OWT_CustomerWalkedOut>{0} gave up waiting at {1} and put the goods back.</OWT_CustomerWalkedOut>
+  <OWT_CustomerWalkedOut>{0} gave up waiting at {1} and left the goods behind. Word of the poor service spreads.</OWT_CustomerWalkedOut>
+
+  <!-- Alerts -->
+  <OWT_AlertUnattended>Customers waiting ({0})</OWT_AlertUnattended>
+  <OWT_AlertUnattendedDesc>Customers are queueing at a counter with nobody behind it. If a colonist with the Shopkeeping work type doesn't serve them soon, they will walk out — losing you the sale and hurting the town's reputation.</OWT_AlertUnattendedDesc>
 
 </LanguageData>

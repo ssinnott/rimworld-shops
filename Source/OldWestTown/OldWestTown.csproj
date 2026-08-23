@@ -28,7 +28,6 @@
   <ItemGroup>
     <!-- Publicized RimWorld 1.6 reference assemblies. Reference-only: never copied. -->
     <PackageReference Include="Krafs.Rimworld.Ref" Version="1.6.4871" PrivateAssets="all" ExcludeAssets="runtime" />
-    <PackageReference Include="Lib.Harmony" Version="2.3.3" PrivateAssets="all" ExcludeAssets="runtime" />
   </ItemGroup>
 
 </Project>
