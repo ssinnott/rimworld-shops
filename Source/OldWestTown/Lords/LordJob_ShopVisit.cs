@@ -24,8 +24,11 @@ namespace OldWestTown.Lords
         /// Keyed on the def rather than the stack: the goods a customer carries to the counter are
         /// split off the shelf stack, so the Thing that fails the sale is not the Thing the shelf
         /// scan offers up next time — and a split-off pile is routinely absorbed back into its
-        /// parent and destroyed, which a saved Thing reference would not survive. Every stack of a
-        /// def on one counter's floor prices identically anyway, so the def is the honest key.
+        /// parent and destroyed, which a saved Thing reference would not survive. The def is
+        /// deliberately coarser than the price: quality and stuff move market value, so a refused
+        /// masterwork knife also hides the plain one beside it for the rest of the visit. That is
+        /// the accepted cost of a key that survives the split — and it only ever costs a customer
+        /// who was already refused once at that counter.
         /// </summary>
         private List<Thing> refusedGoodsShops = new List<Thing>();
         private List<ThingDef> refusedGoodsDefs = new List<ThingDef>();

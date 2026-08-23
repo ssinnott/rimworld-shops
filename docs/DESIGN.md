@@ -239,10 +239,12 @@ competitive rather than solitaire.
   Goods a colonist has already reserved are excluded from the shelves, which removes most of
   the churn, but a hauler can still start a job on goods (or a service's consumable) a customer
   is mid-walk toward — and two customers can race for the same stack. The loser's job fails
-  gracefully: it ends on the goto/carry fail conditions, before the counter. A refusal that only
-  surfaces *at* the counter — the goods pulled from the stock filter mid-walk, or a price that
-  moved under them — is remembered per customer as "this kind of goods, at this counter, this
-  visit", so it costs one trip instead of repeating. It is not a walkout and costs no reputation.
+  gracefully: it ends on the goto/carry fail conditions, before the counter. A customer whose
+  purse comes up short *at* the counter — the markup slider moved while they walked, or the town's
+  reputation shifted on somebody else's sale — remembers "this kind of goods, at this counter, this
+  visit", so it costs them one trip instead of repeating. It is not a walkout and costs no
+  reputation. The other refusals need no memory: goods pulled from the filter or forbidden simply
+  leave the shelf scan until the player puts them back.
 - `Appeal` walks every open shop's stock. It's cached per shop for a second, which is fine for
   a main street and would want revisiting for a hundred counters.
 - Two vanilla calls the services path leans on — `FoodUtility.IngestFromInventoryNow` for

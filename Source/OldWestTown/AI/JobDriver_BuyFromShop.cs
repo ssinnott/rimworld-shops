@@ -69,35 +69,37 @@ namespace OldWestTown.AI
                     return;
                 }
 
-                // Sell the order the job giver sized, not whatever the customer happens to be
-                // holding. They are normally carrying exactly that, but on the path where they
-                // reach the counter empty-handed `goods` is the whole shelf stack, and the trim
-                // above would happily sell all of it — past the per-visit cap ShopStock applies.
-                int count = job.count > 0 && job.count < goods.stackCount ? job.count : goods.stackCount;
-
+                // Sell what they are holding, not what the job asked for: the carry toil passes
+                // subtractNumTakenFromJobCount, so by now job.count is the part of the order that
+                // could NOT be picked up — a customer who lost half the stack to a hauler mid-walk
+                // would otherwise pay for the wrong half. The carried stack is already capped at
+                // the order ShopStock sized.
                 ShopTransaction.Result result =
-                    ShopTransaction.TrySell(shop, pawn, goods, count, out int price);
+                    ShopTransaction.TrySell(shop, pawn, goods, goods.stackCount, out int price);
 
                 if (result != ShopTransaction.Result.Sold)
                 {
-                    // Remember it only when the refusal is about these goods and this purse. A
-                    // shop that shut or went unstaffed is not the stack's fault — and neither can
-                    // reach here anyway, since the job fails on a closed shop and an unserved
-                    // customer walks out before this toil runs.
-                    if (result == ShopTransaction.Result.CannotAfford || result == ShopTransaction.Result.NoStock)
+                    // Only a purse that came up short is worth remembering. The other refusals
+                    // undo themselves: goods pulled from the filter or forbidden drop off the
+                    // shelf scan until they are put back, and a shop that shut or went unstaffed
+                    // cannot reach this toil at all — the job fails on a closed shop, and an
+                    // unserved customer walks out first.
+                    if (result == ShopTransaction.Result.CannotAfford)
                     {
                         (pawn.GetLord()?.LordJob as LordJob_ShopVisit)?.RecordFor(pawn)
                             ?.RefuseGoods(shop.parent, goods.def);
-                    }
 
-                    // CannotAfford here means the two sides of the price disagreed, which is the
-                    // one failure that should never happen — worth a line in a dev log, and worth
-                    // saying what it means rather than just naming the enum.
-                    if (Prefs.DevMode && result == ShopTransaction.Result.CannotAfford)
-                    {
-                        Log.Warning("[OldWestTown] " + pawn.LabelShort + " could not pay for an order sized "
-                            + "for their purse at " + shop.parent.LabelCap
-                            + " — ShopPricing.MaxAffordable and PriceFor disagree.");
+                        // Sized against this purse minutes ago and refused now: either the price
+                        // moved under them — the markup slider, or the town's reputation shifting
+                        // on somebody else's sale — or the two sides of the price disagree, which
+                        // is the failure this pairing exists to prevent. Worth telling them apart
+                        // by hand, so name both rather than accusing the pricing code.
+                        if (Prefs.DevMode)
+                        {
+                            Log.Warning("[OldWestTown] " + pawn.LabelShort + " could not pay at "
+                                + shop.parent.LabelCap + " for an order sized to their purse — the price"
+                                + " moved between the shelf and the counter, or MaxAffordable and PriceFor disagree.");
+                        }
                     }
 
                     EndJobWith(JobCondition.Incompletable);
