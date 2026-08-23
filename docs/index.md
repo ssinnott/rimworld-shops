@@ -29,7 +29,7 @@ This mod is standalone. It does not require Hospitality, and is written to sit a
   <li><a href="services.html">Services</a>
     <p>Drink, meal and haircut: businesses that sell time rather than goods.</p></li>
   <li><a href="art.html">Art gallery</a>
-    <p>Every texture the mod ships, at every facing, with the palette and the recipe that draws it.</p></li>
+    <p>Every picture the mod ships, at every facing, with the colours behind each building.</p></li>
 </ul>
 
 ## How the mod works
@@ -41,8 +41,6 @@ This mod is standalone. It does not require Hospitality, and is written to sit a
     <p>Where they come from, what they carry, how they choose a shop, and why they walk out.</p></li>
   <li><a href="shopkeeping.html">Shopkeeping</a>
     <p>The work type, when a counter asks for staff, and what self-service costs you.</p></li>
-  <li><a href="reference.html">Reference tables</a>
-    <p>Every defName, tunable number, mod setting and translation key in one place.</p></li>
 </ul>
 
 ## Working on the mod
@@ -52,6 +50,8 @@ This mod is standalone. It does not require Hospitality, and is written to sit a
     <p>What every source file does, and the one rule the whole design follows.</p></li>
   <li><a href="extending.html">Adding content</a>
     <p>Adding a business, a service or a building — mostly XML, and here is the shape of it.</p></li>
+  <li><a href="reference.html">Reference tables</a>
+    <p>Internal names, tunable numbers and translation keys, for anyone editing the files.</p></li>
   <li><a href="contributing.html">Contributing</a>
     <p>Building the assembly, the static validators, CI, and how to keep this wiki honest.</p></li>
   <li><a href="changelog.html">Changelog</a>
@@ -69,13 +69,13 @@ which raises appeal again and lets you charge more; letting them walk out lowers
 thing compounds, in either direction.
 
 ```
-     player stocks + prices + staffs shops
+     you stock, price and staff your shops
                      │
                      ▼
-             TownEconomy.Appeal  ◄──── reputation ◄──── served vs. walked-out customers
+              the town's appeal  ◄──── reputation ◄──── customers served vs. walked out
                      │                                            ▲
                      ▼                                            │
-   IncidentWorker_ShopCustomers: how often, how many, how rich    │
+      how often groups arrive, how many, how rich                 │
                      │                                            │
                      ▼                                            │
         customers arrive ──── buy goods or use a service ─────────┘
@@ -86,5 +86,5 @@ thing compounds, in either direction.
 
 ## Installing
 
-Copy the repository into `RimWorld/Mods/OldWestTown` and enable it in the mod list. The compiled
-assembly is committed at `1.6/Assemblies/OldWestTown.dll`, so no build step is needed to play.
+Copy the repository into `RimWorld/Mods/OldWestTown` and enable it in the mod list. The mod ships
+already compiled, so there is no build step and nothing else to install.

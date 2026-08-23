@@ -62,11 +62,11 @@ wiki_nav:
       - { page: economy,      title: The town economy }
       - { page: customers,    title: Customers }
       - { page: shopkeeping,  title: Shopkeeping }
-      - { page: reference,    title: Reference tables }
   - section: Under the hood
     pages:
       - { page: architecture, title: Code map }
       - { page: extending,    title: Adding content }
+      - { page: reference,    title: Reference tables }
       - { page: DESIGN,       title: Design notes }
       - { page: roadmap,      title: Roadmap }
   - section: Project

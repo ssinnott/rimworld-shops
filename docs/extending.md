@@ -37,6 +37,19 @@ A kind with no services is pure data. Add it to `Defs/ShopKindDefs/ShopKinds.xml
 Then point a building at it (below). Nothing else is required — the work giver, customer AI,
 pricing, appeal and ledger are all kind-agnostic.
 
+**The fields.**
+
+| Field | Type | Default | What it does |
+| --- | --- | --- | --- |
+| `defaultStockCategories` | list of `ThingCategoryDef` | empty | Categories switched on in a newly built counter's Stock filter. |
+| `defaultStockThings` | list of `ThingDef` | empty | Individual defs switched on beyond those categories. |
+| `defaultMarkup` | float | 1.35 | Markup a fresh counter starts at. |
+| `markupRange` | `FloatRange` | 0.5~3.0 | The band the player's price slider may move within. |
+| `appeal` | float | 1.0 | How much one open, stocked business of this kind adds to town [appeal](economy.md#appeal). |
+| `customerNoun` | string | "customer" | The word the UI uses for this business's customers. |
+| `customerPatienceTicks` | int | 2500 | How long a customer waits at an unattended counter before [walking out](customers.md#walkouts). |
+| `services` | list of `ServiceDef` | empty | [Services](services.md) this business offers alongside its stock. |
+
 **Tuning notes.** `appeal` is per *distinct* kind, and a repeat of an existing kind is worth 35%
 of the first, so a new kind is worth adding for its own sake — pick a value near 1.0 unless the
 business is genuinely a bigger draw. `customerPatienceTicks` is the main difficulty lever: a
@@ -79,12 +92,13 @@ python3 tools/validate_docs.py --sync-art          # copy it into the wiki's gal
 ```
 
 Then add the four facings to the [art gallery](art.md) — CI fails on a texture the gallery
-doesn't show. See [the recipe](art.md#the-recipe) for what each palette colour draws.
+doesn't show. See [generating building art](contributing.md#generating-building-art) for what each
+palette colour draws.
 
 ## Add a service
 
-If an existing [worker class](services.md#the-worker-classes) covers the behaviour, a service is
-two XML stanzas and no code.
+If an existing [worker class](#the-worker-classes) covers the behaviour, a service is two XML
+stanzas and no code.
 
 **1. A JobDef** in `Defs/JobDefs/Jobs_Commerce.xml`. Every service needs its own — `Job` has no
 generic slot to carry a `Def` reference, so this is how the driver recovers which service it is
@@ -116,6 +130,39 @@ running. It **must** use `JobDriver_UseService`; `ServiceDef.ConfigErrors` rejec
 ```
 
 **3. List it** on a business kind's `<services>`, and add the `ThoughtDef` if you referenced one.
+
+**The fields.**
+
+| Field | Type | Default | What it does |
+| --- | --- | --- | --- |
+| `jobDef` | `JobDef` | *required* | The job a customer runs to receive this service. One per service, never shared. |
+| `worker` | `ServiceWorker` | *required* | Pluggable behaviour, with its own XML-configurable fields. |
+| `serveTicks` | int | 180 | Continuous **staffed** ticks required to complete one visit. |
+| `basePrice` | float | 10 | Price basis, used **only** when nothing on the shelf backs the service. |
+| `allowsSelfService` | bool | false | Whether the *Allow self-service* setting applies to this service at all. |
+
+Both `jobDef` and `worker` are validated at load time: a def missing either surfaces as a red
+error naming the def, rather than as a null reference from inside a pawn's think tree an hour
+into the game.
+
+### The worker classes
+
+`ServiceWorker` is the pluggable behaviour behind a service. Three concrete classes ship, and a
+new service usually needs no new code at all — just XML pointing at one of them.
+
+| Class | Consumes stock | What it does |
+| --- | --- | --- |
+| `ServiceWorker_Ingest` | yes | Consumes one matching item off the display and resolves its effect through that item's own vanilla ingestion outcome. Filtered by `foodType` and/or `requireMeal`; scored against a `needHook` of `Food`, `Joy` or `None`. Ships parameterized twice: [drink](services.md#drink) (Liquor / Joy) and [meal](services.md#meal) (any meal / Food). |
+| `ServiceWorker_Thought` | no | A bare "grant a thought" primitive. Deliberately does nothing else — reusable by any future stock-free service. |
+| `ServiceWorker_Haircut` | no | `ServiceWorker_Thought` plus a visible hair change, using the same helper vanilla's own automatic styling uses. |
+
+An ingest worker's `Desirability` is `Lerp(2.5, 1, need%)`: a hungry customer is likelier to
+order, but the value is **floored above zero**, so a satisfied one still occasionally will.
+
+> `ServiceWorker_Ingest` calls `Thing.Ingested` directly rather than handing off to
+> `FoodUtility.IngestFromInventoryNow`, which would start a fresh job and tear down the running
+> service driver mid-toil. `Ingested` is the call vanilla's own ingest driver finishes with, so a
+> beer still lands its hediff — the customer just drinks it at the bar, where they paid for it.
 
 ### When it needs code
 
