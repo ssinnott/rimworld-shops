@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using RimWorld;
 using UnityEngine;
 using Verse;
@@ -9,6 +10,8 @@ namespace OldWestTown.Shops
     /// The town's books. Keeps the live shop register, rolls the day over, and turns trading
     /// history into the two numbers the rest of the mod cares about: <see cref="Appeal"/>
     /// (how many customers the town pulls in) and <see cref="Reputation"/> (what they'll pay).
+    /// Also keeps, per <see cref="Faction"/>, that faction's own standing with the town — the
+    /// thing that decides who is likelier to visit next.
     /// </summary>
     public class TownEconomy : MapComponent
     {
@@ -28,6 +31,16 @@ namespace OldWestTown.Shops
         /// <summary>How often the arrival clock is consulted. MTB math corrects for the interval.</summary>
         private const int ArrivalCheckInterval = 600;
 
+        /// <summary>
+        /// A staffed sale's nudge to a customer's own faction — five times the town-wide sale
+        /// delta below, deliberately: standing has to move fast enough over normal play for a
+        /// "regular" to actually read as one within a reasonable number of sales.
+        /// </summary>
+        private const float FactionStandingSaleDelta = 0.05f;
+
+        /// <summary>Mirrors the global formula's own 2:1 walkout:sale ratio, at standing's sharper scale.</summary>
+        private const float FactionStandingWalkoutDelta = -0.10f;
+
         private readonly List<CompBusiness> shops = new List<CompBusiness>();
 
         private int lastDayRolled = -1;
@@ -39,6 +52,16 @@ namespace OldWestTown.Shops
 
         /// <summary>Rolling satisfaction, 0..1. Served customers push it up, walkouts push it down.</summary>
         private float reputation = 0.5f;
+
+        /// <summary>
+        /// Per-faction standing, 0..1, layered beside <see cref="reputation"/> rather than
+        /// replacing it. Sparse on purpose: a faction with no entry here hasn't diverged from
+        /// the town's own name yet, which is also the whole migration story for a save written
+        /// before this existed — see <see cref="StandingWith"/>.
+        /// </summary>
+        private List<Faction> standingFactions = new List<Faction>();
+        private List<float> standingValues = new List<float>();
+        private Dictionary<Faction, float> standings = new Dictionary<Faction, float>();
 
         public TownEconomy(Map map) : base(map) { }
 
@@ -96,7 +119,58 @@ namespace OldWestTown.Shops
             }
         }
 
-        public void RecordSale(int price, bool selfService = false)
+        /// <summary>
+        /// This faction's own standing with the town, 0..1. An untracked faction reads as the
+        /// town's own <see cref="Reputation"/> — the honest answer for "we've never given them
+        /// any reason to feel differently than everyone else does," and the entire migration
+        /// story for a save written before this field existed: nothing needs seeding, because
+        /// an untracked faction and a fresh save's empty dictionary look identical.
+        /// </summary>
+        public float StandingWith(Faction faction) =>
+            faction != null && standings.TryGetValue(faction, out float value) ? value : Reputation;
+
+        /// <summary>
+        /// Whether standing can mean anything for this faction at all: not the player, not
+        /// hidden or defeated, a humanlike faction, not already at war with us, and one that
+        /// actually has somewhere in the world to send customers from. The one predicate reused
+        /// everywhere standing is written or read, so a faction that stops qualifying (a
+        /// relations crash turns them hostile mid-visit, say) drops out of all of them at once.
+        /// </summary>
+        public bool IsEligibleFaction(Faction faction)
+        {
+            if (faction == null) return false;
+            if (faction.IsPlayer) return false;
+            if (faction.Hidden) return false;
+            if (faction.defeated) return false;
+            if (faction.def == null || !faction.def.humanlikeFaction) return false;
+            if (faction.HostileTo(Faction.OfPlayer)) return false;
+            return Find.WorldObjects.Settlements.Any(s => s.Faction == faction);
+        }
+
+        /// <summary>
+        /// How hard this faction's standing should tilt the arrival draw — roughly a 20x spread
+        /// floor to ceiling. Lives here rather than on the incident worker so it sits next to
+        /// <see cref="MinAppealForCustomers"/> and the MTB bounds in
+        /// <see cref="TryAttractCustomers"/>, this file's other arrival-shaping numbers.
+        /// </summary>
+        public float ArrivalWeight(Faction faction) => Mathf.Lerp(0.15f, 3f, StandingWith(faction));
+
+        /// <summary>Tracked standings worth a player's attention — the town ledger's source.</summary>
+        public IEnumerable<KeyValuePair<Faction, float>> TrackedStandings =>
+            standings.Where(kv => IsEligibleFaction(kv.Key));
+
+        /// <summary>
+        /// No-op for a faction standing can't mean anything for right now (see
+        /// IsEligibleFaction) — this codebase degrades silently rather than logging, and a
+        /// faction going briefly ineligible mid-visit isn't a bug worth warning about.
+        /// </summary>
+        private void NudgeStanding(Faction customerFaction, float delta)
+        {
+            if (!IsEligibleFaction(customerFaction)) return;
+            standings[customerFaction] = Mathf.Clamp01(StandingWith(customerFaction) + delta);
+        }
+
+        public void RecordSale(int price, bool selfService = false, Faction customerFaction = null)
         {
             revenueToday += price;
             lifetimeRevenue += price;
@@ -104,12 +178,19 @@ namespace OldWestTown.Shops
             // A staffed sale builds the town's name. An honesty-box sale slowly erodes it —
             // customers remember a town where nobody stood behind the counter.
             reputation = Mathf.Clamp01(reputation + (selfService ? -0.005f : 0.01f));
+            // Nobody chose to serve THIS customer at an honesty box — there's no relationship
+            // to credit, only the town-wide "nobody minds the till" fact above.
+            if (!selfService) NudgeStanding(customerFaction, FactionStandingSaleDelta);
         }
 
-        public void RecordWalkout()
+        public void RecordWalkout(Faction customerFaction = null)
         {
             walkoutsToday++;
             reputation = Mathf.Clamp01(reputation - 0.02f);
+            // Unlike a self-service sale, a walkout is always personal — patience ran out, or a
+            // stay got cut short, and it happened to this customer specifically, whether or not
+            // anyone was actually staffing the counter at the moment it did.
+            NudgeStanding(customerFaction, FactionStandingWalkoutDelta);
         }
 
         /// <summary>A saloon boiling over costs the town more than one shrugged-off walkout —
@@ -170,6 +251,16 @@ namespace OldWestTown.Shops
 
             // Reputation decays toward neutral so a town has to keep earning its name.
             reputation = Mathf.Lerp(reputation, 0.5f, 0.05f);
+
+            // Standing decays toward the town's own name at the same rate — a specific
+            // faction's regard drifts back to "just another stranger" if nothing keeps
+            // happening between them and this town.
+            List<Faction> trackedFactions = new List<Faction>(standings.Keys);
+            for (int i = 0; i < trackedFactions.Count; i++)
+            {
+                Faction f = trackedFactions[i];
+                standings[f] = Mathf.Lerp(standings[f], reputation, 0.05f);
+            }
         }
 
         public override void ExposeData()
@@ -181,6 +272,28 @@ namespace OldWestTown.Shops
             Scribe_Values.Look(ref walkoutsToday, "walkoutsToday");
             Scribe_Values.Look(ref lifetimeRevenue, "lifetimeRevenue");
             Scribe_Values.Look(ref reputation, "reputation", 0.5f);
+            // An old save has no "standings" node at all; whatever Scribe does with a missing
+            // collection node, the PostLoadInit guard below makes the outcome deterministic
+            // either way. Every faction then simply reads as Reputation (see StandingWith)
+            // until it individually earns something different — no version check needed.
+            Scribe_Collections.Look(ref standings, "standings", LookMode.Reference, LookMode.Value,
+                ref standingFactions, ref standingValues);
+
+            if (Scribe.mode == LoadSaveMode.PostLoadInit)
+            {
+                if (standings == null)
+                {
+                    standings = new Dictionary<Faction, float>();
+                }
+                else if (standings.ContainsKey(null))
+                {
+                    // A reference key that failed to resolve comes back null, and a Dictionary
+                    // indexer throws on a null key -- which would take out RollOverDay every
+                    // midnight from then on. Standing for a faction that no longer exists means
+                    // nothing anyway, so drop it here rather than guard every write site.
+                    standings.Remove(null);
+                }
+            }
         }
 
         public override void FinalizeInit()

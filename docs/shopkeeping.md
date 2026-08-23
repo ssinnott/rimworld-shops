@@ -1,0 +1,84 @@
+---
+title: Shopkeeping
+summary: The work type, when a counter actually asks for staff, and what running an honesty box costs you.
+---
+
+## The work type
+
+**Shopkeep** — *"Stand behind a shop counter and serve customers who come to town."*
+
+| | |
+| --- | --- |
+| Column in the Work tab | shopkeep |
+| What a colonist doing it is called | shopkeeper |
+| Where it sits by default | fairly low in the natural priority order |
+| Switched on for new colonists | yes |
+| Relevant skill | **Social** |
+| Needs | working hands and the ability to talk |
+
+Because it is on by default but sits fairly low in the natural order, a busy colonist may never
+reach it. Give the work an explicit priority in the Work tab if you want a counter reliably
+staffed.
+
+Serving a customer — goods or a service alike — grants **35 Social XP**, so a dedicated
+shopkeeper trains the skill their job runs on.
+
+## When a counter asks for staff
+
+Any business with something to offer will ask for staff; it doesn't matter what kind it is. A
+colonist is offered the job when **all** of these are true:
+
+- the business is **open**;
+- nobody else is already working it;
+- the staff side is clear, reachable, and not claimed by another colonist;
+- the business **has something to offer** — stock on the shelf or an available service;
+- there is at least one **visiting customer within 25 tiles**.
+
+That last condition is why nobody stands behind an empty store all day. Right-clicking the
+counter and prioritizing it by hand skips the stock and customer checks entirely, so you can post
+a colonist at a counter ahead of a group you're expecting.
+
+## What "staffed" means
+
+A shopkeeper and a customer never talk to each other directly, and never run paired jobs. They
+each just read and write the counter's own state: whether it's open, what it charges, what's for
+sale, and whether somebody is currently standing at it.
+
+The shopkeeper's job says "I'm here" to the counter continuously while they stand at it. The
+counter counts itself **staffed** while that is less than a second old and the shopkeeper is
+still alive — a small grace window, so a momentary hitch doesn't read as the shop being
+abandoned.
+
+Neither side can strand the other. A shopkeeper who wanders off simply leaves the counter
+unstaffed; the waiting customer notices, runs down their patience, drops whatever they were
+carrying and [leaves annoyed](customers.md#walkouts). That failure is *visible to you* — a
+message and a reputation hit — which turns a robustness measure into a game mechanic.
+
+A business trades only when it is **open, staffed, powered** (if it needs power at all) and has
+something to offer.
+
+## Self-service
+
+The *Allow self-service* mod setting (off by default) turns every counter into an honesty box:
+customers buy from an unattended counter instead of walking out.
+
+It is convenient, and it has a price. Every self-service sale costs **0.005 reputation** instead
+of earning 0.01 — so an unstaffed town slowly slides even while the till fills. Nobody remembers
+a shop nobody works.
+
+Two things limit it:
+
+- Each service decides for itself whether the setting applies. Drink and meal allow it; **a
+  haircut never does**, whatever the setting says — an empty chair can't cut anyone's hair.
+- Self-service sales never train Social, because no colonist was involved.
+
+## Closing a business
+
+The **Open for business** toggle on any counter closes it. A closed business:
+
+- is ignored by customers entirely;
+- never asks a colonist to staff it;
+- contributes **nothing** to town [appeal](economy.md#appeal);
+- still keeps its till, stock settings, markup and ledger.
+
+Closing does not stop your colonists using the room for anything else.

@@ -6,14 +6,20 @@ spend it.
 
 Hospitality gets guests onto your map. This is about what they do once they're there.
 
-**Status: goods, services, lodging and a sheriff all work, on a street that looks the part.** A
-customer arrives, then either picks something off your shelves, orders a drink, a meal or a
-haircut, or checks into a hotel room for the night — queues, and pays either way. A guest who
-rents a room stays until they've slept it off, so the whole visit can now run past a single day.
-Leave a saloon unwatched long enough and it starts real trouble; assign a sheriff to keep the
-peace. There's boardwalk to lay and a false front to nail over your store while you wait for
-them. Per-faction standing is designed but not built; see [docs/DESIGN.md](docs/DESIGN.md) for
-the architecture and the staged plan.
+**Status: the whole staged plan is built except the Hospitality bridge.** A customer arrives,
+then either picks something off your shelves, orders a drink, a meal or a haircut, or checks into
+a hotel room for the night — queues, and pays either way. A guest who rents a room stays until
+they've slept it off, so the whole visit can run past a single day. Leave a saloon unwatched long
+enough and it starts real trouble; assign a sheriff to keep the peace. Factions you treat well
+become regulars and come back more often. There's boardwalk to lay and a false front to nail over
+your store while you wait for them. See [docs/DESIGN.md](docs/DESIGN.md) for the architecture and
+[the roadmap](https://ssinnott.github.io/rimworld-shops/roadmap.html) for what's left.
+
+📖 **[Read the wiki](https://ssinnott.github.io/rimworld-shops/)** — every building, business,
+service and system in the mod, plus the [code map](https://ssinnott.github.io/rimworld-shops/architecture.html),
+the [design notes](https://ssinnott.github.io/rimworld-shops/DESIGN.html), the
+[roadmap](https://ssinnott.github.io/rimworld-shops/roadmap.html) and the
+[changelog](https://ssinnott.github.io/rimworld-shops/changelog.html). Its source is `docs/`.
 
 This mod is standalone. It does not require Hospitality, and is written to sit alongside it.
 
@@ -67,6 +73,11 @@ This mod is standalone. It does not require Hospitality, and is written to sit a
   Frontier commerce research. A false front is the one with teeth: it gives a shop a small,
   capped edge in the customer AI's own scoring, so a dressed-up storefront pulls trade from an
   undecorated rival at a similar price.
+- **Regulars.** Reputation isn't one number any more. Alongside the town's own name, every
+  faction you actually trade with keeps its own standing, moved by how its own customers were
+  treated — served, walked out on, or evicted from a rented room. Favor one faction and they
+  show up more often than everyone else; mistreat them and only their own trade dries up. The
+  town ledger names your best and worst relationship once either one actually stands out.
 
 ## Installing
 
@@ -162,13 +173,28 @@ python3 tools/make_textures.py     # draw art for anything that has none
 It never overwrites existing art unless you pass `--force`.
 
 CI (`.github/workflows/ci.yml`) runs all of the above plus a full build on every push.
+`.github/workflows/pages.yml` builds the wiki on every pull request and publishes it on
+every push to `main`.
+
+### Keeping the wiki current
+
+The wiki is checked, not just written: `tools/validate_docs.py` fails the build if a def, source
+file or translation key is undocumented, if an internal wiki link is broken, or if the changelog
+has no *Unreleased* section. A change to the mod updates the page it affects and the changelog in
+the same commit — see
+[Contributing](https://ssinnott.github.io/rimworld-shops/contributing.html).
+
+```sh
+python3 tools/validate_docs.py
+```
 
 ## Caveats
 
 - **This has not been run in RimWorld.** It compiles against the 1.6 reference assemblies and
   passes the static checks above, but the pawn AI — job drivers, the lord graph, the duty
   think tree — is the kind of code that only really proves itself in game. Expect to shake out
-  bugs on first play.
+  bugs on first play. The full list is in the
+  [wiki's known risks](https://ssinnott.github.io/rimworld-shops/architecture.html#known-risks).
 - Textures are programmer-art placeholders.
 
 ## Licence

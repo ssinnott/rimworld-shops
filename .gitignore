@@ -19,3 +19,8 @@ tools/**/bin/
 
 # Python bytecode from the tools/ scripts
 __pycache__/
+
+# Locally built wiki (docs/ is the source; GitHub Pages builds it)
+_site/
+_site_local/
+docs/.jekyll-cache/
