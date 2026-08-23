@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+
+  <WorkTypeDef>
+    <defName>OWT_Shopkeeping</defName>
+    <labelShort>shopkeep</labelShort>
+    <pawnLabel>shopkeeper</pawnLabel>
+    <gerundLabel>shopkeeping</gerundLabel>
+    <description>Stand behind a shop counter and serve customers who come to town.</description>
+    <verb>shopkeep</verb>
+    <naturalPriority>460</naturalPriority>
+    <alwaysStartActive>true</alwaysStartActive>
+    <relevantSkills>
+      <li>Social</li>
+    </relevantSkills>
+    <workTags>
+      <li>Social</li>
+    </workTags>
+  </WorkTypeDef>
+
+</Defs>

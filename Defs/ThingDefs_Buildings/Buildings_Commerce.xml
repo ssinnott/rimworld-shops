@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+
+  <!-- Shared shape for anything a customer can be served across. -->
+  <ThingDef Name="OWT_CounterBase" ParentName="BuildingBase" Abstract="True">
+    <thingClass>Building</thingClass>
+    <category>Building</category>
+    <altitudeLayer>Building</altitudeLayer>
+    <passability>Impassable</passability>
+    <blockWind>false</blockWind>
+    <fillPercent>0.5</fillPercent>
+    <pathCost>50</pathCost>
+    <castEdgeShadows>false</castEdgeShadows>
+    <rotatable>true</rotatable>
+    <hasInteractionCell>true</hasInteractionCell>
+    <!-- The staff side. The customer side is the mirror of this through the counter,
+         so the player chooses which way the shop faces just by rotating it. -->
+    <interactionCellOffset>(0,0,-1)</interactionCellOffset>
+    <size>(2,1)</size>
+    <designationCategory>OWT_Commerce</designationCategory>
+    <stuffCategories>
+      <li>Woody</li>
+      <li>Metallic</li>
+      <li>Stony</li>
+    </stuffCategories>
+    <costStuffCount>75</costStuffCount>
+    <statBases>
+      <MaxHitPoints>180</MaxHitPoints>
+      <WorkToBuild>1400</WorkToBuild>
+      <Flammability>1.0</Flammability>
+      <Beauty>4</Beauty>
+    </statBases>
+    <building>
+      <ai_chillDestination>false</ai_chillDestination>
+    </building>
+    <inspectorTabs>
+      <li>OldWestTown.UI.ITab_ShopStock</li>
+    </inspectorTabs>
+    <researchPrerequisites>
+      <li>OWT_FrontierCommerce</li>
+    </researchPrerequisites>
+    <constructEffect>ConstructWood</constructEffect>
+  </ThingDef>
+
+  <ThingDef ParentName="OWT_CounterBase">
+    <defName>OWT_ShopCounter</defName>
+    <label>shop counter</label>
+    <description>A serving counter for a general store. Goods laid out in the same room are offered for sale across it.\n\nA colonist assigned to Shopkeeping will stand at the counter and serve customers; goods will not sell without someone to sell them. Takings collect in the till.</description>
+    <graphicData>
+      <texPath>Things/Building/Commerce/ShopCounter</texPath>
+      <graphicClass>Graphic_Multi</graphicClass>
+      <drawSize>(2,1)</drawSize>
+      <damageData>
+        <rect>(0,0.05,2,0.9)</rect>
+      </damageData>
+    </graphicData>
+    <uiIconPath>Things/Building/Commerce/ShopCounter_north</uiIconPath>
+    <comps>
+      <li Class="OldWestTown.Shops.CompProperties_ShopCounter">
+        <shopKind>OWT_GeneralStore</shopKind>
+        <openAirRadius>9.9</openAirRadius>
+      </li>
+    </comps>
+  </ThingDef>
+
+  <ThingDef ParentName="OWT_CounterBase">
+    <defName>OWT_SaloonBar</defName>
+    <label>saloon bar</label>
+    <description>A long bar with a brass rail. Drink and hot food stored in the same room are served across it.\n\nPatrons pay well but will not wait long for a barkeep who isn't there.</description>
+    <graphicData>
+      <texPath>Things/Building/Commerce/SaloonBar</texPath>
+      <graphicClass>Graphic_Multi</graphicClass>
+      <drawSize>(2,1)</drawSize>
+      <damageData>
+        <rect>(0,0.05,2,0.9)</rect>
+      </damageData>
+    </graphicData>
+    <uiIconPath>Things/Building/Commerce/SaloonBar_north</uiIconPath>
+    <statBases>
+      <MaxHitPoints>180</MaxHitPoints>
+      <WorkToBuild>1800</WorkToBuild>
+      <Flammability>1.0</Flammability>
+      <Beauty>8</Beauty>
+    </statBases>
+    <comps>
+      <li Class="OldWestTown.Shops.CompProperties_ShopCounter">
+        <shopKind>OWT_Saloon</shopKind>
+        <openAirRadius>7.9</openAirRadius>
+      </li>
+    </comps>
+  </ThingDef>
+
+</Defs>

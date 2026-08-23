@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+
+  <!-- Mod settings -->
+  <OWT_ModTitle>Old West Town</OWT_ModTitle>
+  <OWT_SettingSelfService>Allow self-service</OWT_SettingSelfService>
+  <OWT_SettingSelfServiceDesc>Customers will buy from an unattended counter instead of walking out. Convenient, but a shop nobody works is a shop nobody remembers.</OWT_SettingSelfServiceDesc>
+  <OWT_SettingVolume>Customer volume: {0}</OWT_SettingVolume>
+  <OWT_SettingWealth>Customer wealth: {0}</OWT_SettingWealth>
+
+  <!-- Counter inspect panel -->
+  <OWT_StatusOpen>Open for business</OWT_StatusOpen>
+  <OWT_StatusClosed>Closed</OWT_StatusClosed>
+  <OWT_Unattended>unattended</OWT_Unattended>
+  <OWT_StockLine>On sale: {0} items ({1})</OWT_StockLine>
+  <OWT_MarkupLine>Markup: {0} of market value</OWT_MarkupLine>
+  <OWT_TillLine>Till: {0} (today: {1})</OWT_TillLine>
+
+  <!-- Counter gizmos -->
+  <OWT_CmdOpen>Open for business</OWT_CmdOpen>
+  <OWT_CmdOpenDesc>When open, customers may browse and buy from this counter. Closing it does not stop your colonists using the room.</OWT_CmdOpenDesc>
+  <OWT_CmdMarkup>Set prices</OWT_CmdMarkup>
+  <OWT_CmdMarkupDesc>Set what this business charges, as a percentage of an item's market value. Cheaper shops win customers away from rivals; dearer ones make more per sale.</OWT_CmdMarkupDesc>
+  <OWT_MarkupSlider>Charge {0} of market value</OWT_MarkupSlider>
+  <OWT_CmdCollect>Collect takings ({0})</OWT_CmdCollect>
+  <OWT_CmdCollectDesc>Empty the till onto the floor beside the counter, where a hauler can pick it up.</OWT_CmdCollectDesc>
+
+  <!-- Stock tab -->
+  <OWT_TabStock>Stock</OWT_TabStock>
+  <OWT_TabStockHeader>Offered for sale ({0} on the shelves)</OWT_TabStockHeader>
+  <OWT_ResetStock>Reset</OWT_ResetStock>
+
+  <!-- Events -->
+  <OWT_LetterCustomersLabel>Customers arriving ({0})</OWT_LetterCustomersLabel>
+  <OWT_LetterCustomersText>{0} travellers from {1} have heard there is business to be done here, and have come to spend.\n\nThey will browse whatever your open shops have on display and pay across the counter — if there is someone there to serve them.</OWT_LetterCustomersText>
+  <OWT_CustomersLeaving>The {0} from {1} are heading home.</OWT_CustomersLeaving>
+  <OWT_CustomersScared>Violence in town. The customers from {0} are leaving.</OWT_CustomersScared>
+  <OWT_CustomerWalkedOut>{0} gave up waiting at {1} and put the goods back.</OWT_CustomerWalkedOut>
+
+</LanguageData>

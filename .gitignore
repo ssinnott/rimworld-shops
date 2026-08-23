@@ -1,0 +1,16 @@
+# Build intermediates
+Source/**/obj/
+Source/**/bin/
+
+# The compiled mod assembly IS committed (see 1.6/Assemblies) so the repo can be
+# dropped straight into RimWorld/Mods without a toolchain. Ignore everything else
+# MSBuild emits alongside it.
+1.6/Assemblies/*.pdb
+1.6/Assemblies/*.deps.json
+1.6/Assemblies/*.xml
+
+# Editor / OS noise
+.vs/
+.idea/
+*.user
+.DS_Store

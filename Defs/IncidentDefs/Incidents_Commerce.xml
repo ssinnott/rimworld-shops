@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+
+  <IncidentDef>
+    <defName>OWT_ShopCustomers</defName>
+    <label>customers</label>
+    <category>Misc</category>
+    <targetTags>
+      <li>Map_PlayerHome</li>
+    </targetTags>
+    <workerClass>OldWestTown.Incidents.IncidentWorker_ShopCustomers</workerClass>
+    <baseChance>55</baseChance>
+    <minRefireDays>0.6</minRefireDays>
+    <pointsScaleable>false</pointsScaleable>
+    <letterDef>PositiveEvent</letterDef>
+  </IncidentDef>
+
+</Defs>

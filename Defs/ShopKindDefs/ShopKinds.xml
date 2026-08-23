@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+
+  <OldWestTown.Shops.ShopKindDef>
+    <defName>OWT_GeneralStore</defName>
+    <label>general store</label>
+    <description>Dry goods, tools, cloth and provisions. The backbone of any frontier town.</description>
+    <customerNoun>customer</customerNoun>
+    <defaultMarkup>1.35</defaultMarkup>
+    <markupRange>0.5~3.0</markupRange>
+    <appeal>1.0</appeal>
+    <customerPatienceTicks>2500</customerPatienceTicks>
+    <defaultStockCategories>
+      <li>Foods</li>
+      <li>Manufactured</li>
+      <li>ResourcesRaw</li>
+      <li>Medicine</li>
+      <li>Apparel</li>
+      <li>Textiles</li>
+      <li>Leathers</li>
+    </defaultStockCategories>
+  </OldWestTown.Shops.ShopKindDef>
+
+  <OldWestTown.Shops.ShopKindDef>
+    <defName>OWT_Saloon</defName>
+    <label>saloon</label>
+    <description>Drink and a hot meal. Patrons are less patient than shoppers and pay well for the privilege.</description>
+    <customerNoun>patron</customerNoun>
+    <defaultMarkup>1.8</defaultMarkup>
+    <markupRange>0.5~4.0</markupRange>
+    <appeal>1.4</appeal>
+    <!-- A thirsty patron will not stand at an empty bar for long. -->
+    <customerPatienceTicks>1500</customerPatienceTicks>
+    <defaultStockCategories>
+      <li>Drugs</li>
+      <li>FoodMeals</li>
+    </defaultStockCategories>
+  </OldWestTown.Shops.ShopKindDef>
+
+</Defs>

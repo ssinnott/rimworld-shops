@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+
+  <JobDef>
+    <defName>OWT_BuyFromShop</defName>
+    <driverClass>OldWestTown.AI.JobDriver_BuyFromShop</driverClass>
+    <reportString>buying TargetA.</reportString>
+    <casualInterruptible>false</casualInterruptible>
+  </JobDef>
+
+  <JobDef>
+    <defName>OWT_ManShop</defName>
+    <driverClass>OldWestTown.AI.JobDriver_ManShop</driverClass>
+    <reportString>minding TargetA.</reportString>
+    <allowOpportunisticPrefix>true</allowOpportunisticPrefix>
+  </JobDef>
+
+</Defs>

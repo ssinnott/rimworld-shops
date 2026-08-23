@@ -1,1 +1,89 @@
-# rimworld-shops
+# Old West Town
+
+A RimWorld 1.6 mod that lets your colony run actual businesses: shop counters with stock,
+prices and a till, colonists working behind them, and travellers who show up with silver and
+spend it.
+
+Hospitality gets guests onto your map. This is about what they do once they're there.
+
+**Status: working vertical slice.** One complete economic loop is implemented end to end —
+a customer arrives, picks something off your shelves, queues at the counter, and pays. The
+breadth (hotels, banks, barbers, stables, town roles) is designed but not built; see
+[docs/DESIGN.md](docs/DESIGN.md) for the architecture and the staged plan.
+
+This mod is standalone. It does not require Hospitality, and is written to sit alongside it.
+
+## What works right now
+
+- **Shop counters** (`shop counter`, `saloon bar`) under a new *Commerce* build category,
+  unlocked by the *Frontier commerce* research.
+- **A sales floor is a room.** Anything sellable in the same room as the counter is on
+  display. Outdoors, it falls back to a radius, so a market stall on the boardwalk trades too.
+- **Per-shop stock control** via a Stock tab that reuses vanilla's storage filter widget.
+- **Player-set prices.** A markup slider from 50% to 300%+ of market value. Undercutting a
+  rival shop genuinely pulls customers away from it.
+- **A Shopkeeping work type.** Colonists stand the counter and serve; serving trains Social.
+- **Real transactions.** Silver moves out of the customer's inventory and into the counter's
+  till. Collect the takings with a gizmo. Deconstructing a counter drops its till rather than
+  voiding it.
+- **Customers who react to how you run the place.** An unattended counter makes shoppers wait,
+  then walk out and put the goods back — which costs you town reputation.
+- **A town economy that compounds.** Appeal is computed from how many *distinct* stocked
+  businesses you run, what's on display, and your reputation. Appeal drives how often
+  customers arrive and how much silver they bring, so investment pays forward.
+
+## Installing
+
+Copy this repository into `RimWorld/Mods/OldWestTown` and enable it in the mod list. The
+compiled assembly is committed at `1.6/Assemblies/OldWestTown.dll`, so no build step is needed
+to play.
+
+## Playing it
+
+1. Research **Frontier commerce**.
+2. Build a **shop counter**. Rotate it so its interaction cell — the staff side — faces into
+   the shop's back room. Customers stand on the opposite side.
+3. Put goods in the same room. Shelves work; so does the floor.
+4. Open the counter's **Stock** tab and choose what it sells.
+5. Set a price with **Set prices**.
+6. Give a colonist a **Shopkeep** priority in the Work tab.
+7. Wait for the *Customers arriving* event, then watch the till.
+
+If nobody is behind the counter, nothing sells. That's deliberate — it's what makes the
+Shopkeeping assignment matter. You can turn it off with the *Allow self-service* mod setting.
+
+## Building from source
+
+Requires the .NET SDK (8.0 is fine — the project targets `net472` and pulls the RimWorld
+reference assemblies from NuGet, so you do **not** need the game or Mono installed to compile).
+
+```sh
+dotnet build Source/OldWestTown/OldWestTown.csproj -c Release
+```
+
+Output goes straight to `1.6/Assemblies/OldWestTown.dll`.
+
+### Checking your defs without launching the game
+
+RimWorld resolves XML into C# types and def references at load time and reports failures as
+red errors in-game, which is a slow way to find a typo. `tools/validate_defs.py` catches most
+of them statically:
+
+```sh
+python3 tools/validate_defs.py
+```
+
+It verifies that every C# type named in XML exists, that every def reference resolves (or is
+on an explicit known-vanilla list), and that every `.Translate()` key has an English string.
+
+## Caveats
+
+- **This has not been run in RimWorld.** It compiles against the 1.6 reference assemblies and
+  passes the static checks above, but the pawn AI — job drivers, the lord graph, the duty
+  think tree — is the kind of code that only really proves itself in game. Expect to shake out
+  bugs on first play.
+- Textures are programmer-art placeholders.
+
+## Licence
+
+Code is MIT. RimWorld is © Ludeon Studios; this mod is not affiliated with Ludeon.

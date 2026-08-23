@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <!-- Krafs.Rimworld.Ref ships the whole BCL (mscorlib/netstandard), so we do not
+         need Mono or the .NET Framework targeting pack installed to build. -->
+    <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
+    <AssemblyName>OldWestTown</AssemblyName>
+    <RootNamespace>OldWestTown</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
+
+    <!-- RimWorld loads the DLL itself; no runtime deps should be copied next to it. -->
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <EnableDefaultNoneItems>false</EnableDefaultNoneItems>
+    <DebugType>none</DebugType>
+    <Deterministic>true</Deterministic>
+
+    <!-- Mods ship into <ModRoot>/<GameVersion>/Assemblies. -->
+    <OutputPath>$(MSBuildProjectDirectory)/../../1.6/Assemblies/</OutputPath>
+
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningLevel>4</WarningLevel>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Publicized RimWorld 1.6 reference assemblies. Reference-only: never copied. -->
+    <PackageReference Include="Krafs.Rimworld.Ref" Version="1.6.4871" PrivateAssets="all" ExcludeAssets="runtime" />
+    <PackageReference Include="Lib.Harmony" Version="2.3.3" PrivateAssets="all" ExcludeAssets="runtime" />
+  </ItemGroup>
+
+</Project>

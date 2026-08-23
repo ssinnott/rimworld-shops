@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+  <DesignationCategoryDef>
+    <defName>OWT_Commerce</defName>
+    <label>commerce</label>
+    <description>Shop counters and other trade fixtures for running businesses in your town.</description>
+    <order>410</order>
+  </DesignationCategoryDef>
+</Defs>

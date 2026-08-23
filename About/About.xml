@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ModMetaData>
+  <packageId>ssinnott.oldwesttown</packageId>
+  <name>Old West Town</name>
+  <author>ssinnott</author>
+  <supportedVersions>
+    <li>1.6</li>
+  </supportedVersions>
+  <description>Turn your colony into a frontier town that actually does business.
+
+Build shop counters, decide what each business sells and what it charges, and put colonists behind the counter. Travellers arrive with silver in their pockets, browse your shelves, queue at the counter and pay — and the money lands in the till.
+
+How well your town trades is not random. A town with several well-stocked, fairly priced, properly staffed businesses attracts more customers, and richer ones. Leave a counter unattended and shoppers walk out, and word gets around.
+
+This is a standalone mod. It does not require Hospitality, though it is designed to sit alongside it.</description>
+</ModMetaData>

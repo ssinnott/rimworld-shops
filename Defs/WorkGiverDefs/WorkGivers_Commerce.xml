@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+
+  <WorkGiverDef>
+    <defName>OWT_ManShopCounter</defName>
+    <label>mind shop counter</label>
+    <giverClass>OldWestTown.AI.WorkGiver_ManShop</giverClass>
+    <workType>OWT_Shopkeeping</workType>
+    <verb>mind</verb>
+    <gerund>minding</gerund>
+    <priorityInType>100</priorityInType>
+    <requiredCapacities>
+      <li>Manipulation</li>
+      <li>Talking</li>
+    </requiredCapacities>
+    <prioritizeSustains>true</prioritizeSustains>
+  </WorkGiverDef>
+
+</Defs>
