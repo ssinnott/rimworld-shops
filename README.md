@@ -11,7 +11,7 @@ arrives, then either picks something off your shelves, orders a drink, a meal or
 checks into a hotel room for the night — queues, and pays either way. A guest who rents a room
 stays until they've slept it off, so the whole visit can now run past a single day. There's
 boardwalk to lay and a false front to nail over your store while you wait for them. Town roles
-and per-faction standing (banks, stables, a sheriff) are designed but not built; see
+(banks, stables, a sheriff) are designed but not built; see
 [docs/DESIGN.md](docs/DESIGN.md) for the architecture and the staged plan.
 
 This mod is standalone. It does not require Hospitality, and is written to sit alongside it.
@@ -58,6 +58,11 @@ This mod is standalone. It does not require Hospitality, and is written to sit a
   Frontier commerce research. A false front is the one with teeth: it gives a shop a small,
   capped edge in the customer AI's own scoring, so a dressed-up storefront pulls trade from an
   undecorated rival at a similar price.
+- **Regulars.** Reputation isn't one number any more. Alongside the town's own name, every
+  faction you actually trade with keeps its own standing, moved by how its own customers were
+  treated — served, walked out on, or evicted from a rented room. Favor one faction and they
+  show up more often than everyone else; mistreat them and only their own trade dries up. The
+  town ledger names your best and worst relationship once either one actually stands out.
 
 ## Installing
 

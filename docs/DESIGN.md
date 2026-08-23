@@ -59,12 +59,12 @@ hotel clerk, a bank teller, a gambling dealer) should use the same shape.
 | `ShopTransaction` | `Shops/ShopTransaction.cs` | The single point where silver, goods and service effects move. Re-validates everything. |
 | `CompFalseFront` | `Shops/CompFalseFront.cs` | A false front's one mechanical hook: `CurbAppealBonus` folds a small, capped bonus for a nearby dressed-up storefront into `ShopPricing.ValueAppeal`. Walks `FalseFrontRegistry` rather than the map, since `ValueAppeal` is a customer-AI hot path. Nothing here is persisted. |
 | `FalseFrontRegistry` | `Shops/FalseFrontRegistry.cs` | `MapComponent`. Live roster of spawned `CompFalseFront`s, registered the same way `TownEconomy` registers shops — so curb-appeal scoring never has to scan every Thing on the map. |
-| `TownEconomy` | `Shops/TownEconomy.cs` | `MapComponent`. Shop register, daily ledger, reputation, and `Appeal`. |
+| `TownEconomy` | `Shops/TownEconomy.cs` | `MapComponent`. Shop register, daily ledger, reputation, `Appeal`, and — per stage 5 — a sparse per-`Faction` standing that decides which faction the arrival clock actually produces. |
 | `JobGiver_BuyFromShop`, `JobDriver_PatronizeBusiness` (`JobDriver_BuyFromShop`, `JobDriver_UseService`) | `AI/` | Customer side: picks a business — goods or a service, whichever scores best — and runs the shared walk/wait/patience shape. |
 | `JobGiver_SleepInRentedBed`, `JobDriver_SleepInRentedBed` | `AI/` | A checked-in guest's other job: go to bed once tired, sleep until rested. Never references the desk or colonist that sold the stay — only `CompRentableBed` and its own `CustomerRecord`. |
 | `WorkGiver_/JobDriver_ManShop` | `AI/` | Colonist side. Kind-agnostic: it staffs any `CompBusiness` with something to offer, a hotel desk included. |
 | `LordJob_ShopVisit`, `LordToil_Shop` | `Lords/` | The visiting group, and per-customer records — including, now, who's checked into a bed. |
-| `IncidentWorker_ShopCustomers` | `Incidents/` | Turns town appeal into arrivals. |
+| `IncidentWorker_ShopCustomers` | `Incidents/` | Turns town appeal into arrivals, and — per stage 5 — biases *which* faction arrives by that faction's own standing with the town. |
 
 ### Why the lord graph is flat
 
@@ -251,8 +251,27 @@ bed on its own sales floor), vanilla bed ownership, and private suites.
 **4. Town roles.** Sheriff, barkeep, banker as assignable posts with their own work givers and
 gizmos. A sheriff suppresses the drunk/brawl events a saloon starts generating.
 
-**5. Reputation with depth.** Split the single reputation float into per-faction standing, so
-specific factions become regulars. Feeds arrival frequency by faction.
+**5. Reputation with depth — done.** The single `reputation` float is untouched — still the
+honest, town-wide answer to "should anyone set out for this town at all" and "what will a
+stranger pay," because neither question has a coherent per-faction answer — and is joined, not
+replaced, by a sparse per-`Faction` `standings` dictionary on the same `TownEconomy`. A faction
+with no tracked history simply reads as the town's own reputation (`StandingWith`) until
+something happens to it specifically: a staffed sale nudges its own faction's standing sharply
+upward, any walkout (patience run out, or a hotel eviction) nudges it sharply downward, and a
+self-service sale — nobody chose to serve *this* customer in particular — touches only the
+town-wide number, exactly as before. The only mechanical consequence of standing is *which*
+faction the town's existing arrival clock actually produces: `IncidentWorker_ShopCustomers` lets
+vanilla's own `TryResolveParms` run to completion untouched (it's confirmed non-virtual, so
+pre-seeding `parms.faction` and hoping it's honored isn't a safe option), then re-picks the
+faction afterward by weighted draw over standing, from vanilla's own candidate pool —
+`IsEligibleFaction` excludes the player, hostile factions, and anyone with no settlement to
+actually send customers from. The town ledger names the single best and worst *recorded*
+relationship once either has genuinely diverged from the town's own name, and stays silent
+otherwise — a fresh game's ledger is unchanged. An existing save has no `standings` node at all;
+every faction it already knew about simply starts exactly where its own reputation number
+already put them. Deliberately deferred: faction-aware pricing or purse size (a second lever the
+ledger could never actually show the player), a per-shop notion of a regular, and any
+cross-colony scope — standing lives at the same town-wide granularity as the number it splits.
 
 **6. Old west content pass — done.** Boardwalk terrain, false-front facades, a hitching post,
 batwing doors, a faro table and a gallows dress the street stages 1–5 already made functional.
@@ -369,3 +388,19 @@ competitive rather than solitaire.
   its actual pull on idle colonists is unconfirmed in a live game. The false front's curb-appeal
   numbers (+0.10 / +0.15, a 7-tile radius) are a first-pass estimate and want a playtest to
   confirm they nudge trade rather than doing nothing or dominating price.
+- Whether `IncidentWorker_PawnsArrive.CandidateFactions`, called independently of its one
+  presumed normal call site inside `TryResolveParms`, is genuinely side-effect-free can't be
+  proven from reference-assembly metadata alone — there's no IL to inspect. `ChooseWeightedFaction`
+  wraps the whole redraw in a silent try/catch that falls back to today's fully-random pick on
+  any failure, and, more importantly, never depends on the separate, equally unprovable question
+  of whether `TryResolveParms` would have honored a pre-set `parms.faction` — it only overwrites
+  the field after that method has already run to completion.
+- The new per-faction standing deltas (±0.05 / ±0.10), the arrival-weight curve
+  (`Lerp(0.15, 3)`), and the ledger's 0.1 divergence threshold are first-pass guesses, in the
+  same spirit as this file's existing constants — untested in a live game. Worth a specific
+  playtest: push one faction's standing to an extreme with repeated staffed sales and watch
+  whether they visibly show up more (or less) often over the next several arrivals.
+- A customer's faction can rarely turn hostile mid-visit — an unrelated relations swing while
+  their group is still in town. `IsEligibleFaction` silently stops recording standing for them
+  at that moment, which is a deliberate no-op matching this codebase's no-logging style, not a
+  bug to "fix" on a later read.

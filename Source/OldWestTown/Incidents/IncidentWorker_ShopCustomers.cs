@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using OldWestTown.Lords;
 using OldWestTown.Shops;
 using RimWorld;
@@ -11,7 +12,10 @@ namespace OldWestTown.Incidents
     /// <summary>
     /// Word gets around: a town with well-stocked businesses draws people who want to spend.
     /// Unlike a vanilla visitor group, the size and purse of this group are a direct function of
-    /// what the player has actually built — see <see cref="TownEconomy.Appeal"/>.
+    /// what the player has actually built — see <see cref="TownEconomy.Appeal"/>. Which faction
+    /// actually shows up is separately biased by that faction's own standing with the town —
+    /// see <see cref="ChooseWeightedFaction"/> — so treating one faction well pulls them back
+    /// more often without touching anyone else's arrivals.
     /// </summary>
     public class IncidentWorker_ShopCustomers : IncidentWorker_NeutralGroup
     {
@@ -51,6 +55,14 @@ namespace OldWestTown.Incidents
             if (econ == null) return false;
 
             if (!TryResolveParms(parms)) return false;
+
+            // TryResolveParms is non-virtual and can't be intercepted, so the only safe way to
+            // bias which faction shows up is to let it run to completion, unmodified, and
+            // overwrite its result afterward -- never to pre-seed parms.faction and hope a
+            // method we can't inspect happens to honor it.
+            Faction picked = ChooseWeightedFaction(parms, econ);
+            if (picked != null) parms.faction = picked;
+
             if (parms.faction.HostileTo(Faction.OfPlayer)) return false;
 
             List<Pawn> pawns = SpawnPawns(parms);
@@ -82,6 +94,46 @@ namespace OldWestTown.Incidents
                 pawns[0]);
 
             return true;
+        }
+
+        /// <summary>
+        /// Re-picks <see cref="IncidentParms.faction"/> by weighted draw over each candidate's
+        /// standing with the town, so a faction the player treats well is more likely to be the
+        /// one that shows up next. Draws from vanilla's own CandidateFactions pool (never a
+        /// hand-rolled filter over every known faction) so this can't silently drift out of sync
+        /// with whatever vanilla itself considers a valid source of visitors, layering
+        /// <see cref="TownEconomy.IsEligibleFaction"/> on top for the standing-specific
+        /// exclusions (hostile, the player, no settlements). Returns null — leave vanilla's own
+        /// pick alone — whenever nothing qualifies, or anything about this goes wrong:
+        /// CandidateFactions is normally only ever called from inside TryResolveParms itself, and
+        /// nothing here can prove it has no expectations about ambient state that call site sets
+        /// up first.
+        /// </summary>
+        private Faction ChooseWeightedFaction(IncidentParms parms, TownEconomy econ)
+        {
+            try
+            {
+                // Idempotent (a pure recomputation from current appeal and settings, read
+                // straight out of this file's own override above) -- calling it again costs
+                // nothing and removes any dependency on whether TryResolveParms's internals are
+                // guaranteed to have populated parms.points before CandidateFactions might read it.
+                ResolveParmsPoints(parms);
+
+                List<Faction> candidates = CandidateFactions(parms, false).Where(econ.IsEligibleFaction).ToList();
+                if (candidates.Count == 0)
+                {
+                    // Vanilla's own "desperate" widening, applied the same way it presumably is internally.
+                    candidates = CandidateFactions(parms, true).Where(econ.IsEligibleFaction).ToList();
+                }
+                if (candidates.Count == 0) return null;
+
+                candidates.TryRandomElementByWeight(f => econ.ArrivalWeight(f), out Faction result);
+                return result;
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         /// <summary>The middle of the shopping district — where customers head when idle.</summary>

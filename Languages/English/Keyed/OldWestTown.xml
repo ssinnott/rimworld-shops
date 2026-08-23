@@ -43,6 +43,8 @@
   <OWT_LedgerTodayLine>Today: {0} sales, {1} walkouts, {2} taken.</OWT_LedgerTodayLine>
   <OWT_LedgerLifetimeLine>Lifetime takings: {0}.</OWT_LedgerLifetimeLine>
   <OWT_LedgerShopLine>{0} — {1} today, {2} in the till.</OWT_LedgerShopLine>
+  <OWT_LedgerRegularLine>Customers from {0} have become regulars ({1} standing).</OWT_LedgerRegularLine>
+  <OWT_LedgerColdLine>Customers from {0} want nothing more to do with this town ({1} standing).</OWT_LedgerColdLine>
 
   <!-- Stock tab -->
   <OWT_TabStock>Stock</OWT_TabStock>

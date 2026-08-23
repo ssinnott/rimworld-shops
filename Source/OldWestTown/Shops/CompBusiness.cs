@@ -46,6 +46,10 @@ namespace OldWestTown.Shops
         private const int StaffPresenceGraceTicks = 60;
         private const int StockCacheTicks = 60;
 
+        /// <summary>How far a faction's standing has to diverge from the town's own name
+        /// before the ledger calls it out by name — a small divergence isn't a "regular" yet.</summary>
+        private const float LedgerStandingDivergenceThreshold = 0.1f;
+
         private ThingOwner<Thing> till;
         private ThingFilter stockFilter;
         private bool open = true;
@@ -529,6 +533,27 @@ namespace OldWestTown.Shops
             sb.AppendLine();
             sb.AppendLine("OWT_LedgerAppealLine".Translate(econ.Appeal.ToString("0.0")));
             sb.AppendLine("OWT_LedgerReputationLine".Translate(econ.Reputation.ToStringPercent()));
+
+            List<KeyValuePair<Faction, float>> tracked = econ.TrackedStandings.ToList();
+            if (tracked.Count > 0)
+            {
+                KeyValuePair<Faction, float> best = tracked.OrderByDescending(kv => kv.Value).First();
+                KeyValuePair<Faction, float> worst = tracked.OrderBy(kv => kv.Value).First();
+                if (best.Value - econ.Reputation > LedgerStandingDivergenceThreshold)
+                {
+                    sb.AppendLine("OWT_LedgerRegularLine".Translate(best.Key.Name, best.Value.ToStringPercent()));
+                }
+                // No key-equality guard needed here: a single value can't be simultaneously
+                // above Reputation+threshold and below Reputation-threshold, so this condition
+                // and the one above it can never both fire for the same faction — including
+                // when tracked.Count == 1, where best and worst are literally the same entry
+                // and only one of the two checks can possibly pass.
+                if (econ.Reputation - worst.Value > LedgerStandingDivergenceThreshold)
+                {
+                    sb.AppendLine("OWT_LedgerColdLine".Translate(worst.Key.Name, worst.Value.ToStringPercent()));
+                }
+            }
+
             sb.AppendLine();
             sb.AppendLine("OWT_LedgerTodayLine".Translate(
                 econ.customersServedToday, econ.walkoutsToday, ((float)econ.revenueToday).ToStringMoney()));

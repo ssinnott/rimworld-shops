@@ -115,7 +115,7 @@ namespace OldWestTown.AI
         private void WalkOut(CompBusiness shop)
         {
             shop.RecordWalkout();
-            shop.parent.Map?.GetComponent<TownEconomy>()?.RecordWalkout();
+            shop.parent.Map?.GetComponent<TownEconomy>()?.RecordWalkout(pawn.Faction);
 
             CustomerRecord record = (pawn.GetLord()?.LordJob as LordJob_ShopVisit)?.RecordFor(pawn);
             if (record != null)
