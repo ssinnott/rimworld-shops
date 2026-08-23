@@ -3,55 +3,51 @@ title: The town economy
 summary: Appeal, reputation, pricing and the arrival clock — the four numbers that decide whether a shop becomes a town.
 ---
 
-`TownEconomy` is a `MapComponent`: one per map, holding the live register of businesses, the
-daily ledger, the town's reputation, and the clock that decides when customers set out. It is
-the only place the mod's economic numbers are computed, and the **Town ledger** gizmo on any
-counter shows them all in one dialog.
+Four numbers decide how well your town trades: how much it **appeals** to travellers, what
+**reputation** it has with them, what you **charge**, and how often they **arrive**. The **Town
+ledger** button on any counter shows all of them in one place.
 
 ## Appeal
 
-**Appeal** is how much trade the town attracts — roughly 0 to 3+. It is recomputed on demand
-from what the player has actually built.
+**Appeal** is how much trade the town attracts — roughly 0 to 3+. It is worked out from what you
+have actually built.
 
 ```
-kindScore  = Σ over open businesses with something to offer:
-                 kind.appeal × (1.0 for the first business of a kind, 0.35 for each repeat)
+       for each open business with something to offer:
+         its kind's appeal, counted in full the first time that kind appears
+         and at 35% for every repeat            →  the kinds score
 
-stockScore = Σ  shopStockValue + serviceValue × 30
+       everything on your shelves, plus the value of any service
+         that sells no goods, counted thirty times over  →  the wealth score
 
-goods      = clamp( sqrt(stockScore / 1000), 0.25, 3.0 )
-standing   = lerp(0.5, 1.5, reputation)
-
-Appeal     = kindScore × goods × standing        (0 if kindScore is 0)
+       kinds score  ×  square root of (wealth score / 1000), capped between 0.25 and 3
+                    ×  standing, which runs from 0.5 at rock bottom to 1.5 at a spotless
+                       reputation
+       =  appeal      (zero if you have no open business at all)
 ```
 
-Four things follow from that formula, and they are the whole strategic layer:
+Four things follow from that, and they are the whole strategic layer:
 
 **Breadth beats depth.** A second business of a kind you already run counts for only 35% of the
 first. One giant general store should not out-earn a street with a store, a saloon and a barber.
 That is the pressure that turns a colony into a town.
 
-**Wealth has diminishing returns.** The square root on `stockScore` means doubling what's on
-your shelves does not double your draw. Getting the first shelf stocked matters enormously;
-getting the tenth matters much less.
+**Wealth has diminishing returns.** Because it's a square root, doubling what's on your shelves
+does not double your draw. Getting the first shelf stocked matters enormously; getting the tenth
+matters much less.
 
-**Reputation is a multiplier, not a bonus.** `standing` runs from 0.5 to 1.5, so a well-run town
+**Reputation is a multiplier, not a bonus.** Standing runs from 0.5 to 1.5, so a well-run town
 draws *three times* the trade of a badly-run one with identical stock.
 
 **A closed or empty business contributes nothing.** Appeal only counts businesses that are open
 and have something to offer — stock on the shelf, or an available service.
 
-> **Why services are weighted ×30.** A stock-free service has no "quantity on the shelf" the way
-> physical stock does; its value is the price of one visit, an order of magnitude below a shelf's
-> total. Scaling it up before it joins the same wealth curve means one barber shop can clear the
-> customer threshold on its own, the way a modestly-stocked general store already can, instead
-> of being drowned out by a normalization tuned for physical stock.
-
-### Appeal is cached, roughly
-
-`StockOnDisplay` — which appeal walks for every open business — is recomputed at most once a
-second per business, because the customer AI asks about it constantly while choosing where to
-shop. That is fine for a main street and would want revisiting for a hundred counters.
+> **Why services count for thirty times their price.** A service that sells no goods has no
+> "quantity on the shelf" the way physical stock does; its value is the price of one visit, an
+> order of magnitude below what a stocked shelf is worth. Scaling it up before it joins the same
+> wealth curve is what lets one barber shop clear the customer threshold on its own, the way a
+> modestly stocked general store already can, instead of being drowned out by a scale tuned for
+> goods.
 
 ## Reputation
 
@@ -62,7 +58,7 @@ shop. That is fine for a main street and would want revisiting for a hundred cou
 | A staffed sale or service | **+0.01** |
 | A self-service sale | **−0.005** |
 | A customer walks out | **−0.02** |
-| Daily rollover | drifts 5% back toward 0.5 |
+| Every day | drifts 5% back toward 0.5 |
 
 A walkout costs twice what a sale earns, so a counter you leave unattended during a busy visit
 loses ground fast. And because reputation decays toward neutral every day, a town has to keep
@@ -70,33 +66,34 @@ earning its name — a burst of good trade a quadrum ago doesn't hold the number
 
 Reputation feeds two things:
 
-- **Appeal**, through the `standing` multiplier above — so it changes how many customers come.
-- **Price tolerance**, through `ReputationPriceFactor` = `lerp(1.15, 0.9, reputation)`. A town
-  customers like will bear **15% above** your set markup; one with a bad name has to sell at
-  **10% below** it to move goods.
+- **Appeal**, through the standing multiplier above — so it changes how many customers come.
+- **What everything actually costs.** Reputation shades every price either side of the markup you
+  set: a town with a bad name sells at **15% above** its slider, a well-liked one at **10%
+  below** it. So a good name both brings more customers in and prices a little keener for them.
 
 ## Pricing
 
-Every price in the mod — for goods or a service — is decided in one place, so the UI, the
-customer AI and the transaction can never disagree.
+Every price in the mod — for goods or a service — is worked out the same way, so the price you
+see on the counter is the price the customer judges and the price they pay.
 
 ```
-unit price = thing.MarketValue × shop.Markup × ReputationPriceFactor
+unit price = market value × your markup × the town's reputation
 ```
 
-`MarketValue` already folds in quality, stuff and remaining hit points, which is exactly what a
-shopper would judge. A stock-free service substitutes `ServiceDef.basePrice` for the market
-value; nothing else changes. No price is ever below **1 silver**.
+Market value already folds in quality, material and remaining hit points, which is exactly what
+a shopper would judge. A service that sells no goods uses a flat price of its own in place of the
+market value; nothing else changes. No price is ever below **1 silver**.
 
 ### How price wins customers
 
-A customer scoring a business uses `ValueAppeal` — `1 / effectiveMarkup`, clamped to 0.1–2.0.
-So a shop charging market value scores 1.0, one charging double scores ~0.5, one charging triple
-scores ~0.33. Multiply that by a **×1.5 staffed bonus**, divide by a distance penalty
-(`1 + distance/40`), and for a service also multiply by the worker's desirability.
+A customer judging a shop scores its prices at **1 ÷ your effective markup**, held between 0.1
+and 2.0. So a shop charging market value scores 1.0, one charging double scores about 0.5, one
+charging triple about 0.33. On top of that, a **staffed counter is worth 50% more** than an
+unstaffed one, distance counts against a shop (a counter 40 tiles away is worth half one on the
+doorstep), and for a service, how much that particular customer wants it counts too.
 
 The practical upshot: **undercutting a rival shop genuinely pulls customers away from it**, and
-a staffed counter beats an unstaffed one worth 50% more.
+staffing a counter beats leaving it open and empty.
 
 ### Partial purchases
 
@@ -105,7 +102,7 @@ pay for rather than sending them away empty-handed over a rounding difference. A
 unit, so it gets no such trimming — a customer either affords the drink or doesn't.
 
 A single shopper also can't strip a shelf: purchases are capped at a quarter of the item's stack
-limit, or one unit for anything unstackable.
+limit, or one unit for anything that doesn't stack.
 
 ## What counts as stock
 
@@ -113,41 +110,41 @@ The sales floor is a **room**, not a zone you paint. A shop is defined by walls 
 built: it reads naturally, it costs nothing to set up, and it makes the room-quality stats you
 already care about matter commercially.
 
-Indoors, everything inside the counter's room is on display. Outdoors — or in a room that
-touches the map edge — it falls back to a radius (`openAirRadius`, 9.9 for a shop counter, 7.9
-for a saloon bar), so a market stall on the boardwalk still trades.
+Indoors, everything inside the counter's room is on display. Outdoors — or in a room that touches
+the map edge — it falls back to a radius instead (about 10 tiles for a shop counter, 8 for a
+saloon bar), so a market stall on the boardwalk still trades.
 
 An item is on display if **all** of these hold:
 
-- it is a spawned, undestroyed item with a stack count above zero;
-- it is **not silver** (selling silver for silver is nonsense, and no filter can enable it);
-- it is **not forbidden** — forbidding is the player's way of saying "not for sale";
+- it is an actual item lying in the shop, with at least one left in the stack;
+- it is **not silver** (selling silver for silver is nonsense, and no setting can enable it);
+- it is **not forbidden** — forbidding is your way of saying "not for sale";
 - it is **not reserved by a colonist** — goods a hauler is already on the way for would churn
   both jobs if sold out from under them;
 - it is not burning;
 - its market value is above zero;
-- the business's **Stock filter** allows it.
+- the business's **Stock** tab allows it.
 
 ## The arrival clock
 
-Arrival frequency is the town's own doing, not the storyteller's.
+How often customers arrive is the town's own doing, not the storyteller's.
 
-`TownEconomy` checks its clock every 600 ticks. Below appeal **0.5** nothing happens at all.
-Above it, the mean time between customer groups is
-`lerp(3.5 days, 0.8 days, clamp01((appeal − 0.5) / 3.5))`, divided by the *Customer volume*
-setting — so a town scraping past the threshold sees a group every few days, and a booming main
-street sees one most days.
+The town checks its clock every ten seconds or so. Below appeal **0.5** nothing happens at all.
+Above it, the average gap between customer groups slides from **3.5 days** at the threshold down
+to **0.8 days** for a thriving town, divided by the *Customer volume* setting — so a town
+scraping past the threshold sees a group every few days, and a booming main street sees one most
+days.
 
-The incident is fired *through the storyteller*, so `minRefireDays` (0.6) still caps the
-combined rate. A booming town gets frequent groups, never a flood of them. The `IncidentDef`
-also keeps a small `baseChance` of 3 as a background trickle.
+Arrivals still go out through the storyteller, which won't let events pile on top of each other:
+it holds groups at least 0.6 days apart, so a booming town gets frequent trade, never a flood.
+There is also a small background chance of a group turning up regardless.
 
 ## The daily ledger
 
-At local midnight, `TownEconomy` rolls the day: every business's daily counters reset,
-the town's `revenueToday` / `customersServedToday` / `walkoutsToday` reset, and reputation
-drifts toward neutral. Lifetime revenue is kept, per-business and town-wide.
+At local midnight the town closes the books: every business's daily figures reset, the town's
+sales, walkouts and takings for the day reset, and reputation drifts back toward neutral.
+Lifetime takings are kept, per business and for the town.
 
-The **Town ledger** gizmo, on every counter, shows appeal, reputation, today's sales, walkouts
+The **Town ledger** button, on every counter, shows appeal, reputation, today's sales, walkouts
 and takings, lifetime takings, and each business's revenue and till — the numbers the economy
 runs on, readable in one place.

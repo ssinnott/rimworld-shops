@@ -3,6 +3,13 @@ title: Reference tables
 summary: Every defName, tunable constant, mod setting and translation key the mod ships, in one place.
 ---
 
+> **This page is for people editing the files.** It lists the mod's internal names, the constants
+> behind the numbers, and every translation key — the things you need when patching, translating
+> or extending it. If you are here to *play*, the pages under **Playing** and **Systems** explain
+> all of the same behaviour without the internal names: [buildings](buildings.md),
+> [business kinds](businesses.md), [services](services.md), [the town economy](economy.md),
+> [customers](customers.md), [shopkeeping](shopkeeping.md).
+
 ## Defs
 
 Everything this mod adds is prefixed `OWT_`.

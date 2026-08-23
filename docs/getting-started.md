@@ -10,7 +10,7 @@ behind one project.
 
 | | |
 | --- | --- |
-| **Research** | Frontier commerce (`OWT_FrontierCommerce`) |
+| **Research** | Frontier commerce |
 | **Cost** | 500 |
 | **Tech level** | Medieval |
 | **Unlocks** | The whole **Commerce** build category — shop counter, saloon bar, barber chair |
@@ -28,10 +28,10 @@ Scales, a ledger, a lockable till and the habit of writing prices down.
 Under the new **Commerce** category in the build menu. Start with a [shop
 counter](buildings.md#shop-counter) — it is the cheapest and the most forgiving.
 
-**Rotation matters.** A counter's *interaction cell* is the staff side, and the customer side is
-the mirror of it through the counter. Rotate the counter so its interaction cell faces into the
-shop's back room; customers will stand on the opposite side. Get this backwards and your
-shopkeeper stands in the street.
+**Rotation matters.** One side of a counter is the **staff** side and the other is the
+**customer** side, and rotating the counter is how you choose which is which. Rotate it so the
+staff side faces into the shop's back room; customers will queue on the opposite side. Get this
+backwards and your shopkeeper stands in the street.
 
 ### 3. Put goods in the same room
 
@@ -42,32 +42,31 @@ stock](economy.md#what-counts-as-stock) for the exact rules.
 
 ### 4. Choose what it sells
 
-Open the counter's **Stock** tab. It is vanilla's storage-filter widget, so it reads exactly
-like a stockpile's allowed-items list. Each business kind starts with a sensible default
-selection — a general store opens with foods, manufactured goods, raw resources, medicine,
-apparel, textiles and leathers switched on. **Reset** puts the defaults back.
+Open the counter's **Stock** tab. It is the same allowed-items list a stockpile uses, and reads
+exactly the same way. Each business kind starts with a sensible default selection — a general
+store opens with foods, manufactured goods, raw resources, medicine, apparel, textiles and
+leathers switched on. **Reset** puts the defaults back.
 
 Silver is never sellable, whatever the filter says.
 
 ### 5. Set a price
 
-The **Set prices** gizmo opens a markup slider. It is a percentage of each item's market
+The **Set prices** button opens a markup slider. It is a percentage of each item's market
 value — 100% is break-even against a trader, and the default for a general store is 135%.
 
-Cheaper genuinely wins trade: customers score every reachable business and pick the best, and
-price is the biggest term in that score. Undercutting the shop across the street pulls its
+Cheaper genuinely wins trade: customers weigh up every shop they can reach and pick the best,
+and price is the biggest thing they weigh. Undercutting the shop across the street pulls its
 customers to you. See [pricing](economy.md#pricing).
 
 ### 6. Assign a shopkeeper
 
-Give a colonist a priority on the **Shopkeep** work type in the Work tab. It is on by default
-for new colonists (`alwaysStartActive`), but it sits low in the natural priority order, so a
-busy colonist may never get to it — give it an explicit priority if you want the counter reliably
-worked.
+Give a colonist a priority on the **Shopkeep** work type in the Work tab. It is switched on by
+default for new colonists, but it sits low in the natural priority order, so a busy colonist may
+never get to it — give it an explicit priority if you want the counter reliably worked.
 
 A colonist will only walk to a counter that is open, has something to offer, and has a customer
-within 25 cells. Nobody stands behind an empty store all day. You can override that with a
-forced (right-click) job.
+within 25 tiles. Nobody stands behind an empty store all day. You can override that by
+right-clicking the counter and prioritizing the job by hand.
 
 ### 7. Wait for customers
 
@@ -84,10 +83,10 @@ today's takings; **Collect takings** drops the silver on the floor for a hauler.
 | --- | --- |
 | No *Customers arriving* letter, ever | Town appeal is under 0.5. Stock more, or open a second *different* kind of business — [breadth counts for more than depth](economy.md#appeal). |
 | Customers arrive, browse, then leave without buying | Nobody behind the counter. Check the *Customers waiting* alert, and see [shopkeeping](shopkeeping.md). |
-| A colonist never picks up shopkeeping | The counter has nothing to offer, no customer is within 25 cells, or Shopkeep is outranked by other work. |
-| Goods in the room aren't listed as on sale | They're forbidden, reserved by a colonist's own job, worth nothing, on fire, or excluded by the Stock filter. |
-| A saloon serves drinks but never meals | A meal service needs an actual meal on the shelves — the `FoodMeals` category, not just ingredients. |
-| The barber chair is idle | A haircut never allows self-service. It needs a colonist in the chair's staff cell, whatever the mod setting says. |
+| A colonist never picks up shopkeeping | The counter has nothing to offer, no customer is within 25 tiles, or Shopkeep is outranked by other work. |
+| Goods in the room aren't listed as on sale | They're forbidden, reserved by a colonist's own job, worth nothing, on fire, or switched off in the Stock tab. |
+| A saloon serves drinks but never meals | A meal service needs an actual cooked meal on the shelves. Ingredients don't count. |
+| The barber chair is idle | A haircut never allows self-service. It needs a colonist standing at the chair's staff side, whatever the mod setting says. |
 
 ## Mod settings
 

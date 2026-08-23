@@ -47,6 +47,21 @@ change itself, and update the [wiki page](contributing.md#the-workflow) it affec
   [roadmap](roadmap.md), [known risks](architecture.md#known-risks). The design reasoning itself
   is unchanged.
 - `README.md` now points at the wiki rather than restating it.
+- **The player-facing wiki pages are written in the player's language.** [Home](index.md),
+  [getting started](getting-started.md), [buildings](buildings.md),
+  [business kinds](businesses.md), [services](services.md),
+  [the town economy](economy.md), [customers](customers.md), [shopkeeping](shopkeeping.md), the
+  [art gallery](art.md) and the [roadmap](roadmap.md) no longer quote defNames, C# class names,
+  field names or tick counts at a reader who only wants to run a shop: durations are given in
+  game time, buttons by their labels, and mechanics by what they do. The technical detail moved
+  to the pages written for it — the business-kind and service field tables and the worker classes
+  to [adding content](extending.md#add-a-business-kind), the texture recipe and the art
+  generator's table to [contributing](contributing.md#generating-building-art) — and the
+  [reference tables](reference.md) still list every internal name, now under **Under the hood**
+  in the sidebar rather than **Systems**.
+- The [town economy](economy.md#reputation) page now describes what reputation actually does to
+  prices — a good name sells 10% under the markup you set, a bad one 15% over — rather than the
+  inverse the page previously claimed.
 
 - Copies of the shipped art under `docs/assets/textures/`, checked byte-for-byte against
   `Textures/` and `About/`. One copy makes the gallery work both on the published site and when

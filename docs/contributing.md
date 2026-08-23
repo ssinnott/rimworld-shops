@@ -61,10 +61,11 @@ Without it the validator still runs, but downgrades "is this a real vanilla type
 dotnet tools/refdump/bin/Release/net8.0/refdump.dll Thing.Ingested '=CompPowerTrader' '~Hediff'
 ```
 
-### `tools/make_textures.py`
+### Generating building art
 
-Building art is flat programmer art in a shared frontier palette, drawn from one table so that
-adding a building is a row rather than an art task.
+Building art is flat programmer art in a shared frontier palette, drawn by
+`tools/make_textures.py` from one table so that adding a building is a row rather than an art
+task. The gallery shows the result: [art](art.md).
 
 ```sh
 pip install Pillow
@@ -74,6 +75,40 @@ python3 tools/make_textures.py --force    # restyle: redraw everything
 ```
 
 It never overwrites existing art unless you pass `--force`.
+
+Adding a building is a row in the `BUILDINGS` table. Set `accent` to `None` where a building has
+no stripe — the generator collapses it into the surface band.
+
+```python
+"Commerce/GunsmithBench": dict(
+    cells=(2, 1), body=(90, 88, 96), edge=(38, 36, 40),
+    surface=(140, 138, 148), accent=(150, 120, 60)),
+```
+
+Each texture is the same five-step drawing, parameterized by those four colours. That is the
+whole reason a new building is a table row: no step needs an artist's judgement, only a palette.
+
+| Step | What it draws | Constant |
+| --- | --- | --- |
+| 1 | A transparent border, so adjacent buildings don't visually fuse | `MARGIN` = 7 px |
+| 2 | A dark outline in the **edge** colour | `OUTLINE` = 2 px |
+| 3 | A lighter band along the far edge, in the **surface** colour | `SURFACE` = 35 px |
+| 4 | The remaining area in the **body** colour, with an optional **accent** stripe just inside the top outline | 4 px stripe |
+| 5 | Plank seams down the body, in the edge colour | `PLANK` = 16 px spacing |
+
+One world cell is **128 px** (`CELL`), so a 2 × 1 building is 256 × 128. The first seam sits
+`PLANK - 2` in from the inner edge, which lands the last one exactly on the right outline — that
+alignment is what makes a long counter read as planks rather than as one flat slab.
+
+Buildings use `Graphic_Multi`, so each needs four files — `_north`, `_south`, `_east`, `_west` —
+under `Textures/Things/Building/Commerce/`, plus an explicit `uiIconPath` pointing at the north
+file for the build menu. Only the north file is drawn; the other three are derived from it by
+rotation.
+
+> The committed originals were drawn by hand and phase their plank seams per facing, which a
+> rotation-derived set does not reproduce exactly. That difference is invisible in game and not
+> worth rewriting shipped art over. What matters, and what `--check` enforces, is that no building
+> ships pointing at a texture that isn't there.
 
 ### `tools/validate_docs.py`
 
