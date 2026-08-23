@@ -56,6 +56,8 @@ hotel clerk, a bank teller, a gambling dealer) should use the same shape.
 | `ShopStock` | `Shops/ShopStock.cs` | What's on the shelves, what a given customer would buy, and which service a shop can currently perform. |
 | `ShopPricing` | `Shops/ShopPricing.cs` | The only place a price is decided — for goods or a service — so UI, AI and transaction can't disagree. |
 | `ShopTransaction` | `Shops/ShopTransaction.cs` | The single point where silver, goods and service effects move. Re-validates everything. |
+| `CompFalseFront` | `Shops/CompFalseFront.cs` | A false front's one mechanical hook: `CurbAppealBonus` folds a small, capped bonus for a nearby dressed-up storefront into `ShopPricing.ValueAppeal`. Walks `FalseFrontRegistry` rather than the map, since `ValueAppeal` is a customer-AI hot path. Nothing here is persisted. |
+| `FalseFrontRegistry` | `Shops/FalseFrontRegistry.cs` | `MapComponent`. Live roster of spawned `CompFalseFront`s, registered the same way `TownEconomy` registers shops — so curb-appeal scoring never has to scan every Thing on the map. |
 | `TownEconomy` | `Shops/TownEconomy.cs` | `MapComponent`. Shop register, daily ledger, reputation, and `Appeal`. |
 | `JobGiver_BuyFromShop`, `JobDriver_PatronizeBusiness` (`JobDriver_BuyFromShop`, `JobDriver_UseService`) | `AI/` | Customer side: picks a business — goods or a service, whichever scores best — and runs the shared walk/wait/patience shape. |
 | `WorkGiver_/JobDriver_ManShop` | `AI/` | Colonist side. Kind-agnostic: it staffs any `CompBusiness` with something to offer. |
@@ -176,9 +178,22 @@ gizmos. A sheriff suppresses the drunk/brawl events a saloon starts generating.
 **5. Reputation with depth.** Split the single reputation float into per-faction standing, so
 specific factions become regulars. Feeds arrival frequency by faction.
 
-**6. Old west content pass.** Boardwalk terrain, false-front facades, hitching posts, batwing
-doors, faro tables, a gallows. Mostly XML; the point is that step 1–5 already make a town
-*function*, and this makes it *look* like one.
+**6. Old west content pass — done.** Boardwalk terrain, false-front facades, a hitching post,
+batwing doors, a faro table and a gallows dress the street stages 1–5 already made functional.
+Only the false front is mechanical: `CompFalseFront.CurbAppealBonus` folds a small, capped
+"curb appeal" bonus (+0.10 for one qualifying facade near a shop's customer-facing side, +0.15
+for two or more — diminishing, and capped there) into `ShopPricing.ValueAppeal`, the same
+function `JobGiver_BuyFromShop` already calls to score every candidate shop and service, so a
+dressed-up storefront wins close calls between similarly-priced rivals without ever outweighing
+price itself. Everything else earns its place for free through systems that already exist:
+boardwalk, false front and faro table add Beauty like any floor or furniture (the gallows
+subtracts it, on purpose — the one deliberately ugly thing in the set), the faro table's Beauty
+comes with vanilla's own `CompGatherSpot` so idle colonists actually gather at it, and batwing
+doors are a reskin of vanilla's `Door` that also undercuts its `costStuffCount` — the swinging
+half-doors it's advertising as genuinely cost less lumber, not just less light-blocking. The
+hitching post and the faro table's cards stay honestly decorative — a real wager is the
+roadmap's own future Gambling Hall below, and biasing where a visiting group gathers would mean
+editing the incident/lord-job files the Lodging stage is already extending.
 
 **7. Hospitality bridge (optional).** A soft-dependency assembly that gives Hospitality guests
 the `OWT_Shop` duty, so a single group can both lodge and shop.
@@ -248,3 +263,10 @@ competitive rather than solitaire.
   involved is confirmed against the real 1.6 reference assembly, but the exact in-game outcome
   (whether a customer visibly gets `AlcoholHigh`, whether a hair change reliably repaints a
   transient visitor) hasn't been confirmed in a live game.
+- `OWT_BatwingDoor`'s `ParentName="Door"` assumes vanilla's own door `ThingDef` is genuinely
+  named `Door` — extremely well-established modding knowledge, but unverifiable in this sandbox
+  either way, since the reference assemblies carry compiled C# only, never Def XML. The faro
+  table's `RimWorld.CompGatherSpot` is confirmed to exist and expose the expected members, but
+  its actual pull on idle colonists is unconfirmed in a live game. The false front's curb-appeal
+  numbers (+0.10 / +0.15, a 7-tile radius) are a first-pass estimate and want a playtest to
+  confirm they nudge trade rather than doing nothing or dominating price.

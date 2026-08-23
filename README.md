@@ -43,6 +43,11 @@ This mod is standalone. It does not require Hospitality, and is written to sit a
   today's sales and walkouts, and each shop's takings — the numbers the economy runs on,
   readable in one place. Counters also show appeal, reputation and their services on offer in
   their inspect pane.
+- **A main street that looks like one.** Boardwalk underfoot, false-front facades, a hitching
+  post, batwing doors, a faro table and a gallows — all under the same Commerce category and
+  Frontier commerce research. A false front is the one with teeth: it gives a shop a small,
+  capped edge in the customer AI's own scoring, so a dressed-up storefront pulls trade from an
+  undecorated rival at a similar price.
 
 ## Installing
 

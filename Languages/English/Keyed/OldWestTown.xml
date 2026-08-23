@@ -54,4 +54,8 @@
   <OWT_AlertUnattended>Customers waiting ({0})</OWT_AlertUnattended>
   <OWT_AlertUnattendedDesc>Customers are queueing at a counter with nobody behind it. If a colonist with the Shopkeeping work type doesn't serve them soon, they will walk out — losing you the sale and hurting the town's reputation.</OWT_AlertUnattendedDesc>
 
+  <!-- False front -->
+  <OWT_FalseFrontAdvertising>Currently advertising for: {0}</OWT_FalseFrontAdvertising>
+  <OWT_FalseFrontIdle>No open shop nearby to advertise for</OWT_FalseFrontIdle>
+
 </LanguageData>
