@@ -238,6 +238,13 @@ change itself, and update the [wiki page](contributing.md#the-workflow) it affec
 
 ### Changed
 
+- **The gold rush's gouging penalty now settles once a night, with everything else.** It used to
+  write reputation and faction standing at the moment of an overpriced sale — the exact per-receipt
+  timing the reputation rework above exists to rule out. A gouged customer is now flagged the same
+  way a served or walked-out one is, and the town's name and that customer's own faction both take
+  their hit from the one nightly settlement, scaled by the same `ShopPricing.GougeSeverity` the
+  per-sale version used. The counter-side warning message is unaffected — it is a per-shop notice,
+  not a reputation write, so it still fires the moment a gouged sale happens.
 - `OWT_AlertRowdyPatronsDesc`, `OWT_CmdAssignSheriffDesc` and `OWT_Rowdy`'s description dropped
   their saloon-specific wording now that a gambling hall can generate the same trouble a saloon
   does — see [trouble at the saloon and the gambling
@@ -260,16 +267,77 @@ change itself, and update the [wiki page](contributing.md#the-workflow) it affec
   generator's table to [contributing](contributing.md#generating-building-art) — and the
   [reference tables](reference.md) still list every internal name, now under **Under the hood**
   in the sidebar rather than **Systems**.
-- The [town economy](economy.md#reputation) page now describes what reputation actually does to
-  prices — a good name sells 10% under the markup you set, a bad one 15% over — rather than the
-  inverse the page previously claimed.
+- The [town economy](economy.md#reputation) page's account of reputation and prices was corrected
+  twice, in opposite directions, and the second correction is the one that stands. The page had
+  described a good name as charging *more*; it was rewritten to match the code, which charged
+  10% *less*; and the code was then fixed, because the direction it ran was a transcription error
+  against the intent stated in its own comment. A good name charges more. See **Fixed** below.
 
 - Copies of the shipped art under `docs/assets/textures/`, checked byte-for-byte against
   `Textures/` and `About/`. One copy makes the gallery work both on the published site and when
   someone reads `docs/art.md` on GitHub; the check is what stops it going stale.
 
+### Fixed
+
+- **A purse and a price list are the same rule now.** The customer AI sized an order against a
+  per-unit price rounded to whole silver while the counter charged the rounded whole-order total,
+  so a sale the AI had judged affordable could be refused — and the trim meant to rescue it
+  re-derived the same order and refused again, forever. Simulated over 45,000 visits, 22% of
+  customers ended a visit shuttling one stack between shelf and counter without ever spending
+  their silver; at the default markup it reached 58%.
+- **Reputation runs the right way, and moves at all.** It was credited per receipt, so fifty
+  sales — one busy afternoon — crossed its whole range and pinned it near the ceiling by day
+  three, leaving both things that read it reading a constant. It is now a nightly verdict on how
+  the town treated the people who actually turned up: one verdict per customer per day whatever
+  they bought. The price factor's direction was also inverted against its own stated intent, so a
+  well-liked town quietly discounted 10% and a hated one surcharged 15%. A good name now charges
+  up to 10% more, and mostly buys *who comes* rather than what they pay.
+- **Looking at a shop no longer changes the game.** Town appeal was recomputed on demand, and the
+  counter's inspect pane asks every rendered frame — a path that reached `Rand`, RimWorld's shared
+  seeded stream. Having a saloon selected advanced it sixty times a second. Appeal is now a survey
+  the town takes every 60 ticks.
+- **Appeal counts what the town offers.** A sales floor shared by two counters was counted once
+  per counter; goods were priced at the marked-up shelf price, so raising prices drew more and
+  richer customers for free; and a repeat shop-front's service escaped the repeat discount, so
+  eight empty barber chairs out-drew a stocked three-trade street.
+- **Reacting to the customers-waiting alert works.** A walkout used to strike that counter off
+  for the rest of the visit, so staffing it afterwards could not win anyone back — while the
+  ex-customers still held a shopkeeper there. The refusal now lifts the moment somebody stands at
+  the counter, and the staffing scan ignores visitors who have spent their last coin or are asleep.
+- **Closing time finishes the sale it is working** instead of evicting a customer a tick from
+  paying — worst at the barber's, where a 2,200-tick haircut could be thrown away in its last
+  moment.
+- **A counter serves one customer at a time.** Staffing was a property of the shop, so one barber
+  cut five heads at once and a second till bought nothing.
+
+### Added
+
+- **Your own colonists can use the town's businesses.** Right-click a barber chair with a colonist
+  selected. They pay nothing and leave no mark on the town's books — see
+  [services](services.md#your-own-colonists).
+- **The Stock tab shows the money.** What is on the shelves, what it would fetch at market, what
+  this counter is asking for it, and the markup slider itself. The separate *Set prices* gizmo is
+  gone.
+- **A queue at a counter is visible** on the counter's inspect pane, and customers who would face
+  too long a wait take their trade elsewhere rather than stand in it.
+
+### Removed
+
+- The *Set prices* gizmo. The markup slider lives in the Stock tab, beside the figures it changes.
+
 ### Save compatibility
 
+- The wiki and tooling changes are documentation only. The gameplay fixes above are safe to drop
+  into a save in progress, with one deliberate exception: a save written before reputation became
+  a service record has almost certainly been pinned near 100% by the defect that is being fixed,
+  and under the corrected price direction that would hand it a 10% raise it never earned. Such a
+  save — recognisable because it has no patron table — starts again from no opinion, and a week of
+  trading settles it honestly. A town that had not pinned keeps what it had.
+- New saved state is additive only: a per-visit record of goods a customer could not afford, and
+  the day's patron table — served/self-served/walked-out/gouged flags plus, now, a per-patron
+  gouge-severity column banking the gold rush's markup penalty for that same nightly settlement
+  (see the gold rush entry below). Older saves load without any of it, the same "an absent column
+  reads as nobody having done that yet" story every other column in this table already tells.
 - **Outlaws and the law** is additive throughout, with a zero-migration precedent already
   established elsewhere in this codebase for every piece of it. `StickupWatch` is a brand-new
   `MapComponent` — RimWorld auto-instantiates it on any map, old or new, and it carries no

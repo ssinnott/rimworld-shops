@@ -59,7 +59,17 @@ namespace OldWestTown.AI
             return JobMaker.MakeJob(OWTDefOf.OWT_ManShop, t, shop.StaffCell);
         }
 
-        /// <summary>True if any non-hostile visitor is close enough to be a prospective customer.</summary>
+        /// <summary>True if anybody nearby still needs this counter worked — any non-hostile visitor
+        /// who could still spend money here, or a colonist waiting at this counter for a service. Being nearby
+        /// is not enough on its own: a customer who has spent their last silver keeps the shopping duty
+        /// and keeps wandering the town centre until the visit clock runs out, and a customer taking a
+        /// nap is not shopping either — counting them is how a colonist ends up posted all day at a
+        /// counter that cannot make a sale.
+        ///
+        /// A customer who once gave up here still counts, deliberately. Their refusal lifts the moment
+        /// somebody stands at the counter, so they are precisely who staffing it wins back — filtering
+        /// them out would mean nobody is ever sent to staff the counter they are waiting to see
+        /// staffed.</summary>
         internal static bool AnyCustomerNear(CompBusiness shop)
         {
             Map map = shop.parent.Map;
@@ -69,17 +79,33 @@ namespace OldWestTown.AI
             for (int i = 0; i < all.Count; i++)
             {
                 Pawn p = all[i];
-                if (p.Faction == Faction.OfPlayer || p.Dead || p.Downed) continue;
+                if (p.Dead || p.Downed) continue;
                 if (p.HostileTo(Faction.OfPlayer)) continue;
+                if (p.Position.DistanceTo(shop.parent.Position) > CustomerScanRadius) continue;
 
-                // A native customer is recognized by duty; a bridged Hospitality guest never has
-                // one (Compat/HospitalityBridge.cs never touches PawnDuty), so it's recognized
-                // by the same IBusinessPatron marker CompBusiness.CellFreeFor and
-                // Alert_CustomersWaiting already key off instead of the duty.
-                bool isCustomer = p.mindState?.duty?.def == OWTDefOf.OWT_Shop || p.jobs?.curDriver is IBusinessPatron;
-                if (!isCustomer) continue;
+                // Somebody at THIS counter counts whatever their purse or their duty says: silver
+                // leaves the customer partway through the transaction, and the group's exit
+                // transition swaps the shopping duty out from under a serve that is still running,
+                // so both of the tests below would drop a customer mid-sale. Walking off on one is
+                // never right. TargetIndex.B is the counter in every patron's job.
+                //
+                // It is also the single place a colonist is visible to this side of the counter. A
+                // colonist sent for a service is not a customer anywhere else in the mod — no purse,
+                // no duty, no row in the town's books — but they are somebody standing at the
+                // counter waiting, and the counter still has to be worked for them; without this
+                // nobody is posted, so nobody is served, so nobody is posted. It is also what keeps
+                // the post manned through a 2200-tick haircut, which outlasts the shopkeeper's
+                // 1250-tick idle patience. Scoped to THIS counter, so a colonist can never summon
+                // staff to a business they are not standing at.
+                if (p.jobs?.curDriver is IBusinessPatron
+                    && p.CurJob?.GetTarget(TargetIndex.B).Thing == shop.parent) return true;
 
-                if (p.Position.DistanceTo(shop.parent.Position) <= CustomerScanRadius) return true;
+                // Past here the question is about travellers. A colonist must not post a shopkeeper
+                // merely by walking past.
+                if (p.Faction == Faction.OfPlayer) continue;
+                if (p.mindState?.duty?.def != OWTDefOf.OWT_Shop) continue;
+                if (!p.Awake()) continue;
+                if (ShopTransaction.SilverCarriedBy(p) > 0) return true;
             }
             return false;
         }

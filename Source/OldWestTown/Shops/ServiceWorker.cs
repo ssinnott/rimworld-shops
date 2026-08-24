@@ -18,8 +18,9 @@ namespace OldWestTown.Shops
     {
         /// <summary>True for a service that consumes a specific Thing off the shelf (Drink,
         /// Meal); false for one that consumes nothing but time (Haircut). Drives whether the
-        /// customer job fetches an item first, whether TownEconomy counts it in ServiceValue
-        /// or leaves it to StockValue, and the staffing/appeal gate.</summary>
+        /// customer job fetches an item first, whether the town's survey counts it as an offering
+        /// in its own right or leaves it to the stack it would consume, and the staffing/appeal
+        /// gate.</summary>
         public virtual bool ConsumesStock => false;
 
         /// <summary>How much one round of this service riles up a rowdy customer (see
@@ -149,6 +150,23 @@ namespace OldWestTown.Shops
     public class ServiceWorker_Thought : ServiceWorker
     {
         public ThoughtDef thoughtDef;
+
+        /// <summary>Nobody wants a thought they already carry. Zero and not merely low: the score
+        /// this multiplies is compared against a floor of zero, so a customer who was in the chair
+        /// an hour ago simply stops picking the barber, and the colonist order menu reads the same
+        /// answer to refuse an order that would do nothing. One question, answered in one place —
+        /// and the rate limit therefore lives on the thought's own durationDays, in XML, where a
+        /// modder retuning the reward retunes the pacing with it.</summary>
+        public override float Desirability(Pawn customer)
+        {
+            if (thoughtDef == null) return 0f;
+            // A pawn with no mood need reads as "has never had this thought" through the null
+            // chain, which is the wrong answer twice over: they cannot receive it either, so the
+            // honest answer to "would this do anything for you" is no.
+            MemoryThoughtHandler memories = customer?.needs?.mood?.thoughts?.memories;
+            if (memories == null) return 0f;
+            return memories.GetFirstMemoryOfDef(thoughtDef) == null ? 1f : 0f;
+        }
 
         public override Thing ApplyEffect(CompBusiness shop, ServiceDef service, Pawn customer, Thing consumed, int pricePaid, out float roundRowdiness)
         {

@@ -161,7 +161,7 @@ DEF_REF_ELEMENTS = ["shopKind", "workType", "researchPrerequisites", "prerequisi
                     "defaultStockThings", "stuffCategories", "relevantSkills",
                     "requiredCapacities", "targetTags", "letterDef",
                     "designationCategory", "constructEffect",
-                    "services", "jobDef", "thoughtDef", "affordances"]
+                    "services", "jobDef", "colonistJobDef", "thoughtDef", "affordances"]
 
 # Elements that name a def only under certain def types. <category>, for instance, is an
 # IncidentCategoryDef on IncidentDef but the ThingCategory *enum* on ThingDef.

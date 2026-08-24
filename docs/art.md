@@ -336,11 +336,10 @@ For completeness, the visible surface that isn't a picture file:
 | Build-menu category icon | The game's default for a build category |
 | Research tab entry | The game's default |
 | **Open for business** button | The game's own "unforbid" icon |
-| **Set prices** button | The game's own power-management icon |
-| **Set house edge** button | The same power-management icon as **Set prices** — it's the same slider idiom, so it wears the same icon |
+| **Set house edge** button | The game's own power-management icon — a gambling hall's own gizmo, since HouseEdge has no Stock-tab slider of its own the way Markup does |
 | **Collect takings** button | The silver icon |
 | **Town ledger** button | The game's own info icon |
-| Stock tab | The stockpile filter list, unmodified |
+| Stock tab | The stockpile filter list, plus a slider (no dedicated icon) for the markup or asking price above it |
 | Fresh-haircut mood, slept-at-the-hotel mood | No icon; the game draws mood thoughts from text |
 | **Evict guest** button | The game's own "forbid" icon |
 

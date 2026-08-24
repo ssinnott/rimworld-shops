@@ -74,14 +74,21 @@ colonist is offered the job when **all** of these are true:
 - nobody else is already working it;
 - the staff side is clear, reachable, and not claimed by another colonist;
 - the business **has something to offer** — stock on the shelf or an available service;
-- there is at least one **visiting customer within 25 tiles** — including a
-  [Hospitality guest](customers.md#hospitality-guests) the bridge has already sent your way,
-  though recognizing one takes a little longer than a native customer since there's no arrival
-  moment to key off.
+- there is at least one **visitor within 25 tiles who could still spend something** — awake, not
+  hostile, and with silver left in their purse — including a [Hospitality
+  guest](customers.md#hospitality-guests) the bridge has already sent your way, though recognizing
+  one takes a little longer than a native customer since there's no arrival moment to key off.
+
+Somebody who has spent their last coin, or who is having a nap on your floor, does not hold a
+colonist at a counter that cannot make a sale. The exception is anyone already standing at *this*
+counter: a customer part-way through a sale, or one of your own colonists sent for a haircut,
+counts whatever their purse says — which is what gets somebody posted to serve them.
 
 That last condition is why nobody stands behind an empty store all day. Right-clicking the
 counter and prioritizing it by hand skips the stock and customer checks entirely, so you can post
-a colonist at a counter ahead of a group you're expecting.
+a colonist at a counter ahead of a group you're expecting — though not indefinitely. With nobody
+in sight the shopkeeper gives the post up after about half an in-game hour and goes back to other
+work, whether you sent them by hand or not.
 
 ## What "staffed" means
 
@@ -94,10 +101,18 @@ counter counts itself **staffed** while that is less than a second old and the s
 still alive — a small grace window, so a momentary hitch doesn't read as the shop being
 abandoned.
 
+One shopkeeper serves one person at a time, in the order they walked up; the counter's inspect
+pane names who is at the counter and how many are waiting their turn. Waiting a turn behind
+somebody who is being served costs a customer no patience, so a queue is not a failure you have
+to fix. What it costs you is the people who [walk past rather than join
+it](customers.md#too-busy-to-take-them) — a second counter is what serves two at once.
+
 Neither side can strand the other. A shopkeeper who wanders off simply leaves the counter
 unstaffed; the waiting customer notices, runs down their patience, drops whatever they were
 carrying and [leaves annoyed](customers.md#walkouts). That failure is *visible to you* — a
-message and a reputation hit — which turns a robustness measure into a game mechanic.
+message, and one disappointed caller in tonight's reckoning of the town's name — which turns a
+robustness measure into a game mechanic. It is not final, either: they won't queue at that counter
+again while it is still unattended, but put somebody behind it and they come back.
 
 A business trades only when it is **open, staffed, powered** (if it needs power at all) and has
 something to offer.
@@ -107,21 +122,29 @@ something to offer.
 The *Allow self-service* mod setting (off by default) turns every counter into an honesty box:
 customers buy from an unattended counter instead of walking out.
 
-It is convenient, and it has a price. Every self-service sale costs **0.005 reputation** instead
-of earning 0.01 — so an unstaffed town slowly slides even while the till fills. Nobody remembers
-a shop nobody works.
+It is convenient, and it costs you something — not a sale, but the welcome. At midnight the town
+weighs up everyone who came to a counter that day, and somebody who helped themselves at an
+unwatched one counts half of somebody who was served across it. One attended sale is enough to
+make that customer count in full. So a town run entirely on honesty boxes never earns a good name;
+it settles for a middling one. Nobody remembers a shop nobody works.
 
-Two things limit it:
+Three things limit it:
 
 - Each service decides for itself whether the setting applies. Drink and meal allow it; **a
   haircut never does**, whatever the setting says — an empty chair can't cut anyone's hair.
 - Self-service sales never train Social, because no colonist was involved.
+- It never covers your own people. A colonist you send for a haircut waits for somebody else to
+  stand the chair, whatever the setting says — the honesty box is paid for in reputation, and a
+  colonist leaves none behind to pay with.
 
 ## Closing a business
 
 The **Open for business** toggle on any counter closes it. A closed business:
 
 - is ignored by customers entirely;
+- drops any sale it was in the middle of — the customer leaves and whatever they were holding
+  lands on the floor, unpaid. The town's own closing time spares a sale already being worked; this
+  switch does not, so flip it between customers where you can;
 - never asks a colonist to staff it;
 - contributes **nothing** to town [appeal](economy.md#appeal);
 - still keeps its till, stock settings, markup and ledger.

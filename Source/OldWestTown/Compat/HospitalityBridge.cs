@@ -125,7 +125,8 @@ namespace OldWestTown.Compat
                 // fundedPawns.Add returns false once this guest has already been funded, so this
                 // can only ever fire once per guest -- see fundedPawns' own doc comment for why
                 // that gate has to live here rather than inside GivePurse itself.
-                IncidentWorker_ShopCustomers.GivePurse(pawn, econ.Appeal);
+                IncidentWorker_ShopCustomers.GivePurse(
+                    pawn, econ.PurseFactor * OldWestTownMod.Settings.customerWealth);
             }
 
             // lodgingAllowed: false — Hospitality is already housing this pawn. See

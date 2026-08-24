@@ -22,7 +22,7 @@ jobs.
 | Materials | Wood, metal or stone — 75 units |
 | Max hit points | 180 |
 | Flammability | Burns readily |
-| Inspect tab | **Stock** |
+| Inspect tab | **Stock** — what is out on the shelves, what it would fetch at market, and the slider that sets what this counter asks for it |
 | Research | Frontier commerce |
 
 Each one runs a [business kind](businesses.md), which is what decides how it trades.
@@ -45,6 +45,14 @@ zone or marker to paint.
 If the customer side is blocked, customers fall back to any free tile beside the counter. When
 several queue at once they fan out to free tiles within about 4 of it, keeping to the same room
 indoors so a queue's tail doesn't end up outside the shop.
+
+### A second counter is a second till
+
+Two counters of the same kind in the same room are one shop, not two: they sell the same goods off
+the same floor, and the second adds nothing further to town [appeal](economy.md#appeal). What it
+buys you is speed — a counter serves one customer at a time, so a second till behind the same
+shelves serves a second customer. A second *business* wants its own room, and ideally a different
+trade.
 
 ### The till
 
@@ -96,9 +104,13 @@ willing to wait and pay."*
 | Open-air sales radius | about 10 tiles |
 
 Needs **no stock at all**. Build one, staff it, and a passing customer with money to spare will
-sit for a [haircut](services.md#haircut) — pure time, sold for silver. Because it has no stock to
-consume, it is also the cheapest way to add a *distinct* business kind to the town and push
-appeal up.
+sit for a [haircut](services.md#haircut) — pure time, sold for silver, and they walk away with a
+new style to show for it. Your own colonists can use the chair too: select one, right-click the
+chair and pick **Get a haircut here**. They pay nothing, but somebody still has to be standing
+behind the chair — see [your own colonists](services.md#your-own-colonists).
+
+Because it has no stock to consume, it is also the cheapest way to add a *distinct* business kind
+to the town and push appeal up.
 
 ## Hotel desk
 

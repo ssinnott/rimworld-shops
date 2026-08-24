@@ -5,20 +5,23 @@ summary: Appeal, reputation, pricing and the arrival clock — the four numbers 
 
 Four numbers decide how well your town trades: how much it **appeals** to travellers, what
 **reputation** it has with them, what you **charge**, and how often they **arrive**. The **Town
-ledger** button on any counter shows all of them in one place.
+ledger** button on any counter shows the town's side of that in one place; what you charge is set
+on each business's own **Stock** tab.
 
 ## Appeal
 
-**Appeal** is how much trade the town attracts — roughly 0 to 3+. It is worked out from what you
-have actually built.
+**Appeal** is how much trade the town attracts — 0 for a town with nothing to sell, and about **5**
+for a stocked main street with three trades on it. It is worked out from what you have actually
+built.
 
 ```
        for each open business with something to offer:
-         its kind's appeal, counted in full the first time that kind appears
-         and at 35% for every repeat            →  the kinds score
+         its kind's appeal, counted in full the first time that kind appears,
+         then at 35% of the one before it for every repeat  →  the kinds score
 
-       everything on your shelves, plus the value of any service
-         that sells no goods, counted thirty times over  →  the wealth score
+       everything on your shelves at market value, plus the value of any service
+         that sells no goods, counted thirty times over and discounted for
+         repeats the same way                            →  the wealth score
 
        kinds score  ×  square root of (wealth score / 1000), capped between 0.25 and 3
                     ×  standing, which runs from 0.5 at rock bottom to 1.5 at a spotless
@@ -28,13 +31,19 @@ have actually built.
 
 Four things follow from that, and they are the whole strategic layer:
 
-**Breadth beats depth.** A second business of a kind you already run counts for only 35% of the
-first. One giant general store should not out-earn a street with a store, a saloon and a barber.
+**Breadth beats depth.** A second business of a kind you already run counts for 35% of the first, a
+third for 35% of the second, and so on — so however many general stores you line up, the kind is
+worth at most about **one and a half** of one. A second counter of a kind you already sell, on a
+floor you already trade from, isn't even that: it is a second till, and what it buys you is serving
+two customers at once. (A counter of a *different* kind on that floor is a new trade, and counts in
+full.) One giant general store should not out-earn a street with a store, a saloon and a barber.
 That is the pressure that turns a colony into a town.
 
 **Wealth has diminishing returns.** Because it's a square root, doubling what's on your shelves
 does not double your draw. Getting the first shelf stocked matters enormously; getting the tenth
-matters much less.
+matters much less. Goods are counted at **market value**, and every stack counts once however many
+counters can see it — so putting your prices up never brings you more customers, only more silver
+per sale.
 
 **Reputation is a multiplier, not a bonus.** Standing runs from 0.5 to 1.5, so a well-run town
 draws *three times* the trade of a badly-run one with identical stock.
@@ -43,40 +52,57 @@ draws *three times* the trade of a badly-run one with identical stock.
 and have something to offer — stock on the shelf, or an available service.
 
 > **Why services count for thirty times their price.** A service that sells no goods has no
-> "quantity on the shelf" the way physical stock does; its value is the price of one visit, an
-> order of magnitude below what a stocked shelf is worth. Scaling it up before it joins the same
-> wealth curve is what lets one barber shop clear the customer threshold on its own, the way a
-> modestly stocked general store already can, instead of being drowned out by a scale tuned for
-> goods.
+> "quantity on the shelf" the way stock does; its value is the price of one visit, an order of
+> magnitude below what a stocked shelf is worth. Scaling it up before it joins the same wealth
+> curve is what lets one barber shop clear the customer threshold on its own.
 
 ## Reputation
 
-**Reputation** is a rolling satisfaction score from 0 to 1, starting at **0.5**.
+**Reputation** is the town's service record, from 0 to 1, starting at **0.5**. It is settled once a
+night rather than sale by sale: every person who came to a counter today leaves exactly one
+verdict, however much they bought.
 
-| Event | Change |
+| That customer's day | Their verdict |
 | --- | --- |
-| A staffed sale or service | **+0.01** |
-| A self-service sale | **−0.005** |
-| A customer walks out | **−0.02** |
-| A saloon or gambling-hall disturbance | **−0.05** |
-| A gambling-hall shortfall | **−0.08** |
-| Every day | drifts 5% back toward 0.5 |
+| Somebody stood behind the counter for them | **1.0** |
+| They took goods off an unwatched counter | **0.5** |
+| Nobody served them at all | **0** |
+| They gave up waiting anywhere | halves whatever the rest of it was worth |
 
-A walkout costs twice what a sale earns, so a counter you leave unattended during a busy visit
-loses ground fast. A [disturbance](customers.md#trouble-at-the-saloon-and-the-gambling-hall) costs
-more than double a walkout again — an unpoliced saloon or gambling hall is one of the fastest ways
-to burn through a town's good name. Worse still is a [gambling-hall
-shortfall](#the-till-as-a-bankroll) — the table winning a bet for a customer and then not being
-able to pay it — the single worst reputation hit the mod has. And because reputation decays toward
-neutral every day, a town has to keep earning its name — a burst of good trade a quadrum ago
-doesn't hold the number up.
+At midnight the town averages those verdicts and moves its name toward the average — by at most a
+**fifth** of the gap, and less on a thin day, six callers counting as a full day's evidence. On a
+day when nobody came to a counter at all, it drifts **5%** back toward 0.5 instead.
+
+Two things are charged on top of that average, the same night rather than as they happen:
+
+- A [disturbance](customers.md#trouble-at-the-saloon-and-the-gambling-hall) — a saloon or
+  gambling-hall brawl breaking loose — costs **5%** of the town's name, for each one that day.
+- Selling above your usual markup while a [gold rush](#gold-rush) is booming costs a share of that
+  same 5%, scaled by how hard you gouged that day — a counter charging far over the odds costs the
+  town more than one charging only a little. The gouged customer's own faction takes a matching hit
+  to its standing; see [standing with a faction](#standing-with-a-faction) below.
+
+Worse than either is a [gambling-hall shortfall](#the-till-as-a-bankroll) — the table winning a bet
+for a customer and then not being able to pay it out. That one is charged at once, not banked for
+the night: **−0.08**, the single worst reputation hit the mod has, because reneging on a paid bet is
+a sharper trust break than anything that can wait until midnight to matter.
+
+Two things follow from the nightly model. Volume never enters into it: a customer who opened their
+purse six times is one satisfied customer, not six, so what moves the number is how many *people*
+you looked after, not how much they spent. And no single afternoon settles the question — a busy
+main street earns a strong name over about a week, and a bad day at one counter is one verdict
+among the day's callers. And because reputation decays toward neutral on a day nobody trades at
+all, a town has to keep earning its name — a burst of good trade a quadrum ago doesn't hold the
+number up on its own.
 
 Reputation feeds two things:
 
 - **Appeal**, through the standing multiplier above — so it changes how many customers come.
 - **What everything actually costs.** Reputation shades every price either side of the markup you
-  set: a town with a bad name sells at **15% above** its slider, a well-liked one at **10%
-  below** it. So a good name both brings more customers in and prices a little keener for them.
+  set: a town with a bad name has to let its goods go at **10% below** its slider, a well-liked one
+  gets away with **10% above**. So a good name brings more customers in *and* lets you charge each
+  of them a little more. The **Stock** tab prints what customers actually pay whenever that differs
+  from the slider.
 
 ## Standing with a faction
 
@@ -128,7 +154,9 @@ market value; nothing else changes. No price is ever below **1 silver**.
 A customer judging a shop scores its prices at **1 ÷ your effective markup**, held between 0.1
 and 2.0. So a shop charging market value scores 1.0, one charging double scores about 0.5, one
 charging triple about 0.33. On top of that, a **staffed counter is worth 50% more** than an
-unstaffed one, distance counts against a shop (a counter 40 tiles away is worth half one on the
+unstaffed one — though a queue eats into exactly that bonus and nothing else, so a counter with
+three people already headed for it is worth only about 12% more, and custom spreads itself between
+your tills. Distance counts against a shop (a counter 40 tiles away is worth half one on the
 doorstep), and for a service, how much that particular customer wants it counts too.
 
 The practical upshot: **undercutting a rival shop genuinely pulls customers away from it**, and
@@ -146,8 +174,13 @@ advertising has diminishing returns.
 ### Partial purchases
 
 If a customer can't afford the whole stack they wanted, the order is trimmed to what they can
-pay for rather than sending them away empty-handed over a rounding difference. A service is one
-unit, so it gets no such trimming — a customer either affords the drink or doesn't.
+pay for rather than sending them away empty-handed over a rounding difference. What they pay for
+is what they are actually holding when they reach the counter, not the order they placed at the
+shelf — if one of your haulers takes half the pile while they are walking over, they pay for the
+half they carried. A customer whose purse comes up short remembers it: that item is off their list
+at that counter for the rest of the visit, but they will happily try the next-best thing on the
+same shelf rather than walking out. A service is one unit, so it gets no such trimming — a
+customer either affords the drink or doesn't.
 
 A single shopper also can't strip a shelf: purchases are capped at a quarter of the item's stack
 limit, or one unit for anything that doesn't stack.
@@ -227,19 +260,35 @@ An item is on display if **all** of these hold:
 - its market value is above zero;
 - the business's **Stock** tab allows it.
 
+The town walks its sales floors about once a second, and that walk is what refreshes both the shelf
+list and the money figures beside it — so a stack that has just been sold or burned can sit on the
+pane for a moment longer. A sale, or a change on the Stock tab, re-reads it at once.
+
 ## The arrival clock
 
 How often customers arrive is the town's own doing, not the storyteller's.
 
 The town checks its clock every ten seconds or so. Below appeal **0.5** nothing happens at all.
 Above it, the average gap between customer groups slides from **3.5 days** at the threshold down
-to **0.8 days** for a thriving town, divided by the *Customer volume* setting — so a town
-scraping past the threshold sees a group every few days, and a booming main street sees one most
-days.
+to **0.8 days** at appeal **4.0**, divided by the *Customer volume* setting — so a town scraping
+past the threshold sees a group every few days, and a booming main street sees one most days.
+
+Appeal decides how *many* come as well as how often, and that half keeps climbing past 4.0: the
+size of a group scales straight off appeal, up to a cap. So past 4.0 a better town stops getting
+more frequent trade and starts getting bigger groups.
 
 Arrivals still go out through the storyteller, which won't let events pile on top of each other:
 it holds groups at least 0.6 days apart, so a booming town gets frequent trade, never a flood.
 There is also a small background chance of a group turning up regardless.
+
+### What customers bring
+
+How rich a traveller is, is a different question from how many of them come. Each one sets out with
+**120–450 silver**, multiplied by the same diminishing-returns figure appeal takes off your shelves
+— never by less than 0.9, so a town's first customers can always afford its first shelf — and by
+the *Customer wealth* setting. That reads the goods on offer and nothing else: not the town's
+breadth, not its name, not your markup. Stock a rack of rifles and you don't get more customers,
+you get customers who can afford a rifle.
 
 ## The stagecoach line
 
@@ -317,11 +366,12 @@ ten to one, which is what makes stocking for the rush pay off — but it also me
 "customers avoid pricey shops" pressure that [keeps prices honest](#how-price-wins-customers)
 gets badly outweighed: a shop selling what prospectors want can charge nearly anything and still
 have a line out the door. So there's a second brake, active only during the boom: sell above
-what's normal for *your kind* of business, and every sale at that counter costs you a little
-reputation and standing with that customer's own faction, on top of whatever else the sale
-already did — nothing extra at your kind's own usual markup, the most at your kind's own ceiling.
-A shop that keeps doing it draws a warning message naming it, at most once a day, so it never
-comes as a surprise.
+what's normal for *your kind* of business, and every gouged customer that day costs you a little
+of the town's name and their own faction's standing — nothing extra at your kind's own usual
+markup, the most at your kind's own ceiling. Like every other reputation cost, this is settled
+once at midnight rather than sale by sale — it just adds a new input to that same nightly verdict
+rather than writing reputation on the spot. A shop that keeps doing it draws a warning message
+naming it, at most once a day, so it never comes as a surprise.
 
 The temptation is genuine — gouging a well-stocked shop during a boom earns well in the short
 run, since almost nobody walks away over price while the rush is on. The reputation cost is what
@@ -410,9 +460,16 @@ Turn the whole mechanic off, or dial back how much a rival's own numbers count f
 ## The daily ledger
 
 At local midnight the town closes the books: every business's daily figures reset, the town's
-sales, walkouts and takings for the day reset, and reputation drifts back toward neutral.
-Lifetime takings are kept, per business and for the town.
+customers, walkouts and takings for the day reset, and the day's verdicts are settled into
+reputation — toward the day's service score if anyone came, or 5% back toward neutral if nobody
+did. Lifetime takings are kept, per business and for the town.
 
-The **Town ledger** button, on every counter, shows appeal, reputation, today's sales, walkouts
-and takings, lifetime takings, and each business's revenue and till — the numbers the economy
-runs on, readable in one place.
+The **Town ledger** button, on every counter, shows appeal broken into the three terms that make
+it, which trades the town runs none of at all, what customers are turning up carrying, reputation
+and today's service record as it forms, how many people came and how many gave up, today's and
+lifetime takings, and each business's revenue, till and walkouts. Today's figures count people, not
+receipts: somebody who gave up at three counters is one disappointed customer.
+
+Your own people are not customers. A colonist you send for a service pays nothing, puts nothing in
+the till, and leaves no row in the books — the town's takings and its name are about the strangers
+who came to it.

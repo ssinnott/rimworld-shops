@@ -14,10 +14,11 @@ namespace OldWestTown.Incidents
     /// <summary>
     /// Word gets around: a town with well-stocked businesses draws people who want to spend.
     /// Unlike a vanilla visitor group, the size and purse of this group are a direct function of
-    /// what the player has actually built — see <see cref="TownEconomy.Appeal"/>. Which faction
-    /// actually shows up is separately biased by that faction's own standing with the town —
-    /// see <see cref="ChooseWeightedFaction"/> — so treating one faction well pulls them back
-    /// more often without touching anyone else's arrivals.
+    /// what the player has actually built — the size from <see cref="TownEconomy.Appeal"/>, the
+    /// purse from <see cref="TownEconomy.PurseFactor"/>. Which faction actually shows up is
+    /// separately biased by that faction's own standing with the town — see
+    /// <see cref="ChooseWeightedFaction"/> — so treating one faction well pulls them back more
+    /// often without touching anyone else's arrivals.
     /// </summary>
     public class IncidentWorker_ShopCustomers : IncidentWorker_NeutralGroup
     {
@@ -76,7 +77,8 @@ namespace OldWestTown.Incidents
             if (pawns.Count == 0) return false;
 
             IntVec3 townCenter = FindTownCentre(econ, map);
-            float appeal = econ.Appeal;
+            // How many came is appeal; what they carry is what is actually on the shelves.
+            float purseScale = econ.PurseFactor * OldWestTownMod.Settings.customerWealth;
 
             // Re-checked here rather than threaded in from TryAttractCustomers, resting on the
             // same synchronous-firing assumption ChooseWeightedFaction's own comment above
@@ -92,7 +94,7 @@ namespace OldWestTown.Incidents
 
             for (int i = 0; i < pawns.Count; i++)
             {
-                GivePurse(pawns[i], appeal, pawns[i] == vip ? VipPurseMultiplier : (tier?.purseMultiplier ?? 1f));
+                GivePurse(pawns[i], purseScale, pawns[i] == vip ? VipPurseMultiplier : (tier?.purseMultiplier ?? 1f));
                 // A band, not a flat top-up: a Meal service wants genuinely hungry customers to
                 // sell to, not a group who all arrive fully fed.
                 if (pawns[i].needs?.food != null)
@@ -201,16 +203,18 @@ namespace OldWestTown.Incidents
             return map.Center;
         }
 
-        /// <summary>
-        /// Gives a customer money to spend. Richer towns attract richer custom, so investment
-        /// in the town compounds rather than just adding more footfall.
+        /// <summary>Gives a customer money to spend. How rich they are tracks what is actually ON the
+        /// shelves at market value — not the town's draw, and not the player's markup. Scaling this
+        /// off appeal meant a good name and a third trade fattened purses, and meant every
+        /// functioning town sat pinned at the top of the range, where further investment bought
+        /// nothing.
         ///
         /// <paramref name="purseMultiplier"/> defaults to 1, preserving today's behaviour
         /// exactly for both existing call sites (HospitalityBridge's guest top-up and this
         /// file's own organic arrivals); a stagecoach group threads through a tier's own purse
         /// multiplier, or the flat VIP multiplier for the one pawn who rolled it.
         /// </summary>
-        internal static void GivePurse(Pawn pawn, float appeal, float purseMultiplier = 1f)
+        internal static void GivePurse(Pawn pawn, float scale, float purseMultiplier = 1f)
         {
             if (pawn?.inventory == null) return;
 
@@ -219,10 +223,8 @@ namespace OldWestTown.Incidents
             // a rush. It stacks with purseMultiplier rather than replacing it, so a scheduled
             // coach group or a VIP arriving mid-boom carries both bonuses at once — a boom really
             // does mean richer customers, tier or no tier.
-            float scale = Mathf.Lerp(0.7f, 2.2f, Mathf.Clamp01(appeal / 4f))
-                          * OldWestTownMod.Settings.customerWealth
-                          * purseMultiplier
-                          * GoldRushUtility.PurseMultiplier(pawn.Map);
+            scale *= purseMultiplier * GoldRushUtility.PurseMultiplier(pawn.Map);
+
             int amount = Mathf.Max(20, Mathf.RoundToInt(BasePurse.RandomInRange * scale));
 
             // Top up rather than replace — generated pawns sometimes already carry silver.

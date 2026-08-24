@@ -93,6 +93,7 @@ The [stagecoach line](economy.md#the-stagecoach-line)'s route ladder, `OldWestTo
 | `OWT_ServeDrink` | `JobDriver_UseService` | getting a drink at TargetB. |
 | `OWT_ServeMeal` | `JobDriver_UseService` | getting a meal at TargetB. |
 | `OWT_ServeHaircut` | `JobDriver_UseService` | getting a haircut at TargetB. |
+| `OWT_GetHaircut` | `JobDriver_ColonistUseService` | getting a haircut at TargetB. *(your own colonists)* |
 | `OWT_ServeLodging` | `JobDriver_UseService` | checking in at TargetB. |
 | `OWT_ServeWager` | `JobDriver_UseService` | playing a hand at TargetB. |
 | `OWT_SleepInRentedBed` | `JobDriver_SleepInRentedBed` | sleeping at TargetA. |
@@ -137,16 +138,23 @@ where it lives in C# it is a `const` in the named file.
 | Name | Value | Meaning |
 | --- | --- | --- |
 | `MinAppealForCustomers` | 0.5 | Below this, no customer group sets out |
+| `ServiceOfferWeight` | 30 | Multiplier on a stock-free service's `basePrice` before it joins the town's offer total. Discounted by `RepeatFrontFactor` like the shop-front itself, so a street of barber chairs doesn't out-draw a stocked one |
+| `SurveyInterval` | 60 ticks | How often the town takes stock of itself — and so how often every shop's shelves are re-read |
+| `ArrivalCheckInterval` | 600 ticks | How often the arrival clock is consulted; deliberately a multiple of `SurveyInterval`, so an arrival roll always reads a survey taken the same tick |
+| `RepeatFrontFactor` | 0.35 | The n-th shop-front of a kind the town already has is worth 0.35^n of the first, converging at 1.54×. A second counter of the same kind on the same sales floor is a second till, and is worth nothing extra |
+| Wealth normalization | `sqrt(offerValue / 1000)`, clamped 0.25–3.0 | Diminishing returns on what the town has out, priced at market value and counted once per stack — the markup slider does not move it |
+| `MinPurseFactor` | 0.9 | Floor on the purse multiplier, above the goods term's own floor: a town's first customers must afford its first shelf |
+| Standing multiplier | `lerp(0.5, 1.5, reputation)` | A good name triples your draw over a bad one |
 | `ServiceValueWeight` | 30 | Multiplier on stock-free service value before it joins the wealth curve |
-| `ArrivalCheckInterval` | 600 ticks | How often the arrival clock is consulted |
 | Repeat-kind weight | 0.35 | Value of a second business of a kind already present |
-| Wealth normalization | `sqrt(x / 1000)`, clamped 0.25–3.0 | Diminishing returns on stock value |
 | Reputation-appeal multiplier | `lerp(0.5, 1.5, reputation)` | A good name triples your draw over a bad one |
 | MTB band | 3.5 → 0.8 days | Mean time between groups, from appeal 0.5 to 4.0 |
-| Sale reputation | +0.01 | Staffed sale or service |
-| Self-service reputation | −0.005 | Unattended sale |
-| Walkout reputation | −0.02 | Customer gives up |
-| Daily decay | 5% toward 0.5 | Applied at local midnight |
+| Verdict: served | 1.0 | Somebody stood behind the counter for them |
+| Verdict: honesty box | 0.5 | Goods off an unwatched shelf |
+| Verdict: gave up | ×0.5 | Halves whatever else that customer's day was worth |
+| `MaxDayWeight` | 0.2 | Most of the gap one full day of trade can close, at midnight |
+| `FullEvidencePatrons` | 6 | Customers in a day that count as a full day's evidence; a thinner day moves the number proportionally less |
+| `IdleDrift` | 5% toward 0.5 | Applied at local midnight, but only on a day nobody came to a counter. A trading day moves the number toward that day's verdict instead |
 
 ### Faction standing — `Shops/TownEconomy.cs`, `Incidents/IncidentWorker_ShopCustomers.cs`
 
@@ -164,16 +172,19 @@ where it lives in C# it is a `const` in the named file.
 | Name | Value | Meaning |
 | --- | --- | --- |
 | `MinPrice` | 1 | Nothing is ever free |
-| Price formula | `MarketValue × markup × reputationFactor` | The only price basis in the mod |
-| `ReputationPriceFactor` | `lerp(1.15, 0.9, reputation)` | Price tolerance, in `CompBusiness` |
-| `ValueAppeal` | `clamp(1 / effectiveMarkup, 0.1, 2.0)`, plus `CompFalseFront.CurbAppealBonus` | How attractive this shop's prices are |
+| Price formula | `MarketValue × markup × reputationFactor` | Goods, and any service poured off a shelf |
+| Service price formula | `basePrice × markup × reputationFactor` | Only for a service with nothing on the shelf behind it (a haircut) |
+| `MaxAffordable` | `PriceFor`, walked down until the purse covers it | The one answer to "how much of this can they pay for". Both the order the customer picks and the bill the counter trims come from it |
+| `ReputationPriceFactor` | `lerp(0.9, 1.1, reputation)` | What the town's name does to every price, in `CompBusiness`. A town nobody thinks well of has to discount; a well-liked one charges more. Neutral is exactly 1.0 |
+| `ValueAppeal` | `clamp(1 / effectiveMarkup, 0.1, 2.0)` | How attractive this shop's prices are |
 
 ### Business — `Shops/CompBusiness.cs`
 
 | Name | Value | Meaning |
 | --- | --- | --- |
 | `StaffPresenceGraceTicks` | 60 | How stale a staffing ping may be and still count |
-| `StockCacheTicks` | 60 | How long a scanned display list is reused |
+| Shelf re-read | Every 60 ticks | Done by the town's survey, plus at once after a sale or a filter edit. Nothing on a drawing path ever triggers one |
+| `BusyMessageIntervalTicks` | 15000 | How often a counter may say out loud that it is turning trade away |
 | Queue fan-out radius | 3.9 | How far a queueing customer will stand from the customer cell |
 
 ### Curb appeal — `Shops/CompFalseFront.cs`
@@ -188,13 +199,17 @@ where it lives in C# it is a `const` in the named file.
 | Name | Value | Where |
 | --- | --- | --- |
 | `BrowseTicks` | 240 | `JobDriver_BuyFromShop` |
-| `ServeTicks` (goods) | 180 | `JobDriver_BuyFromShop` |
+| `GoodsServeTicks` | 180 | `JobDriver_BuyFromShop` |
+| `MaxQueueWaitTicks` | 6000 | `JobGiver_BuyFromShop` — the longest wait anybody will join a line for. Depth is therefore `ceil(6000 / serveTicks)`: 34 at a shelf, 3 at the barber's chair |
+| `StaffDrawBonus` | 0.5 | " — how much more a staffed counter draws, thinned by the crowd already headed there |
 | `CustomerScanRadius` | 25 | `WorkGiver_ManShop` |
+| `CustomerScanInterval` | 30 ticks | `JobDriver_ManShop` — how often a shopkeeper re-checks whether anybody is still shopping |
+| `IdlePatienceTicks` | 1250 | " — how long they hold the post with nobody in sight |
 | `ShoppingRadius` | 30 | `LordToil_Shop` |
 | Wander radius | 12 | `Duties_Customer.xml` |
 | `VisitDurationTicks` | 40000 | `IncidentWorker_ShopCustomers` |
 | `BasePurse` | 120–450 | " |
-| Purse scale | `lerp(0.7, 2.2, appeal/4)` | " |
+| Purse scale | `max(0.9, GoodsFactor) × customerWealth` | " — reads the goods on offer and nothing else: not appeal, not the town's name, not the markup |
 | Arrival food need | 40%–90% | " |
 | Points | `clamp(appeal × 60 × volume, 40, 900)` | " |
 | Max units per purchase | `stackLimit / 4`, or 1 if unstackable | `ShopStock` |
@@ -306,7 +321,7 @@ where it lives in C# it is a `const` in the named file.
 
 | Field | Default | Range | Effect |
 | --- | --- | --- | --- |
-| `allowSelfService` | false | on/off | Customers buy from unattended counters, at −0.005 reputation per sale |
+| `allowSelfService` | false | on/off | Customers buy from unattended counters. Goods off an unwatched shelf count as half a proper welcome in the night's reputation verdict |
 | `customerVolume` | 1.0 | 0.25–3.0 | Scales both the arrival clock and group size |
 | `customerWealth` | 1.0 | 0.25–3.0 | Scales the silver each customer carries |
 | `hospitalityBridgeEnabled` | true | on/off | Master switch for the [Hospitality bridge](customers.md#hospitality-guests). Only shown, and only consulted, while `HospitalityInterop.Present` is true |
@@ -325,11 +340,12 @@ otherwise.
 | Group | Keys |
 | --- | --- |
 | Mod settings | `OWT_ModTitle`, `OWT_SettingSelfService`, `OWT_SettingSelfServiceDesc`, `OWT_SettingVolume`, `OWT_SettingWealth` |
-| Inspect pane | `OWT_StatusOpen`, `OWT_StatusClosed`, `OWT_Unattended`, `OWT_StockLine`, `OWT_ServicesLine`, `OWT_RoomsLine`, `OWT_MarkupLine`, `OWT_TillLine`, `OWT_TownLine` |
-| Gizmos | `OWT_CmdOpen`, `OWT_CmdOpenDesc`, `OWT_CmdMarkup`, `OWT_CmdMarkupDesc`, `OWT_MarkupSlider`, `OWT_CmdCollect`, `OWT_CmdCollectDesc`, `OWT_CmdLedger`, `OWT_CmdLedgerDesc` |
-| Town ledger | `OWT_LedgerTitle`, `OWT_LedgerAppealLine`, `OWT_LedgerReputationLine`, `OWT_LedgerTodayLine`, `OWT_LedgerLifetimeLine`, `OWT_LedgerShopLine`, `OWT_LedgerRegularLine`, `OWT_LedgerColdLine` |
-| Stock tab | `OWT_TabStock`, `OWT_TabStockHeader`, `OWT_ResetStock` |
-| Events | `OWT_LetterCustomersLabel`, `OWT_LetterCustomersText`, `OWT_CustomersLeaving`, `OWT_CustomersScared`, `OWT_CustomerWalkedOut`, `OWT_CustomerWalkedOutService`, `OWT_GuestEvicted` |
+| Inspect pane | `OWT_StatusOpen`, `OWT_StatusClosed`, `OWT_Unattended`, `OWT_AtCounterLine`, `OWT_QueueLine`, `OWT_StockLine`, `OWT_ServicesLine`, `OWT_RoomsLine`, `OWT_MarkupLine`, `OWT_TillLine`, `OWT_TownLine` |
+| Gizmos | `OWT_CmdOpen`, `OWT_CmdOpenDesc`, `OWT_CmdCollect`, `OWT_CmdCollectDesc`, `OWT_CmdLedger`, `OWT_CmdLedgerDesc` |
+| Town ledger | `OWT_LedgerTitle`, `OWT_LedgerAppealLine`, `OWT_LedgerAppealBusinessesLine`, `OWT_LedgerAppealGoodsLine`, `OWT_LedgerAppealStandingLine`, `OWT_LedgerAppealMissingLine`, `OWT_LedgerPurseLine`, `OWT_LedgerReputationLine`, `OWT_LedgerTodayLine`, `OWT_LedgerServiceLine`, `OWT_LedgerQuietLine`, `OWT_LedgerLifetimeLine`, `OWT_LedgerShopLine`, `OWT_LedgerShopWalkouts`, `OWT_LedgerRegularLine`, `OWT_LedgerColdLine` |
+| Stock tab | `OWT_TabStock`, `OWT_TabStockShelves`, `OWT_TabStockEmpty`, `OWT_TabStockShelvesTip`, `OWT_MarkupSlider`, `OWT_MarkupSliderTip`, `OWT_TabStockReputation`, `OWT_TabStockServices`, `OWT_TabStockServiceFixed`, `OWT_TabStockServiceStock`, `OWT_ResetStock` |
+| Sending a colonist | `OWT_OrderService`, `OWT_OrderServiceDisabled`, `OWT_ReasonClosed`, `OWT_ReasonRecently`, `OWT_ReasonReserved`, `OWT_ReasonBusy`, `OWT_ReasonUnreachable` |
+| Events | `OWT_LetterCustomersLabel`, `OWT_LetterCustomersText`, `OWT_CustomersLeaving`, `OWT_CustomersScared`, `OWT_CustomerWalkedOut`, `OWT_CustomerWalkedOutService`, `OWT_ColonistGaveUp`, `OWT_ColonistNotReached`, `OWT_CounterBusy`, `OWT_GuestEvicted` |
 | Alerts | `OWT_AlertUnattended`, `OWT_AlertUnattendedDesc` |
 | Rentable bed inspect panel and gizmo | `OWT_BedVacant`, `OWT_BedOccupiedBy`, `OWT_CmdEvictGuest`, `OWT_CmdEvictGuestDesc` |
 | False front | `OWT_FalseFrontAdvertising`, `OWT_FalseFrontIdle` |
@@ -355,6 +371,9 @@ What survives a save/load, and where it lives.
 | Stock filter, open flag, markup, house edge | `CompBusiness` | Per business; house edge is inert for every kind but a gambling hall |
 | Per-business ledger, including shortfalls, payouts, robberies and silver stolen | `CompBusiness` | Daily figures rolled over at midnight |
 | Town reputation, daily + lifetime figures | `TownEconomy` | One per map |
+| Today's patron table | `TownEconomy` | Who came today and what befell them, as plain ints. Cleared at midnight, so it is never more than a day of them |
+| Per-customer records | `LordJob_ShopVisit` | Saves and dies with the visiting group |
+| The line at a counter | *(not saved)* | Rebuilds within a tick of loading, from the patrons' own jobs |
 | Per-faction standing | `TownEconomy` | Sparse `Dictionary<Faction, float>`; a save with no `standings` node reads every faction as `Reputation`, exactly like the untracked case |
 | Per-customer records, including a checked-in guest's rented bed | `LordJob_ShopVisit` | Saves and dies with the visiting group |
 | Stickup crew state (faction, town center, duration, arrival tick) | `LordJob_Stickup` | Only ever created going forward — no old save can have one running |
