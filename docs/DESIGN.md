@@ -1,4 +1,7 @@
-# Old West Town — design notes
+---
+title: Design notes
+summary: The reasoning behind the mod's shape — the trade-offs considered, and why each one landed where it did.
+---
 
 ## The goal
 
@@ -63,22 +66,11 @@ while ex-customers who can never buy anything drift past inside the scan radius.
 a common base, `JobDriver_PatronizeBusiness` — see "Services" below. Everything added later (a
 hotel clerk, a bank teller, a gambling dealer) should use the same shape.
 
-## Component map
+## Where the parts live
 
-| Piece | File | Job |
-| --- | --- | --- |
-| `ShopKindDef` | `Shops/ShopKindDef.cs` | Data-driven business type: default stock, price band, appeal, patience, and which services it offers. Adding a business kind is XML, not code. |
-| `CompBusiness` | `Shops/CompBusiness.cs` | Makes a building a business — goods, services, or both. Owns the till, filter, markup, ledger, staff flag, the line at the counter, and the staff/customer cell pair. |
-| `ServiceDef` / `ServiceWorker` | `Shops/ServiceDef.cs`, `Shops/ServiceWorker.cs` | A thing a business sells that isn't a shelf item — a drink, a meal, a haircut. The embedded worker supplies the type-specific behaviour: what it can act on, how much a customer wants it, what effect it applies once paid for. |
-| `ShopStock` | `Shops/ShopStock.cs` | What's on the shelves, what a given customer would buy, which service a shop can currently perform, and whether a service has anything to work with, asked without a roll. |
-| `ShopPricing` | `Shops/ShopPricing.cs` | The only place a price is decided — for goods or a service — so the inspect pane, AI and transaction can't disagree. `MaxAffordable` settles a purse against `PriceFor` itself, so the order the AI sizes is always one the counter can charge for. |
-| `ShopTransaction` | `Shops/ShopTransaction.cs` | The single point where silver, goods and service effects move. Re-validates everything. |
-| `TownEconomy` | `Shops/TownEconomy.cs` | `MapComponent`. Shop register, daily ledger, reputation, and `Appeal` — surveys the town every 60 ticks. |
-| `JobGiver_BuyFromShop`, `JobDriver_PatronizeBusiness` (`JobDriver_BuyFromShop`, `JobDriver_UseService`) | `AI/` | Customer side: picks a business — goods or a service, whichever scores best — and runs the shared walk/wait/patience shape. |
-| `WorkGiver_/JobDriver_ManShop` | `AI/` | Colonist side. Kind-agnostic: it staffs any `CompBusiness` with something to offer. |
-| `JobDriver_ColonistUseService` | `AI/` | The colony's own side of a counter. Waits on the same staffing flag a stranger does, receives the same `ServiceWorker` effect, and touches nothing else — no price, no till, no ledger, no lord. |
-| `LordJob_ShopVisit`, `LordToil_Shop`, `LordToil_CloseUp` | `Lords/` | The visiting group, the per-customer records, and what closing time does to a customer part-way through a purchase. |
-| `IncidentWorker_ShopCustomers` | `Incidents/` | Turns town appeal into arrivals. |
+The file-by-file component map moved to the wiki, so it sits next to the reference tables and
+stays under CI's eye: **[Code map](architecture.md)**. That page says what each source file
+owns; the sections below are the reasoning behind the shape it describes.
 
 ### Why the lord graph is flat
 
@@ -507,204 +499,10 @@ alive by the tab that last drew it.
 
 ## Roadmap
 
-Staged so each step is playable on its own.
-
-**1. Vertical slice — done.** Counter, stock, pricing, till, shopkeeping work type, customer
-arrival and purchase, appeal and reputation.
-
-**2. Services (no goods change hands) — done.** The interesting half of a town sells *time*,
-not items. `CompShopCounter` is generalised into `CompBusiness` with a pluggable
-`ServiceWorker`; the customer job becomes walk to the service point (skipped for a service
-that consumes nothing), wait to be served, pay, receive a hediff or a thought instead of an
-item — see "Services" above. Shipped: `_Ingest`, parameterized as both **Drink** (a Liquor item
-off the saloon's own shelves, feeding Joy) and **Meal** (any meal, feeding Food) — the
-interesting hybrid case, since a service that still moves stock has to answer to both the
-goods loop and the service loop without double-counting; and `_Haircut` (a new **barber shop**
-business, pure time, a mood thought plus a visible hair change). Bath and Doctor are left as
-XML-only additions once their buildings exist — same seam, no new lesson to teach.
-
-**3. Lodging.** A `CompRentableBed`: customers with no bed of their own pay per night and stay
-across the day boundary. Requires extending the visit duration past one day and giving the
-lord a "settled in town" state.
-
-**4. Town roles.** Sheriff, barkeep, banker as assignable posts with their own work givers and
-gizmos. A sheriff suppresses the drunk/brawl events a saloon starts generating.
-
-**5. Reputation with depth.** Split the single reputation float into per-faction standing, so
-specific factions become regulars. Feeds arrival frequency by faction.
-
-**6. Old west content pass.** Boardwalk terrain, false-front facades, hitching posts, batwing
-doors, faro tables, a gallows. Mostly XML; the point is that step 1–5 already make a town
-*function*, and this makes it *look* like one.
-
-**7. Hospitality bridge (optional).** A soft-dependency assembly that gives Hospitality guests
-the `OWT_Shop` duty, so a single group can both lodge and shop.
-
-### Beyond the staged plan — thematic expansions
-
-Larger directions that build on the finished stages rather than slotting between them. Each is
-listed with what it reuses, roughly cheapest first.
-
-**Gambling hall.** A faro/poker table as the first business where the "transaction" is a wager
-rather than a purchase: patrons buy in, and a player-set house edge (the markup slider's twin)
-determines the expected take. Set it greedy and patrons lose fast, get angry, and reputation
-drops; set it fair and they stay all evening buying drinks. Colonist dealers use the
-Shopkeeping work type, with Social skill reducing cheating accusations. Mostly a step-2
-`ServiceWorker` plus a payout roll — it reuses the wait-to-be-served toil and the till
-wholesale, and adds the first income stream that isn't stock-driven.
-
-**Outlaws and the law.** A rich town becomes a target: the more silver sitting in tills
-(already tracked per counter), the higher the chance of a *stickup* — a small raider band that
-heads for counters instead of colonists, empties tills, and leaves unless resisted.
-Counterplay is the step-4 sheriff, plus a wanted board (bounty quests on recurring outlaw
-leaders) and a jail that converts captured outlaws into silver or reputation. Turns "collect
-the takings" from a chore into a real risk-management decision. New incident and lord job on
-the existing shapes.
-
-**Stagecoach line.** A coach depot that puts the town on a scheduled route: guaranteed
-high-budget customers every few days, outgoing mail contracts (deliver parcels for silver),
-and the occasional VIP passenger — a quest-giver or a shopper with a 5× budget. Appeal raises
-the route's tier, from irregular freight wagons up to a daily express, giving the compounding
-economy a visible milestone ladder on top of the shortening MTB clock.
-
-**Gold rush.** A map-wide *strike nearby* event that floods the town with prospectors for a
-quadrum: arrivals triple and budgets rise, but they only want a specific demand basket (tools,
-meals, booze, medicine) and they bring brawls and claim disputes. Price-gouging during the
-boom decays reputation faster; when the vein dries up, arrivals crash below baseline until
-reputation recovers. Exercises the markup slider and the breadth-over-depth appeal math
-dramatically, and gives long saves a narrative arc.
-
-**Rival towns.** One or two NPC towns as world-map neighbours with their own abstract appeal
-score. Customer groups *choose* between towns — your share of regional traffic is your appeal
-relative to theirs, so the arrival clock has an opponent. Rivals undercut prices, poach your
-best shopkeeper with a job-offer event, or send saboteurs; out-compete one long enough and it
-becomes a ghost town you can salvage. The most ambitious of the five (it adds world-map
-state), but the one that most directly deepens the pricing-and-appeal loop — it gives
-`TownEconomy`'s single appeal float an external yardstick and makes pricing genuinely
-competitive rather than solitaire.
+Moved to the wiki: **[Roadmap](roadmap.md)** — the staged plan, and the larger thematic
+expansions that build on top of it.
 
 ## Known risks
 
-- **None of this has run in RimWorld.** It compiles against the 1.6 reference assemblies and
-  passes `tools/validate_defs.py`, but job drivers, lord graphs and duty think trees are
-  exactly the code that static checking can't validate. First-play bugs are expected.
-- The Stock tab's two new rows are laid out against widgets whose internals cannot be read off the
-  reference assemblies: `Widgets.HorizontalSlider` decides for itself where inside its rect the
-  label and the rail go, and `Widgets.LabelFit` decides how to shrink an over-long money line. Both
-  get rects with room to spare, the font is set back before the filter tree in case the slider does
-  not restore it, and no measurement is taken from either — so being wrong costs a cosmetic surprise
-  rather than a broken tab. Neither has been seen in a live game.
-- `CustomerCell` mirrors the interaction cell through the counter. For an unusually shaped or
-  awkwardly placed counter this can pick a cell the player didn't intend; there's a fallback to
-  any standable neighbour, and queueing customers fan out to free cells around it
-  (`CustomerCellFor`), but a dedicated "customer side" marker would still be better.
-- Customers can't reserve items against colonists (RimWorld reservations are per-faction).
-  Goods a colonist has already reserved are excluded from the shelves, which removes most of
-  the churn, but a hauler can still start a job on goods (or a service's consumable) a customer
-  is mid-walk toward — and two customers can race for the same stack. The loser's job fails
-  gracefully: it ends on the goto/carry fail conditions, before the counter. A customer whose
-  purse comes up short *at* the counter — the markup slider moved while they walked, or their
-  visit spanned the midnight reputation roll — remembers "this kind of goods, at this counter,
-  this visit", so it costs them one trip instead of repeating. It is not a walkout and costs no
-  reputation. The other refusals need no memory: goods pulled from the filter or forbidden simply
-  leave the shelf scan until the player puts them back.
-- Staffing a counter lifts every refusal standing against it at once, so a colonist who takes the
-  post and then leaves for a full patience window can cost a second walkout from the same
-  customer. It is bounded rather than prevented: the customer is only ever dispatched to a counter
-  somebody is standing at *that tick*, the wait toil resets on any staffed tick after that, so the
-  colonist has to be continuously absent for a whole window, and each further walkout needs a
-  further staffing episode the player caused. Capping it would mean scribed per-(customer,
-  counter) state, which is a worse trade than an outcome the player can see themselves producing.
-  At the town level a second walkout from the same customer on the same day now costs nothing
-  extra, because the ledger records the disappointed customer rather than the number of times they
-  were disappointed. The per-shop count and the walkout message still fire, so the player still
-  sees it happen.
-- A customer who has spent their last silver, or who is asleep, no longer holds a colonist at a
-  counter — but nothing sends them home either. They keep the shopping duty and wander the town
-  centre until the visit clock runs out. Letting a spent-out customer leave early is a lord-graph
-  change, and belongs in its own commit.
-- The town's survey (`TownEconomy.TakeStock`) re-reads every sales floor and prices every
-  stack. It runs once every 60 ticks, and it is the only thing that takes that snapshot, so
-  appeal and the shelves can lag the world by up to a second of game time but never disagree
-  with each other. While the game is paused nothing surveys at all, so a filter edit refreshes
-  its own shop's shelves directly rather than waiting for a tick that will not come. It
-  everything that wants appeal reads the two numbers it recorded. This is a new steady cost:
-  before, a shop nobody was looking at or shopping at never scanned its room. Fine for a main
-  street; worth revisiting at a hundred counters.
-- Appeal fell about 18% and customer purses were moved onto the goods term, so a stocked
-  three-kind street draws groups about 18% smaller carrying about 31% less each. Both changes are
-  deliberate — the old goods term counted the player's own markup, and the old purse scale read
-  2.2 for every town above appeal 4, which is every functioning town — but neither has been
-  played. The knobs are `BasePurse` and `MinPurseFactor`, not the appeal terms.
-- Two vanilla calls the services path leans on — `FoodUtility.IngestFromInventoryNow` for
-  Drink/Meal, and the `PawnStyleItemChooser.RandomHairFor` + `SetAllGraphicsDirty` pair for a
-  Haircut's visible hair change — are exercised by this mod for the first time. Every signature
-  involved is confirmed against the real 1.6 reference assembly, but the exact in-game outcome
-  (whether a customer visibly gets `AlcoholHigh`, whether a hair change reliably repaints a
-  transient visitor) hasn't been confirmed in a live game.
-- Closing lets every customer whose transaction is already running outlive the group's "heading
-  home" line while they are served out — now one customer per counter rather than a whole queue at
-  one counter, and up to a haircut's 2200 ticks — so the lord and its per-customer records live that
-  much longer than the message suggests. Each one is bounded by its own serve and by the counter
-  staying staffed (or, with the honesty box on, by the 180 ticks a self-served sale takes, which is
-  the one case where a counter can still spare several at once), but it has not been watched in a
-  live game.
-- A colonist waiting for a service reserves the counter, so the building cannot be deconstructed,
-  repaired or uninstalled while it lasts. Bounded by one patience window plus one serve, and the
-  player can cancel the job — but it is a lock the counter did not have before.
-- `ServiceWorker_Thought.Desirability` now returns zero for a pawn already carrying the thought.
-  That is the point of the thought's duration and it makes the order menu and the stranger's scoring
-  read one answer, but it also changes shipped behaviour: a visitor who was in the chair earlier
-  will no longer be scored for a second haircut.
-- The `NotePatron` faction guard is unreachable from anything this mod ships. It is there so the
-  rule survives the next author, at the cost of a branch no test can exercise.
-- `ThingComp.CompFloatMenuOptions` is confirmed present in the 1.6 reference assemblies, confirmed
-  reachable through `FloatMenuOptionProvider_FromThing`, and confirmed to be the hook vanilla's own
-  building comps use — but that a right-click on a 2x1 impassable counter reaches it has not been
-  run in a live game, like everything else here.
-- The give-up message has no rate limit, unlike a walkout's. A player who re-orders a haircut into
-  an unstaffed shop gets a message each time, which is right: they caused each one.
-- Only the barber forms a line anybody will ever see. Goods (180-tick serve) and saloon service
-  (150) allow depths of 34 and 41, which no group this mod produces reaches, so the visible surface
-  of "one counter, one customer" in shipped content is one building. That is correct — a bartender
-  pouring five drinks in 750 ticks is not implausible — but the mechanic is under-exercised until a
-  business with a long serve ships.
-- The wait a customer estimates before joining charges *their own* serve time for everyone ahead of
-  them. Exact for every shipped kind, since each counter runs one trade, but a counter mixing a
-  150-tick drink with a 2200-tick haircut would misjudge it badly in whichever direction the mix
-  ran. There is no shipped instance, so it is named rather than defended against.
-- The line is not saved, so a load rebuilds it in pawn-tick order: the order among patrons who are
-  merely *waiting* can change across a save. Invisible but real. The one case that would cost
-  progress — somebody mid-serve losing the chair — is prevented by the rule that a running
-  transaction goes to the front, which is also the least-exercised branch in the mechanic.
-- That same front-insert fires in normal play with the honesty box on: a shopkeeper arriving at a
-  counter where three patrons are serving themselves puts all three at the head in arbitrary order,
-  one keeps serving and two restart. Bounded at 180 ticks, in a setting that is off by default — but
-  it is a fairness rule that quietly stops being first-come in that one configuration.
-- The dispatch cap applies to an unworked counter as well as a worked one, because it counts who is
-  headed there and not who is being served. The wait side of an unattended counter is unchanged —
-  everyone standing at it, head and queue alike, burns patience and walks out at the window — but at
-  the barber at most three now pile on rather than a whole group, so the alert counts three at a
-  time. It staggers the damage rather than reducing it: once those three walk out they refuse the
-  shop, the two who balked see an empty line, join, and walk out in their turn, so the day's ledger
-  still records five. At the 180- and 150-tick counters the cap is far above
-  any real group and the pile-on is exactly as it was. This is the one path that still costs
-  reputation, and it is deliberately the one path the line does not soften.
-- A colonist ordered to a counter can still end up two deep, because places go by arrival and the
-  order menu checks at order time: a stranger dispatched after them can arrive first. They then
-  spend up to 6600 ticks and give up with the message. Bounded, player-caused, and the message names
-  the fix.
-- With the honesty box on, a self-serving patron leaves the line but still counts as headed for that
-  counter, so they slightly discourage others from choosing it. At a 180-tick serve that is a
-  twentieth of the queue budget; not worth a second scan to fix.
-- Counting who is headed for a counter walks every spawned pawn, once per shop per customer think
-  tick and once per right-click on the order menu. It rolls no dice, so the rule that looking at a
-  shop must not change the game still holds, but it is a new steady cost, linear in counters — the
-  same shape as the town survey's known cost, and the same place to revisit it.
-- The staffing draw now decays with the crowd (1.50, 1.25, 1.17), so custom spreads between shops
-  and between tills more than it did. Which shop gets a given sale in a multi-shop town has changed,
-  and that has not been measured.
-- A customer turned away with nowhere else worth going gets no job and wanders, re-deciding on every
-  think tick. Cheap, and the message is throttled to a quarter day, but in a one-business town it
-  means visitors doing nothing visible — the same shape as the spent-out customer already in this
-  list.
+Moved to the wiki, where they sit beside the code they apply to:
+**[Code map → Known risks](architecture.md#known-risks)**.

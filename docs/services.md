@@ -1,0 +1,122 @@
+---
+title: Services
+summary: Drink, meal and haircut — businesses that sell time rather than goods.
+---
+
+A **service** is something a business sells that isn't an item off a shelf. It is priced, queued
+for and paid for through exactly the same steps as a sale — there just isn't anything to carry
+home at the end of it, or, for a haircut, nothing physical involved at all.
+
+Each [business kind](businesses.md) lists the services it offers. A general store offers none; a
+saloon offers two; a barber shop is nothing but one.
+
+## The three that ship
+
+### Drink
+
+A round at the [saloon bar](buildings.md#saloon-bar).
+
+| | |
+| --- | --- |
+| Serve time | a couple of seconds at normal speed |
+| Uses up stock | yes — one bottle of liquor off the bar's own shelves |
+| Price | the drink's market value × the shop's markup |
+| Self-service | allowed, if the setting is on |
+| Effect | the drink is really drunk — mood, the usual alcohol effects, the usual hangover |
+
+Patrons want a drink more when their recreation is low, but never so little that a contented one
+won't order.
+
+### Meal
+
+A hot meal at the bar.
+
+| | |
+| --- | --- |
+| Serve time | a couple of seconds at normal speed |
+| Uses up stock | yes — any cooked meal on the shelves. Ingredients don't count |
+| Price | the meal's market value × the shop's markup |
+| Self-service | allowed, if the setting is on |
+| Effect | eaten for real — nutrition, and whatever the meal itself does for mood |
+
+Drink and meal are the same mechanic pointed at a different appetite: one sells against
+recreation, the other against hunger.
+
+Customers arrive somewhere between 40% and 90% fed — a spread rather than a full stomach,
+specifically so a meal service has genuinely hungry customers to sell to.
+
+### Haircut
+
+The [barber shop](businesses.md#barber-shop)'s whole trade.
+
+| | |
+| --- | --- |
+| Serve time | **about 35 seconds at normal speed** — much longer than pouring a drink |
+| Uses up stock | **no** — nothing but time and chair space |
+| Price | a flat **16 silver**, then the shop's markup and the town's reputation |
+| Self-service | **never**, whatever the setting says — an empty chair can't cut anyone's hair |
+| Effect | a **+5 mood** thought for 1.5 days, **and a visibly different hairstyle** |
+
+The hair change is deliberate: a business that changes nothing visible is a weaker proof that
+anything happened. The new style is picked the same way the game picks one when a colonist
+restyles, so it suits the customer's age and gender.
+
+## Services that consume stock
+
+A drink is the interesting case: a service that still moves goods off the shelf, and so has to
+count as both without being counted twice.
+
+- **Availability.** A service that uses up nothing is available whenever the business offers it.
+  One that uses up stock also needs something matching on display right now — filtered by the
+  same Stock tab you already curate for goods.
+- **Pricing.** A service that uses up stock is priced from whatever it actually consumes. Only a
+  service with nothing behind it has a price of its own.
+- **Appeal.** A saloon's beer already counts once, as stock on the shelf. Only services with
+  nothing physical behind them add to [appeal](economy.md#appeal) separately, so a bottle isn't
+  counted twice for being sellable two ways.
+- **The trip.** A customer buying a drink fetches the bottle first and carries it to the bar; a
+  customer wanting a haircut goes straight to waiting.
+
+## How a service visit runs
+
+A service visit and a goods purchase are the same four steps:
+
+1. **Fetch** — walk to the item and pick it up. *(Skipped entirely for a haircut.)*
+2. **Walk** to the customer side of the counter.
+3. **Wait to be served.** Patience burns down while the business is unstaffed; being attended
+   restores it. Serving has to be **continuous** — a shopkeeper who drifts off halfway through
+   starts the service over rather than resuming it.
+4. **Pay**, and the effect lands.
+
+A counter serves **one customer at a time**. Anyone else who has walked up waits their turn, and
+waiting your turn costs nothing — patience only burns at a counter nobody is working. Customers
+weigh the queue before they commit: rather than join a wait longer than about a sixth of a day,
+they take their money somewhere else. At a barber's 2200-tick haircut that means three deep; at a
+saloon bar it is a line no group will ever reach.
+
+If patience runs out first, the customer [walks out](customers.md#walkouts): the shop takes a
+reputation hit and anything they were carrying is dropped on the floor unpaid. They will not queue
+at that counter again *while it is still unattended* — put somebody behind it and they come back.
+
+## Your own colonists
+
+A haircut is not only for strangers. Select a colonist, right-click a barber chair, and choose
+**Get a haircut here**: somebody else stands the chair, your colonist sits in it, and they walk
+away with the same mood boost a customer gets — and, like a customer, whatever new style the
+barber felt like.
+
+They pay nothing. Silver moving from the colony into the colony's own till would be a wash, and
+counting a colonist as a customer would let you build the town's good name with your own people
+instead of by looking after travellers. So a colonist leaves no mark on the books at all: no sale,
+no takings, nothing in the town's service record. What it costs is the only thing it should — two
+colonists' time, one of them standing behind the counter, because there is no serving yourself.
+
+The order is refused, with the reason, when the business is closed, when the pawn already has a
+fresh haircut, when somebody else is already waiting there, or when two customers are on their way.
+Drinks and meals are deliberately not offered this way: those are items on a shelf, and vanilla's
+own recreation and food jobs already send colonists to them under your drug policy.
+
+---
+
+Adding a service of your own is mostly a matter of editing files rather than writing code — see
+[adding content](extending.md#add-a-service).
