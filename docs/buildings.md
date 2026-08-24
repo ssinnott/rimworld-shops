@@ -197,6 +197,34 @@ Rotating the office places the **post** — the one tile the sheriff stands watc
 pane names the current sheriff and whether they're on duty right now (*Sheriff: so-and-so (on
 duty)* / *(off duty)*), or *No sheriff assigned* if the post is vacant.
 
+## Coach depot
+
+*"A ticket window, a loading dock, and a schedule chalked on a board that's mostly guesswork.
+Doesn't sell anything itself, but it puts the town on a route: a guarantee that a big-spending
+group won't be too many days apart, on a schedule that tightens as the town's own name grows.
+Nobody needs to work here for the guarantee to hold — the coach keeps its own time."*
+
+| | |
+| --- | --- |
+| Size | 3 × 2, rotatable |
+| Materials | Wood, metal or stone — 140 units |
+| Work to build | 2000 |
+| Beauty | 6 |
+| Research | Stagecoach line (needs Frontier commerce first) |
+
+Not a business — it sells nothing, and doesn't add to the town's appeal the way a stocked
+counter does. Building one simply switches on the [stagecoach
+line](economy.md#the-stagecoach-line): a guarantee, tied to the town's own appeal, that a
+big-spending group won't be too many days apart, whatever the ordinary arrival clock happens to
+be doing on its own.
+
+Unlike the sheriff's office, nobody staffs a coach depot and there's nothing to assign — no post,
+no gizmo, nothing to click. Select it and its inspect pane shows the whole route at a glance: the
+current tier, roughly how long until the next guaranteed coach, and what appeal the next tier up
+needs. See [the stagecoach line](economy.md#the-stagecoach-line) for the tiers themselves, and
+[scheduled coach arrivals](customers.md#scheduled-coach-arrivals) for what one of these arrivals
+looks like in play.
+
 ## Main street
 
 *Boardwalk terrain, and four pieces of street furniture — hitching post, gallows, batwing doors,

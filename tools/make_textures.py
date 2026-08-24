@@ -98,6 +98,12 @@ BUILDINGS = {
     "MainStreet/BatwingDoor": dict(
         cells=(1, 1), band="middle", body=(140, 96, 56), edge=(70, 46, 28),
         surface=(190, 150, 96), accent=None),
+
+    # Stagecoach line. Saddle-leather brown with a dusty road-tan surface band and an
+    # oxide-red accent -- distinct from Commerce's oiled wood and Roles' gunmetal.
+    "Stagecoach/CoachDepot": dict(
+        cells=(3, 2), body=(96, 68, 42), edge=(52, 36, 22),
+        surface=(168, 150, 120), accent=(140, 50, 36)),
 }
 
 # name -> dict of the two colours a terrain tile needs. Unlike BUILDINGS, a terrain texture is

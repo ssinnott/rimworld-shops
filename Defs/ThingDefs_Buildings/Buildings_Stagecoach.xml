@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+
+  <!-- Built from BuildingBase directly, not OWT_CounterBase — a depot needs no interaction
+       cell, no stock filter, and no ITab_ShopStock any more than the sheriff's office does. It
+       goes further than that building, though: nothing ever walks up to interact with it at
+       all, so there's no hasInteractionCell/interactionCellOffset here either. -->
+  <ThingDef ParentName="BuildingBase">
+    <defName>OWT_CoachDepot</defName>
+    <label>coach depot</label>
+    <description>A ticket window, a loading dock, and a schedule chalked on a board that's mostly guesswork. Doesn't sell anything itself, but it puts the town on a route: a guarantee that a big-spending group won't be too many days apart, on a schedule that tightens as the town's own name grows. Nobody needs to work here for the guarantee to hold — the coach keeps its own time.</description>
+    <thingClass>Building</thingClass>
+    <category>Building</category>
+    <altitudeLayer>Building</altitudeLayer>
+    <passability>Impassable</passability>
+    <blockWind>false</blockWind>
+    <fillPercent>0.5</fillPercent>
+    <pathCost>50</pathCost>
+    <castEdgeShadows>false</castEdgeShadows>
+    <rotatable>true</rotatable>
+    <size>(3,2)</size>
+    <designationCategory>OWT_Commerce</designationCategory>
+    <stuffCategories>
+      <li>Woody</li>
+      <li>Metallic</li>
+      <li>Stony</li>
+    </stuffCategories>
+    <costStuffCount>140</costStuffCount>
+    <statBases>
+      <MaxHitPoints>220</MaxHitPoints>
+      <WorkToBuild>2000</WorkToBuild>
+      <Flammability>1.0</Flammability>
+      <Beauty>6</Beauty>
+    </statBases>
+    <building>
+      <ai_chillDestination>false</ai_chillDestination>
+    </building>
+    <researchPrerequisites>
+      <li>OWT_StagecoachLine</li>
+    </researchPrerequisites>
+    <constructEffect>ConstructWood</constructEffect>
+    <graphicData>
+      <texPath>Things/Building/Stagecoach/CoachDepot</texPath>
+      <graphicClass>Graphic_Multi</graphicClass>
+      <drawSize>(3,2)</drawSize>
+      <damageData>
+        <rect>(0,0.05,3,1.9)</rect>
+      </damageData>
+    </graphicData>
+    <uiIconPath>Things/Building/Stagecoach/CoachDepot_north</uiIconPath>
+    <comps>
+      <li Class="OldWestTown.Stagecoach.CompProperties_CoachDepot" />
+    </comps>
+  </ThingDef>
+
+</Defs>

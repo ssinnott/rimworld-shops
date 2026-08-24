@@ -113,5 +113,22 @@
   <OWT_RobberyLine>Stolen: {0} ({1}× robbed)</OWT_RobberyLine>
   <OWT_SettingStickupsEnabled>Outlaw stickups</OWT_SettingStickupsEnabled>
   <OWT_SettingStickupsEnabledDesc>Rich, uncollected tills draw armed robbers who empty them and leave unless resisted. Turn this off to remove the risk entirely.</OWT_SettingStickupsEnabledDesc>
+  <!-- Stagecoach line: scheduled arrivals, VIP passengers, route-tier announcements -->
+  <OWT_LetterCoachLabel>The coach is in</OWT_LetterCoachLabel>
+  <OWT_LetterCoachText>The stagecoach kept to its route: {0} customers from {1}, right on schedule for a {2} line.</OWT_LetterCoachText>
+  <OWT_LetterCoachVIPLabel>A VIP passenger</OWT_LetterCoachVIPLabel>
+  <OWT_LetterCoachVIPText>{0} stepped off the coach from {1} carrying considerably more silver than the rest of the party.</OWT_LetterCoachVIPText>
+  <OWT_RouteTierUpLabel>The route is upgraded</OWT_RouteTierUpLabel>
+  <OWT_RouteTierUpText>The town's name has earned it a better route: {0} is running through here now.</OWT_RouteTierUpText>
+  <OWT_RouteTierDownMessage>The route has slipped back to {0} — the town's name isn't what it was.</OWT_RouteTierDownMessage>
+  <OWT_RouteTierLostMessage>The stagecoach line has stopped running here — appeal has fallen too far to hold a route at all.</OWT_RouteTierLostMessage>
+
+  <!-- Coach depot inspect panel -->
+  <OWT_DepotTierLine>Route: {0}</OWT_DepotTierLine>
+  <OWT_DepotNextArrivalLine>Next guaranteed coach due within {0}</OWT_DepotNextArrivalLine>
+  <OWT_DepotNextTierLine>Next tier: {0} at {1} appeal (currently {2})</OWT_DepotNextTierLine>
+  <OWT_DepotMaxTierLine>Running at the top of the line.</OWT_DepotMaxTierLine>
+  <OWT_DepotNoRoute>No scheduled route yet — needs {0} appeal to start one.</OWT_DepotNoRoute>
+  <OWT_DepotNoTiers>No route tiers are defined.</OWT_DepotNoTiers>
 
 </LanguageData>

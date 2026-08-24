@@ -117,6 +117,26 @@ change itself, and update the [wiki page](contributing.md#the-workflow) it affec
   declined elsewhere in this project. A new `stickupsEnabled` setting (default on) turns the
   whole mechanic off. See [outlaws and the law](outlaws.md) and
   [the code map's known risks](architecture.md#known-risks) for what's tuned but untested.
+- **The stagecoach line** — a new **coach depot** (`OWT_CoachDepot`, gated behind its own
+  research, `OWT_StagecoachLine`) that switches on a guarantee, tied to town appeal through a new
+  three-rung route ladder (`CoachTierDef`: irregular freight wagons → weekly coach → daily
+  express), that no gap between customer arrivals — organic or scheduled — ever outruns the
+  active tier's own ceiling. Built as one extra OR'd condition inside the existing
+  `TryAttractCustomers`/`OWT_ShopCustomers` firing path rather than a second `IncidentDef` with
+  its own cooldown, so the shipped `minRefireDays` stays a hard cap on the *combined* rate no
+  matter which condition actually triggers a given group — see [the design
+  notes](DESIGN.md#stagecoach-line-a-ceiling-not-a-second-clock) for the worked math. A scheduled
+  group's ordinary customers carry a tier-scaled purse boost, and from the weekly-coach tier up
+  may include one **VIP passenger** at a flat 5× purse, named in their own letter. Crossing a
+  tier fires a letter on promotion and a quieter message on demotion or loss, read live off
+  `TownEconomy` and a new `CoachTierUtility` — nothing about a route is cached or ratcheted, so
+  it can regress the same way appeal can. Two of the roadmap's three named pieces for this
+  expansion are cut: **outgoing mail contracts**, which have no pull-based transaction shape
+  anywhere in this mod to extend, and the **quest-giver framing of the VIP passenger**, kept only
+  as the roadmap's own cheaper "or" — a shopper with a bigger purse — rather than taking on
+  RimWorld's quest system in a mod that has never run in a live game. See [the stagecoach
+  line](economy.md#the-stagecoach-line), [scheduled coach
+  arrivals](customers.md#scheduled-coach-arrivals) and [the coach depot](buildings.md#coach-depot).
 
 ### Changed
 
@@ -222,6 +242,16 @@ change itself, and update the [wiki page](contributing.md#the-workflow) it affec
   shorted" situation seed capital exists to avoid, but only for a table placed before this update.
   Given the mod has no players yet, accepted as a documented, pre-release-only risk rather than
   patched with bespoke migration code — see [known risks](architecture.md#known-risks).
+- **The stagecoach line adds exactly two new persisted fields, both on `TownEconomy`, each with a
+  safe default on any save from before this feature.** `lastArrivalTick` reads as `0` when
+  absent, so `TicksSinceLastArrival` reads as the entire elapsed game time on first load — the
+  same "safe, a little eager, never stranded" shape `LordJob_ShopVisit.groupArrivedTick` already
+  ships with, and the very next arrival, organic or guaranteed, re-anchors it immediately.
+  `lastAnnouncedTier` (`Scribe_Defs.Look`) reads as `null` when absent, indistinguishable from
+  "no depot has ever changed tier," so a reload can never spuriously re-announce one. Nothing
+  else needs migrating: depot existence and the active route tier are both computed live off
+  `CoachTierUtility` on every read, never registered or cached. Safe to drop into a save in
+  progress, with or without a coach depot already built.
 
 ---
 

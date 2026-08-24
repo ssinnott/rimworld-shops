@@ -42,6 +42,7 @@ All under `Source/OldWestTown/`, namespace `OldWestTown`.
 | `FalseFrontRegistry.cs` | `FalseFrontRegistry` | `MapComponent`. Live roster of spawned `CompFalseFront`s, registered the same way `TownEconomy` registers shops — so curb-appeal scoring never has to scan every Thing on the map. |
 | `TownEconomy.cs` | `TownEconomy` | `MapComponent`: business register, daily ledger, reputation, [appeal](economy.md#appeal), arrival clock, and — per faction — a sparse [standing](economy.md#standing-with-a-faction) dictionary that biases which faction's customers arrive next. `RecordShortfall` is the worst single-event reputation and standing hit the mod has — a gambling hall unable to pay out a win. |
 | `StickupWatch.cs` | `StickupWatch` | `MapComponent`: sums every registered business's `TillSilver`, open or closed, into the [stickup](outlaws.md) clock — an MTB roll that shortens as uncollected silver climbs, halved in frequency by an on-duty sheriff, firing `OWT_Stickup` through the storyteller the same way `TownEconomy` fires its own arrival incident. Read-only against `TownEconomy`; carries no persisted state of its own. |
+| `TownEconomy.cs` | `TownEconomy` | `MapComponent`: business register, daily ledger, reputation, [appeal](economy.md#appeal), arrival clock, and — per faction — a sparse [standing](economy.md#standing-with-a-faction) dictionary that biases which faction's customers arrive next. `RecordShortfall` is the worst single-event reputation and standing hit the mod has — a gambling hall unable to pay out a win. Also owns the [stagecoach line](economy.md#the-stagecoach-line)'s guarantee clock — `RouteTier`, `TicksSinceLastArrival`, `GuaranteedArrivalDue`, `NotifyArrival` — an OR folded into the existing MTB roll below, not a second, independent clock. |
 
 ### `AI/` — the pawn loops
 
@@ -76,6 +77,14 @@ All under `Source/OldWestTown/`, namespace `OldWestTown`.
 | `HospitalityInterop.cs` | `HospitalityInterop` | Detects a loaded Hospitality install and recognizes its guests, entirely by reflection — no reference, hard or optional, to Hospitality's assembly. `Present` is a guessed assembly name; `IsHospitalityGuest` is two structural signals (Lord/LordJob assembly, or any ThingComp's assembly) OR'd together. Also this mod's first `[DebugAction]`, for dumping detection state against a real Hospitality install. |
 | `HospitalityBridge.cs` | `HospitalityBridge` | `MapComponent`. The active half: every 250 ticks, offers one shopping job to an idle Hospitality guest via `Pawn_JobTracker.TryTakeOrderedJob` — never a duty, never an interrupt. Reuses `JobGiver_BuyFromShop.PickShoppingJob` and `IncidentWorker_ShopCustomers.GivePurse` unmodified. |
 
+### `Stagecoach/` — the coach depot and route tiers
+
+| File | Type | Job |
+| --- | --- | --- |
+| `CoachTierDef.cs` | `CoachTierDef` | Data-driven rung of the [route ladder](economy.md#the-stagecoach-line): the appeal it activates at, its arrival ceiling, purse multiplier and VIP chance. Adding a tier is XML, not code, the same "kind is a stanza" idiom `ShopKindDef` and `ServiceDef` already use. |
+| `CoachTierUtility.cs` | `CoachTierUtility` | Stateless reads off the map, nothing cached or registered: `HasDepot` (a `ListerThings` scan, mirroring `TroubleUtility.AnySheriffOnDuty`'s own "ask, don't track" shape), `CurrentTier`/`NextTier` (which rung is active and which is next), `CeilingTicks` (a tier's arrival ceiling in ticks, at the player's own Customer volume setting). |
+| `CompCoachDepot.cs` | `CompProperties_CoachDepot`, `CompCoachDepot` | The [coach depot](buildings.md#coach-depot)'s only behaviour: an inspect string reading the town's current tier, next tier and countdown live off `TownEconomy` and `CoachTierUtility`. A passive marker like `CompRolePost` and `CompFalseFront` — never staffed, never targeted by a job, nothing persisted on the comp itself. |
+
 ### `Lords/`, `Incidents/`, `Alerts/`, `UI/`
 
 | File | Type | Job |
@@ -87,6 +96,7 @@ All under `Source/OldWestTown/`, namespace `OldWestTown`.
 | `Incidents/IncidentWorker_ShopCustomers.cs` | `IncidentWorker_ShopCustomers` | Turns town appeal into [arrivals](customers.md#arrival), purses and group size, and — per faction standing — biases [which faction](customers.md#which-faction-turns-up) actually shows up. |
 | `Incidents/IncidentWorker_Stickup.cs` | `IncidentWorker_Stickup` | Subclasses `IncidentWorker_RaidEnemy` rather than hand-rolling a raid: `base.TryExecuteWorker` (untouched) resolves the faction, generates pawns and gear, and sends the letter. Five overrides turn that into a [stickup](outlaws.md) — `ResolveRaidPoints` scales a small, capped band off silver at risk rather than colony wealth; `ResolveRaidStrategy`/`ResolveRaidArriveMode` force `OWT_StickupStrategy` and a walk-in arrival; `GetLetterLabel`/`GetLetterText` supply the arrival letter's own copy. |
 | `Incidents/RaidStrategyWorker_Stickup.cs` | `RaidStrategyWorker_Stickup` | The one hook a raid strategy has to supply: `MakeLordJob` builds a `LordJob_Stickup`, reading `TroubleUtility.AnySheriffOnDuty` once, at raid creation, to fix the raid's duration for its whole lifetime. `CanUseWith` returns false — a second, independent guard (alongside `IncidentWorker_Stickup` never consulting it for its own firing) against an unrelated ordinary raid ever picking this non-combat strategy. |
+| `Incidents/IncidentWorker_ShopCustomers.cs` | `IncidentWorker_ShopCustomers` | Turns town appeal into [arrivals](customers.md#arrival), purses and group size, and — per faction standing — biases [which faction](customers.md#which-faction-turns-up) actually shows up. When `TownEconomy.GuaranteedArrivalDue` is what triggered the firing, also applies the active route tier's purse multiplier and rolls a [VIP passenger](customers.md#scheduled-coach-arrivals) — the same firing, the same `LordJob_ShopVisit`, no second pawn loop. |
 | `Alerts/Alert_CustomersWaiting.cs` | `Alert_CustomersWaiting` | Raised while customers burn patience at an unattended business. |
 | `Alerts/Alert_RowdyPatrons.cs` | `Alert_RowdyPatrons` | Raised while a patron is "getting loud" and still calmable — the sheriff's real window before a disturbance fires unattended. Mirrors `Alert_CustomersWaiting`'s shape. |
 | `Alerts/Alert_StickupRisk.cs` | `Alert_StickupRisk` | Raised once a map's uncollected till total crosses a threshold below `StickupWatch.MinSilverAtRisk` itself — the [risk](outlaws.md#how-the-risk-builds) is visible climbing before the clock behind it is even live. |
@@ -363,3 +373,28 @@ anything changes hands.
   `pointsFactorCurve`, authored as `<points><li>(x, y)</li>...</points>`) is well-established
   modding convention, not confirmed against a Core Defs example this sandbox can check — same
   disclosed-but-unverifiable category as `OWT_BatwingDoor`'s `ParentName="Door"` assumption above.
+- **Every stagecoach-line number is a first-pass, untested guess** — the three tiers' appeal
+  thresholds (0.5/1.5/3.5), arrival ceilings (8/4/2 days), purse multipliers (×1.25/×1.6/×2.0)
+  and VIP chances (0%/8%/20%), the flat ×5 VIP purse multiplier, and the depot's own footprint,
+  cost and research numbers (3×2, 140 stuff, 2000 work, 800 research) — sized by eye against the
+  sheriff's office and the faro table, in the same spirit as this file's other untested
+  constants. The weekly-coach tier's own entry is the single largest engineered uplift anywhere
+  in this feature (see [the stagecoach line](economy.md#the-stagecoach-line)) and the first
+  number worth re-measuring after a playtest.
+- **The stagecoach guarantee's own sanity check models `Rand.MTBEventOccurs` as an exact
+  memoryless process** — an approximation of its real behaviour, not a proof, inherited from the
+  arrival clock's own pre-existing use of it above rather than a new risk this feature
+  introduces. The qualitative shape (bounded, peaks at a tier's own entry, tapers toward the
+  ceiling) should hold regardless of the exact percentages; the percentages themselves are worth
+  confirming by logging real inter-arrival gaps in play.
+- **`IncidentWorker_ShopCustomers.TryExecuteWorker` re-derives `GuaranteedArrivalDue` and
+  `RouteTier` fresh rather than threading a flag in from `TownEconomy.TryAttractCustomers`** —
+  the same assumption `ChooseWeightedFaction`'s own comment above already documents and depends
+  on for `ResolveParmsPoints`, that `Storyteller.TryFire` invokes this worker synchronously with
+  nothing else mutating `TownEconomy` state in between. Not a new risk, just one more property
+  read leaning on it.
+- **`Find.LetterStack.ReceiveLetter` and `Scribe_Defs.Look` are both confirmed to exist and
+  match this feature's call shapes via `refdump`, but this is the first place in the codebase
+  either is actually used.** Worth a first-play check that a route promotion letter genuinely
+  renders, and that reloading a save genuinely doesn't re-announce a tier the player has already
+  seen.

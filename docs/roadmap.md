@@ -4,7 +4,8 @@ summary: What is built, what is next, and the larger directions that build on to
 ---
 
 The plan is staged so each step is playable on its own. All seven stages are shipped, and so are
-the first two of the thematic expansions below — the gambling hall, and outlaws and the law.
+the first three of the thematic expansions below — the gambling hall, outlaws and the law, and
+the stagecoach line.
 
 For the reasoning behind the shipped stages, see the [design notes](DESIGN.md).
 
@@ -122,11 +123,25 @@ and RimWorld's own quest system is a large, thinly documented surface not worth 
 it would add), and a **bespoke jail** (vanilla's own prisoner mechanics already convert a captured
 outlaw into silver, reputation, or a recruit — there was nothing left for a second system to do).
 
-**Stagecoach line.** A coach depot that puts the town on a scheduled route: guaranteed
-high-budget customers every few days, outgoing mail contracts (deliver parcels for silver),
-and the occasional VIP passenger — a quest-giver or a shopper with a 5× budget. Appeal raises the
-route's tier, from irregular freight wagons up to a daily express, giving the compounding economy
-a visible ladder of milestones on top of the quietly shortening arrival clock.
+**Stagecoach line — done.** A [coach depot](buildings.md#coach-depot) puts the town on a
+scheduled route: a guarantee, layered onto the existing arrival clock as a ceiling rather than a
+second roll, that a big-spending group won't be more than a few days apart. Appeal raises the
+route through three tiers — irregular freight wagons, a weekly coach, then a daily express —
+each with its own arrival ceiling, purse boost, and chance of a VIP passenger carrying five times
+an ordinary purse, giving the compounding economy a visible milestone ladder on top of what used
+to be a quietly shortening, invisible clock; the depot's own inspect pane always names the
+current tier and what the next one needs. Of the two other ideas this entry once named, **mail
+contracts are cut outright** — every transaction this mod already has is a stranger walking in
+and paying at the counter, and a contract that pays out later for goods committed up front has no
+pawn on either side of it for [the one architectural
+rule](DESIGN.md#the-one-decision-everything-else-follows-from) to even apply to. **The
+quest-giver framing of the VIP passenger is cut too**, keeping only the cheaper alternative this
+entry's own original wording already offered — "a shopper with a 5× budget" — since that delivers
+the payoff for zero new subsystems, where a real quest would mean taking on a large, effectively
+unverifiable API surface in a mod that has never run in a live game. See [the stagecoach
+line](economy.md#the-stagecoach-line) for how it plays, and [the design
+notes](DESIGN.md#stagecoach-line-a-ceiling-not-a-second-clock) for the reasoning and the worked
+math behind the ceiling.
 
 **Gold rush.** A map-wide *strike nearby* event that floods the town with prospectors for a
 quadrum: arrivals triple and budgets rise, but they only want a specific demand basket (tools,

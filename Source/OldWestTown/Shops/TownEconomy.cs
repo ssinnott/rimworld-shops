@@ -3,6 +3,7 @@ using System.Linq;
 using RimWorld;
 using UnityEngine;
 using Verse;
+using OldWestTown.Stagecoach;
 
 namespace OldWestTown.Shops
 {
@@ -67,6 +68,16 @@ namespace OldWestTown.Shops
         private List<Faction> standingFactions = new List<Faction>();
         private List<float> standingValues = new List<float>();
         private Dictionary<Faction, float> standings = new Dictionary<Faction, float>();
+
+        /// <summary>
+        /// Tick of the last successful customer arrival, organic or guaranteed — the clock the
+        /// stagecoach line's ceiling counts against. See <see cref="TicksSinceLastArrival"/>.
+        /// </summary>
+        private int lastArrivalTick;
+
+        /// <summary>The tier <see cref="CheckRouteTierChange"/> last announced, so a reload
+        /// can't re-announce a tier the player has already been told about.</summary>
+        private CoachTierDef lastAnnouncedTier;
 
         public TownEconomy(Map map) : base(map) { }
 
@@ -232,16 +243,98 @@ namespace OldWestTown.Shops
         }
 
         /// <summary>
+        /// This town's current rung on the stagecoach route ladder, or null if there's no coach
+        /// depot on the map, or appeal hasn't reached even the lowest tier. Recomputed from
+        /// current <see cref="Appeal"/> on every read, exactly like Appeal itself is recomputed
+        /// from current stock — not cached, and never ratcheting, so a town whose reputation
+        /// slides can watch its own tier demote, a legible consequence with a name, on top of
+        /// the arrival clock's own quiet slowdown.
+        /// </summary>
+        public CoachTierDef RouteTier => CoachTierUtility.CurrentTier(map, Appeal);
+
+        /// <summary>
+        /// Ticks since the last successful customer arrival of any kind, organic or guaranteed.
+        /// A save from before this field existed reads it as the entire elapsed game time, which
+        /// is the same "safe, a little eager, never stranded" shape LordJob_ShopVisit's own
+        /// groupArrivedTick already ships with — the very next arrival re-anchors the clock.
+        /// </summary>
+        public int TicksSinceLastArrival => Find.TickManager.TicksGame - lastArrivalTick;
+
+        /// <summary>
+        /// True once the active tier's own ceiling has elapsed with no arrival of any kind. This
+        /// is the OR <see cref="TryAttractCustomers"/> adds to its existing MTB roll below — it
+        /// can only ever add a firing attempt where the roll would otherwise stay quiet past the
+        /// ceiling, never suppress or duplicate one, and either path fires the identical
+        /// OWT_ShopCustomers incident, so the incident's own minRefireDays stays a hard cap on
+        /// the combined rate regardless of which condition actually triggered a given firing.
+        /// </summary>
+        public bool GuaranteedArrivalDue
+        {
+            get
+            {
+                CoachTierDef tier = RouteTier;
+                return tier != null && TicksSinceLastArrival >= CoachTierUtility.CeilingTicks(tier);
+            }
+        }
+
+        /// <summary>Called for every successful customer arrival, organic or guaranteed, so the
+        /// guarantee clock reflects reality no matter which condition actually fired it.</summary>
+        public void NotifyArrival() => lastArrivalTick = Find.TickManager.TicksGame;
+
+        /// <summary>
+        /// Announces a change in <see cref="RouteTier"/> the moment <see cref="TryAttractCustomers"/>
+        /// notices one: a promotion gets a letter, a demotion or an outright loss of the route
+        /// gets a quieter message. Checked ahead of the MinAppealForCustomers early-out below so
+        /// a route lost outright — appeal falling under even the lowest tier — is still
+        /// announced rather than silently dropped.
+        /// </summary>
+        private void CheckRouteTierChange()
+        {
+            CoachTierDef current = RouteTier;
+            if (current == lastAnnouncedTier) return;
+
+            bool promoted = current != null
+                && (lastAnnouncedTier == null || current.minAppeal > lastAnnouncedTier.minAppeal);
+
+            if (promoted)
+            {
+                Find.LetterStack.ReceiveLetter(
+                    "OWT_RouteTierUpLabel".Translate(),
+                    "OWT_RouteTierUpText".Translate(current.LabelCap),
+                    LetterDefOf.PositiveEvent);
+            }
+            else if (current != null)
+            {
+                Messages.Message(
+                    "OWT_RouteTierDownMessage".Translate(current.LabelCap),
+                    MessageTypeDefOf.NeutralEvent);
+            }
+            else
+            {
+                Messages.Message("OWT_RouteTierLostMessage".Translate(), MessageTypeDefOf.NeutralEvent);
+            }
+
+            lastAnnouncedTier = current;
+        }
+
+        /// <summary>
         /// Word of a good town spreads: appeal directly drives how often customer groups set
         /// out, rather than leaving frequency to the storyteller's flat random roll. Firing
         /// goes through the storyteller so the incident's own minRefireDays still applies —
         /// a booming town gets frequent groups, never a flood of them.
+        ///
+        /// A coach depot layers a guarantee on top, not a second clock: once the active route
+        /// tier's own ceiling has elapsed with no arrival at all, GuaranteedArrivalDue forces an
+        /// attempt through the exact same OR below, so the ceiling can only ever fire the
+        /// identical incident the MTB roll already fires — never a second, independent one with
+        /// its own cooldown. See docs/DESIGN.md for the reasoning and the worked-out numbers.
         /// </summary>
         private void TryAttractCustomers()
         {
             if (Find.TickManager.TicksGame % ArrivalCheckInterval != 0) return;
 
             float appeal = Appeal;
+            CheckRouteTierChange();
             if (appeal < MinAppealForCustomers) return;
 
             // A town scraping past the threshold sees a group every few days; a booming main
@@ -250,7 +343,7 @@ namespace OldWestTown.Shops
             float mtbDays = Mathf.Lerp(3.5f, 0.8f,
                 Mathf.Clamp01((appeal - MinAppealForCustomers) / 3.5f));
             mtbDays /= Mathf.Max(0.25f, OldWestTownMod.Settings.customerVolume);
-            if (!Rand.MTBEventOccurs(mtbDays, 60000f, ArrivalCheckInterval)) return;
+            if (!Rand.MTBEventOccurs(mtbDays, 60000f, ArrivalCheckInterval) && !GuaranteedArrivalDue) return;
 
             IncidentParms parms = StorytellerUtility.DefaultParmsNow(
                 OWTDefOf.OWT_ShopCustomers.category, map);
@@ -293,6 +386,12 @@ namespace OldWestTown.Shops
             // until it individually earns something different — no version check needed.
             Scribe_Collections.Look(ref standings, "standings", LookMode.Reference, LookMode.Value,
                 ref standingFactions, ref standingValues);
+            // Absent on any save from before the stagecoach line existed: lastArrivalTick reads
+            // as 0 (see TicksSinceLastArrival), and lastAnnouncedTier reads as null, which is
+            // indistinguishable from "no depot has ever changed tier" — so an old save can never
+            // spuriously re-announce a tier on its first load with this feature.
+            Scribe_Values.Look(ref lastArrivalTick, "lastArrivalTick");
+            Scribe_Defs.Look(ref lastAnnouncedTier, "lastAnnouncedTier");
 
             if (Scribe.mode == LoadSaveMode.PostLoadInit)
             {
