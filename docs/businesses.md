@@ -18,7 +18,7 @@ writing any. See [adding content](extending.md#add-a-business-kind).
 | **Default stock** | Which categories and items are switched on in a newly built counter's Stock tab. You can change any of it. |
 | **Default markup** | The price a fresh counter starts at, as a percentage of market value. |
 | **Markup range** | How far the price slider will move in either direction. |
-| **Appeal** | How much one open, stocked business of this kind adds to town [appeal](economy.md#appeal). |
+| **Appeal** | How much one open business of this kind adds to town [appeal](economy.md#appeal), once it has something to offer — stock on the shelf or a service it can perform. A second of the same kind counts for much less. |
 | **What its customers are called** | "Customers" at a store, "patrons" at a saloon. Cosmetic. |
 | **Patience** | How long a customer waits at an unattended counter before [walking out](customers.md#walkouts). |
 | **Services** | The [services](services.md) it offers alongside its stock, if any. |
@@ -59,8 +59,10 @@ only 35% of the first — a street with a store, a saloon and a barber beats thr
 | Default stock | Drugs (which is where liquor lives), cooked meals |
 
 The highest-earning kind and the least forgiving. Its wider markup range (up to 400%) means a
-well-run saloon can charge what a general store cannot, but its short patience makes an
-unstaffed bar bleed reputation faster than any other business.
+well-run saloon can charge what a general store cannot, but its short patience means more of the
+day's callers give up before anyone gets to them — and it is how many people went away
+disappointed, not how many walkouts you racked up, that the town's name is judged on at
+midnight.
 
 Both its services are served off its own shelves, so a saloon that sells nothing but drink still
 needs liquor in stock. See [services that use up stock](services.md#services-that-consume-stock).

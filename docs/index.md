@@ -12,7 +12,8 @@ up with silver and spend it.
 Hospitality gets guests onto your map. This is about what they do once they're there.
 
 > **Status:** goods and services both work. A customer arrives, then either picks something off
-> your shelves or orders a drink, a meal or a haircut — queues, and pays either way. The breadth
+> your shelves or orders a drink, a meal or a haircut — queues, and pays either way, and your own
+> colonists can be sent to use a service too. The breadth
 > (hotels, banks, stables, town roles) is designed but not built. See the [roadmap](roadmap.md).
 
 This mod is standalone. It does not require Hospitality, and is written to sit alongside it.
@@ -62,11 +63,14 @@ This mod is standalone. It does not require Hospitality, and is written to sit a
 
 The loop this mod adds is short enough to state in one paragraph. You build businesses and
 decide what each one sells and charges. Distinct, stocked, open businesses raise the town's
-**appeal**. Appeal drives how often customer groups arrive and how much silver they carry.
-Customers pick a business — the cheapest reachable one that has something they want — queue at
-it, and pay if somebody is behind the counter. Serving them raises the town's **reputation**,
-which raises appeal again and lets you charge more; letting them walk out lowers it. The whole
-thing compounds, in either direction.
+**appeal**. Appeal drives how often customer groups arrive and how many are in them; how much
+silver they carry is a separate question, answered by what you have on the shelves at market
+value. Customers pick whichever reachable business best balances price, distance and having
+somebody behind the counter, and join the line at it — a counter serves one at a time, in the
+order they arrived, and a line too long to be worth waiting in sends them elsewhere. How you
+treat them settles the town's **reputation** at midnight, one verdict per customer per day rather
+than one per sale; a good name raises appeal again and puts a little on every price you charge,
+while letting people walk out drags it down. The whole thing compounds, in either direction.
 
 ```
      you stock, price and staff your shops
@@ -75,7 +79,7 @@ thing compounds, in either direction.
               the town's appeal  ◄──── reputation ◄──── customers served vs. walked out
                      │                                            ▲
                      ▼                                            │
-      how often groups arrive, how many, how rich                 │
+      how often groups arrive and how many are in them            │
                      │                                            │
                      ▼                                            │
         customers arrive ──── buy goods or use a service ─────────┘

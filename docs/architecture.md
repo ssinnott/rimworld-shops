@@ -31,13 +31,13 @@ All under `Source/OldWestTown/`, namespace `OldWestTown`.
 | File | Type | Job |
 | --- | --- | --- |
 | `ShopKindDef.cs` | `ShopKindDef` | Data-driven [business type](businesses.md): default stock, price band, appeal, patience, services. Adding a kind is XML, not code. |
-| `CompBusiness.cs` | `CompProperties_Business`, `IBusinessPatron`, `CompBusiness` | Makes a building a business. Owns the till, filter, markup, ledger, staff flag, and the staff/customer cell pair. The largest file in the mod, and the hub the two pawn loops meet at. |
+| `CompBusiness.cs` | `CompProperties_Business`, `IBusinessPatron`, `CompBusiness` | Makes a building a business. Owns the till, filter, markup, ledger, staff flag, the staff/customer cell pair, the line waiting at the counter, and the right-click order that sends one of your own colonists to a service. The largest file in the mod, and the hub the two pawn loops meet at. |
 | `ServiceDef.cs` | `ServiceDef` | A [thing a business sells](services.md) that isn't a shelf item. Validates its own required fields at load. |
 | `ServiceWorker.cs` | `ServiceNeedHook`, `ServiceWorker`, `ServiceWorker_Ingest`, `ServiceWorker_Thought`, `ServiceWorker_Haircut` | The pluggable behaviour behind a service: what it can act on, how much a customer wants it, what it does once paid for. |
 | `ShopStock.cs` | `ShopStock` | [What's on the shelves](economy.md#what-counts-as-stock), what a given customer would buy, and which item a service can currently consume. |
 | `ShopPricing.cs` | `ShopPricing` | The only place a [price](economy.md#pricing) is decided, so UI, AI and transaction can't disagree. |
 | `ShopTransaction.cs` | `ShopTransaction` | The single point where silver, goods and service effects move. Re-validates everything. |
-| `TownEconomy.cs` | `TownEconomy` | `MapComponent`: business register, daily ledger, reputation, [appeal](economy.md#appeal), arrival clock. |
+| `TownEconomy.cs` | `TownEconomy` | `MapComponent`: business register, daily ledger, arrival clock, and the two clocks the economy hangs off — the 60-tick survey that re-reads every shop's shelves and prices the town's [appeal](economy.md#appeal), and the nightly settling of [reputation](economy.md#reputation) from the day's callers. |
 
 ### `AI/` — the pawn loops
 
@@ -60,7 +60,7 @@ All under `Source/OldWestTown/`, namespace `OldWestTown`.
 | `Lords/LordToil_CloseUp.cs` | `LordToil_CloseUp` | Closing time. Sends the group home the way vanilla's exit toil does, except for a customer whose sale is being worked that moment. |
 | `Incidents/IncidentWorker_ShopCustomers.cs` | `IncidentWorker_ShopCustomers` | Turns town appeal into [arrivals](customers.md#arrival), purses and group size. |
 | `Alerts/Alert_CustomersWaiting.cs` | `Alert_CustomersWaiting` | Raised while customers burn patience at an unattended business. |
-| `UI/ITab_ShopStock.cs` | `ITab_ShopStock` | The Stock tab. Reuses vanilla's storage-filter widget, so it reads like a stockpile. |
+| `UI/ITab_ShopStock.cs` | `ITab_ShopStock` | The Stock tab, and the one screen where a price is set: shelf totals, the markup slider and what the services cost, above vanilla's storage-filter widget so the stock list still reads like a stockpile. |
 
 ### Root
 
@@ -73,12 +73,15 @@ All under `Source/OldWestTown/`, namespace `OldWestTown`.
 ## Boundaries worth keeping
 
 **The `Shops` layer never depends on `AI`.** `CompBusiness` recognizes "a pawn is patronizing
-something" through a small marker interface, `IBusinessPatron`, rather than by naming a concrete
-driver type or `JobDef`. That is what lets queue-spacing and the waiting-customers alert work
+something", and "somebody is working their sale right now", through a small interface,
+`IBusinessPatron`, rather than by naming a concrete driver type or `JobDef`. That is what lets
+queue-spacing, the line at the counter, the waiting-customers alert and closing time all work
 without the business layer knowing the AI namespace exists.
 
 **One price basis, one transaction point.** `ShopPricing` is the only thing that decides what
-something costs; `ShopTransaction` is the only thing that moves silver. Both goods and services
+something costs — and, through `MaxAffordable`, how much of it a purse can pay for, so the order
+a customer sizes at the shelf and the bill the counter charges can never disagree.
+`ShopTransaction` is the only thing that moves silver. Both goods and services
 go through them. A new business type that needs its own pricing rule should extend those, not
 route around them.
 
@@ -119,8 +122,10 @@ anything changes hands.
   Goods a colonist has already reserved are excluded from the shelves, which removes most of the
   churn, but a hauler can still start a job on goods a customer is mid-walk toward, and two
   customers can race for the same stack. The loser's job fails gracefully.
-- `Appeal` walks every open business's stock. It's cached per business for a second, which is
-  fine for a main street and would want revisiting for a hundred counters.
+- The town surveys itself every 60 ticks: one pass re-reads every shop's shelves and prices the
+  whole offer, and `Appeal` is then just a product of what that pass recorded. Nothing else decides
+  when a scan happens, which is what keeps drawing a counter's inspect pane from changing the game.
+  Fine for a main street; a hundred counters would want the survey spread across several ticks.
 - Two vanilla calls the services path leans on — `Thing.Ingested` for drink and meal, and the
   `PawnStyleItemChooser.RandomHairFor` + `SetAllGraphicsDirty` pair for a haircut's visible hair
   change — are exercised by this mod for the first time. Every signature is confirmed against the
