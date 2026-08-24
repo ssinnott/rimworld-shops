@@ -11,13 +11,15 @@ up with silver and spend it.
 
 Hospitality gets guests onto your map. This is about what they do once they're there.
 
-> **Status:** the whole staged plan is built. A customer arrives, then either picks something
-> off your shelves, orders a drink, a meal or a haircut, or checks into a room for the night —
-> queues, and pays either way. A sheriff can be posted to keep rowdy saloon patrons in line. If
-> you also run Hospitality, an idle guest it's already housing can wander over and shop too —
-> see [Hospitality guests](customers.md#hospitality-guests). A few more business kinds (banks,
-> stables) and the larger thematic expansions are designed but not built. See the
-> [roadmap](roadmap.md).
+> **Status:** the whole staged plan is built, and so are the first two thematic expansions on top
+> of it — a gambling hall, and a stagecoach line that puts the town on a scheduled route with its
+> own visible tier ladder. A customer arrives, then either picks something off your shelves,
+> orders a drink, a meal or a haircut, sits for a hand of cards, or checks into a room for the
+> night — queues, and pays either way. A sheriff can be posted to keep rowdy saloon and
+> gambling-hall patrons in line. If you also run Hospitality, an idle guest it's already housing
+> can wander over and shop too — see [Hospitality guests](customers.md#hospitality-guests). The
+> remaining thematic expansions — outlaws and the law, a gold rush, rival towns — are designed
+> but not built. See the [roadmap](roadmap.md).
 
 This mod is standalone. It does not require Hospitality, and is written to sit alongside it.
 

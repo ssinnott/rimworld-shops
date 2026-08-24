@@ -25,6 +25,10 @@ namespace OldWestTown
         /// scans, which is the one place C# needs this ThingDef by name.</summary>
         public static ThingDef OWT_SheriffOffice;
 
+        /// <summary>Looked up directly, the same way, by CoachTierUtility.HasDepot's own
+        /// ListerThings scan — a depot keeps no registry either.</summary>
+        public static ThingDef OWT_CoachDepot;
+
         static OWTDefOf()
         {
             DefOfHelper.EnsureInitializedInCtor(typeof(OWTDefOf));

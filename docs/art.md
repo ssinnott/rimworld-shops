@@ -142,6 +142,28 @@ the rifle rack.
   <span class="swatch" style="background:#23201C"></span><code>#23201C</code> edge
 </div>
 
+### Coach depot
+
+3 × 2 tiles · [details](buildings.md#coach-depot)
+
+<div class="art-row">
+  <figure class="art-tile art-wide"><img src="assets/textures/Stagecoach/CoachDepot_north.png" alt="Coach depot, north facing"><figcaption>north · 384 × 256<br><span class="art-note">also the build-menu icon</span></figcaption></figure>
+  <figure class="art-tile art-wide"><img src="assets/textures/Stagecoach/CoachDepot_east.png" alt="Coach depot, east facing"><figcaption>east · 256 × 384</figcaption></figure>
+  <figure class="art-tile art-wide"><img src="assets/textures/Stagecoach/CoachDepot_south.png" alt="Coach depot, south facing"><figcaption>south · 384 × 256</figcaption></figure>
+  <figure class="art-tile art-wide"><img src="assets/textures/Stagecoach/CoachDepot_west.png" alt="Coach depot, west facing"><figcaption>west · 256 × 384</figcaption></figure>
+</div>
+
+A saddle-leather brown, distinct from every other palette in the set — warmer than the sheriff's
+office's gun-metal grey, redder than any counter's oiled wood — with a dusty road-tan surface
+band and an oxide-red accent stripe standing in for the ticket window's own paintwork.
+
+<div class="swatches">
+  <span class="swatch" style="background:#8C3224"></span><code>#8C3224</code> accent (ticket window)
+  <span class="swatch" style="background:#A89678"></span><code>#A89678</code> surface
+  <span class="swatch" style="background:#60442A"></span><code>#60442A</code> body
+  <span class="swatch" style="background:#342416"></span><code>#342416</code> edge
+</div>
+
 ## Main street
 
 Four decorative pieces, plus the false front's own small mechanical effect. See

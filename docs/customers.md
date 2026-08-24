@@ -41,6 +41,24 @@ They also arrive somewhere between **40% and 90% fed**. That is deliberate: a
 [meal service](services.md#meal) wants genuinely hungry customers to sell to, not a group who all
 arrive full.
 
+### Scheduled coach arrivals
+
+Building a [coach depot](buildings.md#coach-depot) adds a guarantee on top of everything above:
+however the ordinary arrival clock is behaving, no gap between groups — organic or scheduled —
+ever runs longer than the town's current route tier allows. See [the stagecoach
+line](economy.md#the-stagecoach-line) for the tiers, the numbers, and why this can never double
+up with, or land on top of, an ordinary arrival.
+
+A scheduled group is otherwise an ordinary customer group in every way that matters once they're
+through the door — same shopping AI, same patience, same walkouts. All that changes is what they
+bring: more silver than an ordinary arrival, and, from the weekly-coach tier up, sometimes one
+**VIP passenger** riding along with the rest.
+
+A VIP carries five times an ordinary arrival's purse and gets named in their own letter — *A VIP
+passenger* — but nothing else about them is different. They queue like anyone else, they walk
+out like anyone else if nobody serves them, and losing their custom costs the town exactly what
+losing anyone else's does. The extra silver only buys you a bigger sale if you actually earn it.
+
 ## The visit
 
 The group arrives together, shops, and leaves together. Unlike vanilla visitors — who travel to a

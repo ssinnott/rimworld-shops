@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using OldWestTown.Lords;
 using OldWestTown.Shops;
+using OldWestTown.Stagecoach;
 using RimWorld;
 using UnityEngine;
 using Verse;
@@ -23,6 +24,11 @@ namespace OldWestTown.Incidents
         private static readonly IntRange BasePurse = new IntRange(120, 450);
 
         private const int VisitDurationTicks = 40000; // a bit over two-thirds of a day
+
+        /// <summary>What a VIP passenger's purse is multiplied by, on top of the ordinary
+        /// appeal-scaled amount — flat, not per-tier: the roadmap names one number, "a 5x
+        /// budget," not an escalating one.</summary>
+        private const float VipPurseMultiplier = 5f;
 
         protected override PawnGroupKindDef PawnGroupKindDef => PawnGroupKindDefOf.Peaceful;
 
@@ -71,9 +77,21 @@ namespace OldWestTown.Incidents
             IntVec3 townCenter = FindTownCentre(econ, map);
             float appeal = econ.Appeal;
 
+            // Re-checked here rather than threaded in from TryAttractCustomers, resting on the
+            // same synchronous-firing assumption ChooseWeightedFaction's own comment above
+            // already documents and depends on for ResolveParmsPoints. Re-deriving it fresh also
+            // means the rare coincidence of the ambient storyteller roll landing exactly when the
+            // ceiling had independently elapsed is correctly treated as "the guarantee was
+            // satisfied," not as a separate case to special-case away.
+            bool scheduled = econ.GuaranteedArrivalDue;
+            CoachTierDef tier = scheduled ? econ.RouteTier : null;
+            Pawn vip = (tier != null && tier.vipChance > 0f && Rand.Chance(tier.vipChance))
+                ? pawns.RandomElement()
+                : null;
+
             for (int i = 0; i < pawns.Count; i++)
             {
-                GivePurse(pawns[i], appeal);
+                GivePurse(pawns[i], appeal, pawns[i] == vip ? VipPurseMultiplier : (tier?.purseMultiplier ?? 1f));
                 // A band, not a flat top-up: a Meal service wants genuinely hungry customers to
                 // sell to, not a group who all arrive fully fed.
                 if (pawns[i].needs?.food != null)
@@ -86,12 +104,37 @@ namespace OldWestTown.Incidents
                 map,
                 pawns);
 
-            SendStandardLetter(
-                "OWT_LetterCustomersLabel".Translate(parms.faction.Name),
-                "OWT_LetterCustomersText".Translate(pawns.Count, parms.faction.Name),
-                LetterDefOf.PositiveEvent,
-                parms,
-                pawns[0]);
+            // Every successful arrival resets the guarantee clock, organic or scheduled alike —
+            // see TownEconomy.NotifyArrival.
+            econ.NotifyArrival();
+
+            if (vip != null)
+            {
+                SendStandardLetter(
+                    "OWT_LetterCoachVIPLabel".Translate(),
+                    "OWT_LetterCoachVIPText".Translate(vip.LabelShort, parms.faction.Name),
+                    LetterDefOf.PositiveEvent,
+                    parms,
+                    vip);
+            }
+            else if (tier != null)
+            {
+                SendStandardLetter(
+                    "OWT_LetterCoachLabel".Translate(),
+                    "OWT_LetterCoachText".Translate(pawns.Count, parms.faction.Name, tier.LabelCap),
+                    LetterDefOf.PositiveEvent,
+                    parms,
+                    pawns[0]);
+            }
+            else
+            {
+                SendStandardLetter(
+                    "OWT_LetterCustomersLabel".Translate(parms.faction.Name),
+                    "OWT_LetterCustomersText".Translate(pawns.Count, parms.faction.Name),
+                    LetterDefOf.PositiveEvent,
+                    parms,
+                    pawns[0]);
+            }
 
             return true;
         }
@@ -160,13 +203,19 @@ namespace OldWestTown.Incidents
         /// <summary>
         /// Gives a customer money to spend. Richer towns attract richer custom, so investment
         /// in the town compounds rather than just adding more footfall.
+        ///
+        /// <paramref name="purseMultiplier"/> defaults to 1, preserving today's behaviour
+        /// exactly for both existing call sites (HospitalityBridge's guest top-up and this
+        /// file's own organic arrivals); a stagecoach group threads through a tier's own purse
+        /// multiplier, or the flat VIP multiplier for the one pawn who rolled it.
         /// </summary>
-        internal static void GivePurse(Pawn pawn, float appeal)
+        internal static void GivePurse(Pawn pawn, float appeal, float purseMultiplier = 1f)
         {
             if (pawn?.inventory == null) return;
 
             float scale = Mathf.Lerp(0.7f, 2.2f, Mathf.Clamp01(appeal / 4f))
-                          * OldWestTownMod.Settings.customerWealth;
+                          * OldWestTownMod.Settings.customerWealth
+                          * purseMultiplier;
             int amount = Mathf.Max(20, Mathf.RoundToInt(BasePurse.RandomInRange * scale));
 
             // Top up rather than replace — generated pawns sometimes already carry silver.

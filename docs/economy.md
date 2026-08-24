@@ -235,6 +235,52 @@ Arrivals still go out through the storyteller, which won't let events pile on to
 it holds groups at least 0.6 days apart, so a booming town gets frequent trade, never a flood.
 There is also a small background chance of a group turning up regardless.
 
+## The stagecoach line
+
+A **coach depot** puts the town on a scheduled route: a promise that a big-spending group won't
+be too many days apart, layered on top of everything the arrival clock above already does on its
+own. It needs its own research past Frontier commerce — see [buildings](buildings.md#coach-depot)
+— and does nothing at all unless one is actually standing on the map.
+
+### The ladder
+
+The route climbs through three tiers as appeal grows, and the depot's own inspect pane always
+shows which one is active, what the next one needs, and a rough countdown to the next guaranteed
+coach:
+
+| Tier | Needs this much appeal | Longest gap between arrivals | Extra on every scheduled purse | Chance of a VIP passenger |
+| --- | --- | --- | --- | --- |
+| Irregular freight wagons | **0.5** | **8 days** | **+25%** | — |
+| Weekly coach | **1.5** | **4 days** | **+60%** | **8%** |
+| Daily express | **3.5** | **2 days** | **double** | **20%** |
+
+Appeal decides the tier the same way it decides everything else about arrivals: climb past a
+threshold and the route visibly upgrades, with a letter naming the new tier; slip back below one
+and it visibly demotes instead, with a quieter message. Unlike the arrival clock's own quiet
+slowdown, a route change is a milestone the game actually tells you about.
+
+### A ceiling, not a second clock
+
+The guarantee doesn't run a second dice roll alongside the arrival clock above — it puts a
+ceiling on the one the town already has. Once the active tier's own longest-gap number has
+passed with no group of any kind showing up, organic or scheduled, the very next check forces
+one, through the identical event the ordinary clock already fires. The minimum gap between
+groups still applies no matter which condition caused a given group to turn up, so a scheduled
+arrival can never land on top of an organic one, or double up the town's total footfall.
+
+In practice the ceiling rarely has anything to do — the ordinary clock is already faster than it
+at any appeal a tier is active for. Where it does contribute, it's a top-up, not a flood: right
+as a town first qualifies for a tier, expect something like 10–30% more groups than the clock
+alone would have given it that day, biggest at the weekly-coach tier's own threshold; that
+uplift tapers toward the single digits the longer a town sits comfortably inside a tier, and it
+never comes close to doubling how many customers show up, at any tier, at any appeal.
+
+Scheduled groups also carry more silver — the purse boost in the table above, stacked on top of
+the appeal scaling every arrival already gets — and, from the weekly-coach tier up, occasionally
+include one passenger carrying a great deal more than the rest of the party. See [scheduled
+coach arrivals](customers.md#scheduled-coach-arrivals) for what that looks like from the
+customer's side of the counter.
+
 ## The daily ledger
 
 At local midnight the town closes the books: every business's daily figures reset, the town's

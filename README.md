@@ -94,6 +94,17 @@ This mod is standalone. It does not require Hospitality, and is written to sit a
   Hospitality is already housing them. This is the one feature built against a mod that has
   never actually run alongside this one in this sandbox; it degrades to doing nothing at all,
   silently, if its one guess about how Hospitality is put together turns out wrong.
+- **A stagecoach line, and the town's first visible milestone ladder.** A **coach depot**, behind
+  its own research past Frontier commerce, switches on a guarantee: whatever the ordinary arrival
+  clock is doing on its own, no gap between customer groups — organic or scheduled — ever runs
+  longer than the town's current route tier allows. Appeal climbs the route through three tiers —
+  irregular freight wagons, a weekly coach, then a daily express — each one tightening the
+  ceiling, richer purses on the customers a tier forces into being, and from the second tier up,
+  a chance of a **VIP passenger** carrying five times an ordinary purse. Crossing a tier fires a
+  letter on the way up and a quieter message on the way down; the depot's own inspect pane always
+  names the current tier and what the next one needs. Built as one extra way for the existing
+  customer incident to fire, not a second, independent one, so it can never double up with, or
+  land on top of, an ordinary arrival.
 
 ## Installing
 

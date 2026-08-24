@@ -440,6 +440,104 @@ that seeds the till a wager's first customer needs to exist at all — an empty 
 win chance would otherwise make the very first bet ever placed at a fresh table the likeliest one
 to be shorted.
 
+### Stagecoach line: a ceiling, not a second clock
+
+The roadmap named three things for this expansion — guaranteed high-budget arrivals, outgoing
+mail contracts, and an occasional VIP passenger, framed either as a quest-giver or as "a shopper
+with a 5× budget." Two of the three shipped; the third is cut outright, and the reasoning is
+worth stating because it's the same reasoning that shapes everything else here.
+
+**Mail contracts don't fit this mod's own shape.** Every transaction that already exists is a
+stranger walking in and `ShopTransaction` moving silver and goods at the point of exchange — a
+pull. A mail contract is a push: the colony commits goods up front, and an abstracted coach pays
+out later, with no pawn on either side of it at all. That isn't a smaller version of the existing
+seam, it's a different mechanic wearing this mod's name — there is no pawn loop for [the one
+rule](#the-one-decision-everything-else-follows-from) to even apply to, and no file this feature
+could plausibly extend (`ShopTransaction`, `ShopPricing`) has any shape for money leaving the
+colony rather than silver arriving in a till. A flat-silver timer with no parcel, no risk and no
+delivery behind it would just be a disguised income tick wearing a mechanic's name; a real one
+needs a commit/deliver/pay lifecycle this single-map mod has no scaffolding for anywhere. Cut,
+not deferred.
+
+**The quest-giver framing is cut; the cheaper alternative in the same sentence of the roadmap is
+not.** The roadmap's own wording already gives an escape hatch — "a quest-giver *or* a shopper
+with a 5× budget" — and the second half costs nothing new to build: one pawn in an
+already-spawned customer group gets a bigger purse and a name-drop in the letter, through
+machinery that already exists. The first half would mean taking on `QuestScriptDef`, `Slate` and
+`QuestNode` — a large, XML-and-code-interleaved surface `tools/refdump` can confirm member
+*existence* on, but not confirm actually generates a working quest, in a mod that has never run
+in a live game (see Known Context in `CLAUDE.md`). Paying that cost for a payoff the roadmap's
+own cheaper option already delivers is not a good trade.
+
+**The guarantee is one incident with an extra way to fire, not a second incident with its own
+clock.** The obvious shape for "no gap longer than N days" is a second `IncidentDef` alongside
+the existing `OWT_ShopCustomers` — its own worker, its own `minRefireDays`, fired on its own
+schedule. That shape was rejected: a second incident's cooldown only ever throttles itself, so
+nothing structurally stops it landing close to an organic arrival — exactly the stacking risk
+this expansion has to answer for. Instead, `TownEconomy.GuaranteedArrivalDue` is a plain `bool`,
+OR'd into the *existing* early-return inside `TryAttractCustomers`:
+
+```
+if (!Rand.MTBEventOccurs(mtbDays, 60000f, ArrivalCheckInterval) && !GuaranteedArrivalDue) return;
+```
+
+Because this is an OR added to an early-return that was already there, it can only ever **add** a
+firing attempt where the organic roll would otherwise have stayed quiet past the active tier's
+own ceiling — never suppress one, never duplicate one, never add a second, independent roll. And
+because both the organic roll and the guarantee fire through the identical `OWT_ShopCustomers`
+incident, the shipped `minRefireDays` (0.6 days) stays a hard structural cap on the *combined*
+rate, not merely an expected-value argument that happens to hold on average. That cap already
+covered two origins of the same incident before this feature existed — the deliberate
+`TryAttractCustomers` call and the incident's own small ambient `baseChance` storyteller roll
+(see [the economy loop](#the-economy-loop) below). The guarantee is a third origin funnelled
+through the identical door, not a new kind of risk.
+
+The ceiling itself lives in data, not in a constant on `TownEconomy`: `CoachTierDef` is one rung
+of the route ladder — `minAppeal`, `arrivalCeilingDays`, `purseMultiplier`, `vipChance` — the same
+"a business or a service is a stanza, not a class" instinct behind `ShopKindDef` and `ServiceDef`,
+applied one level up. `TownEconomy.RouteTier` reads the active tier live off current appeal on
+every call, uncached and non-ratcheting, exactly the way `Appeal` itself is recomputed from
+current stock rather than tracked — so a route can regress the same way appeal can, a legible,
+named consequence (a demotion message) on top of the arrival clock's previously invisible
+slowdown. `CoachTierUtility.CurrentTier`/`NextTier` are the only two places that ranking logic
+lives; the depot's own inspect string and the tier-announcement check both go through them, so
+neither can drift out of sync with the other about which tier is active.
+
+**The math was checked, not assumed.** Modelling organic arrivals as memoryless with mean gap
+`M = mtbDays` — the same approximation `Rand.MTBEventOccurs` itself already leans on — imposing a
+hard ceiling `C` and resetting the clock on every arrival makes each gap `X' = min(X, C)`, and for
+an exponential `X`: `E[X'] = M · (1 − e^(−C/M))`, giving a new rate of `1 / E[X']`. Worked out
+against the shipped MTB curve and the three tiers' own numbers, the uplift peaks at a tier's own
+entry point — biggest right at the weekly-coach tier's threshold, around +30%, the single largest
+engineered number anywhere in this feature — and decays toward single digits by that tier's own
+ceiling, never coming close to doubling footfall at any appeal tested, including the top tier's
+own long-run plateau. That is the number [the town economy](economy.md#a-ceiling-not-a-second-clock)
+states in plain, rounded terms for a player; this is where it came from. Worth confirming against
+real inter-arrival gaps in play — the model is an approximation of `Rand.MTBEventOccurs`'s real
+behaviour, not a proof of it, the same caveat the *existing*, shipped MTB clock already carries.
+
+**The depot is a marker, not a business, and needs no registry.** `CompCoachDepot` overrides
+exactly one member, `CompInspectStringExtra`, and persists nothing — every number it shows is read
+live off `TownEconomy` and `CoachTierUtility` on the tick it's asked. Whether a depot exists at
+all is answered the same way `TroubleUtility.AnySheriffOnDuty` already answers "is there a
+sheriff on duty": a stateless `map.listerThings.ThingsOfDef(...).Any()` scan, read at most twice
+per arrival check, with no `Register`/`Deregister` pair and nothing to rebuild in `FinalizeInit`.
+A `CompProperties_Business` was never on the table for this building — a depot sells nothing, is
+never staffed, and never enters `TownEconomy.Appeal`'s own math, the same "not a business" shape
+the sheriff's office already established for a building whose only job is to change what the
+player sees and how the town's own systems behave around it.
+
+**Nothing here adds a second pawn loop.** The entire mechanism resolves before any pawn job
+exists: `TryAttractCustomers` decides whether to fire, `TryExecuteWorker` decides what the group
+looks like — size from the unmodified `ResolveParmsPoints`, purse from a widened `GivePurse`, one
+pawn possibly flagged VIP for that call only. Once `LordMaker.MakeNewLord` runs, a scheduled or
+VIP customer is spawned into the identical, unmodified `LordJob_ShopVisit` →
+`JobGiver_BuyFromShop` loop every other customer already uses. `CustomerRecord` gains no
+VIP-shaped field, and nothing downstream — `ShopTransaction`, `TroubleUtility`, the standing
+ledger — is touched at all. [The one rule](#the-one-decision-everything-else-follows-from) isn't
+just preserved here; it's structurally inapplicable, because this feature never creates a second
+loop for it to govern.
+
 ## The economy loop
 
 ```

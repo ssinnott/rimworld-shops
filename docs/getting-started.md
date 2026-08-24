@@ -5,8 +5,8 @@ summary: From an unresearched colony to silver in the till, in seven steps.
 
 ## Before anything else
 
-Old West Town adds nothing to a colony until you research it. Everything in the mod is gated
-behind one project.
+Old West Town adds nothing to a colony until you research it. Almost everything in the mod is
+gated behind one project.
 
 | | |
 | --- | --- |
@@ -16,6 +16,11 @@ behind one project.
 | **Unlocks** | The whole **Commerce** build category — every counter, the [sheriff's office](buildings.md#sheriffs-office), the hotel bed, boardwalk and the rest of [main street](buildings.md#main-street) |
 
 There are no prerequisites, so it is available from the first day of a colony if you want it.
+
+One building sits behind a second research on top of this one: the [coach
+depot](buildings.md#coach-depot) needs **Stagecoach line** (cost 800), which itself needs
+Frontier commerce first. It's a milestone building for a town that's already trading, not a
+starter one.
 
 ## The seven steps
 

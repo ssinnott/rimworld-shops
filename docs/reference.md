@@ -31,6 +31,7 @@ Everything this mod adds is prefixed `OWT_`.
 | `OWT_BatwingDoor` | batwing doors | — (`ParentName="Door"`) | *same file* |
 | `OWT_StreetFurnitureBase` | *(abstract parent)* | — | *same file* |
 | `OWT_SheriffOffice` | sheriff's office | — (not a business; `CompRolePost`) | `Defs/ThingDefs_Buildings/Buildings_Roles.xml` |
+| `OWT_CoachDepot` | coach depot | — (not a business; `CompCoachDepot`) | `Defs/ThingDefs_Buildings/Buildings_Stagecoach.xml` |
 
 ### Terrain
 
@@ -64,6 +65,16 @@ Everything this mod adds is prefixed `OWT_`.
 | `OWT_Lodging` | lodging | `ServiceWorker_Lodging` | 200 | no (claims a `CompRentableBed` instead) | **never** |
 | `OWT_Wager` | wager | `ServiceWorker_Wager` (Joy) | 200 | no | **never** |
 
+### Coach tiers
+
+The [stagecoach line](economy.md#the-stagecoach-line)'s route ladder, `OldWestTown.Stagecoach.CoachTierDef` — pure data, in `Defs/CoachTierDefs/CoachTiers.xml`.
+
+| defName | Label | Min appeal | Arrival ceiling | Purse multiplier | VIP chance |
+| --- | --- | --- | --- | --- | --- |
+| `OWT_RouteFreightWagons` | irregular freight wagons | 0.5 | 8 days | ×1.25 | 0% |
+| `OWT_RouteWeeklyCoach` | weekly coach | 1.5 | 4 days | ×1.6 | 8% |
+| `OWT_RouteDailyExpress` | daily express | 3.5 | 2 days | ×2.0 | 20% |
+
 ### Jobs
 
 | defName | Driver | Report string |
@@ -85,6 +96,7 @@ Everything this mod adds is prefixed `OWT_`.
 | --- | --- | --- |
 | `OWT_Commerce` | `DesignationCategoryDef` | Build-menu category, sort order 410 |
 | `OWT_FrontierCommerce` | `ResearchProjectDef` | 500 cost, Medieval, no prerequisites |
+| `OWT_StagecoachLine` | `ResearchProjectDef` | 800 cost, Medieval, prerequisite `OWT_FrontierCommerce` |
 | `OWT_Shopkeeping` | `WorkTypeDef` | Natural priority 460, Social skill |
 | `OWT_ManShopCounter` | `WorkGiverDef` | Priority 100 in type; needs Manipulation + Talking |
 | `OWT_Sheriffing` | `WorkTypeDef` | Natural priority 460, Social skill; `alwaysStartActive` false — only the assigned pawn ever has anything to do here |
@@ -216,6 +228,15 @@ where it lives in C# it is a `const` in the named file.
 | Shortfall reputation hit (`TownEconomy.RecordShortfall`) | −0.08 | The worst single-event reputation hit in the mod — worse than a disturbance's −0.05 |
 | `FactionStandingShortfallDelta` (`TownEconomy`) | −0.20 | The worst single-event standing hit in the mod — worse than a walkout's −0.10 |
 
+### Stagecoach — `Shops/TownEconomy.cs`, `Incidents/IncidentWorker_ShopCustomers.cs`, `Stagecoach/CoachTierDef.cs`, `Stagecoach/CoachTierUtility.cs`
+
+| Name | Value | Meaning |
+| --- | --- | --- |
+| `minAppeal` / `arrivalCeilingDays` / `purseMultiplier` / `vipChance` (`CoachTierDef`) | see [coach tiers](#coach-tiers) | One rung of the route ladder — pure data, per tier |
+| `GuaranteedArrivalDue` (`TownEconomy`) | `TicksSinceLastArrival >= CoachTierUtility.CeilingTicks(RouteTier)` | The OR added to the existing MTB roll in `TryAttractCustomers` — never a second, independent roll |
+| `CeilingTicks` (`CoachTierUtility`) | `tier.arrivalCeilingDays * 60000 / max(0.25, customerVolume)` | A tier's arrival ceiling in ticks, at the player's own Customer volume setting — same clamp-floor and unit convention as the MTB clock's own `mtbDays` scaling |
+| `VipPurseMultiplier` (`IncidentWorker_ShopCustomers`) | 5.0 | Flat multiplier on a VIP passenger's purse, on top of the ordinary appeal-scaled amount — one number for every tier, not an escalating one |
+
 ## Mod settings
 
 `OldWestTownSettings`, saved in RimWorld's mod-settings file.
@@ -251,6 +272,8 @@ otherwise.
 
 | Trouble | `OWT_SaloonTrouble`, `OWT_DisturbanceLine`, `OWT_AlertRowdyPatrons`, `OWT_AlertRowdyPatronsDesc` |
 | Gambling hall | `OWT_CmdHouseEdge`, `OWT_CmdHouseEdgeDesc`, `OWT_HouseEdgeSlider`, `OWT_HouseEdgeLine`, `OWT_ShortfallLine`, `OWT_PayoutLine`, `OWT_CheatingAccusation`, `OWT_HouseCantCover`, `OWT_CmdCollectDescWager` |
+| Stagecoach line letters and route-tier announcements | `OWT_LetterCoachLabel`, `OWT_LetterCoachText`, `OWT_LetterCoachVIPLabel`, `OWT_LetterCoachVIPText`, `OWT_RouteTierUpLabel`, `OWT_RouteTierUpText`, `OWT_RouteTierDownMessage`, `OWT_RouteTierLostMessage` |
+| Coach depot inspect panel | `OWT_DepotTierLine`, `OWT_DepotNextArrivalLine`, `OWT_DepotNextTierLine`, `OWT_DepotMaxTierLine`, `OWT_DepotNoRoute`, `OWT_DepotNoTiers` |
 
 ## Saved state
 
@@ -271,8 +294,11 @@ What survives a save/load, and where it lives.
 | On-duty flag (`lastOnDutyTick`/`lastOnDutyPawn`) | `CompRolePost` | Deliberately **not** persisted, mirroring `CompBusiness`'s own staff flag — re-established within moments once the sheriff's patrol job re-ticks after a reload |
 | Whether the bridge has announced itself yet (`hasAnnouncedBridge`) | `HospitalityBridge` | One per map. Absent (reads `false`) on any save from before this stage — the same "a new sparse field just reads as the honest default" story `TownEconomy`'s per-faction standing already tells |
 | Per-`(pawn, shop)` cooldown table | `HospitalityBridge` | Deliberately **not** persisted, same reasoning as `CompRolePost`'s on-duty flag above — a reload starts every guest's cooldown fresh, which can only make the bridge briefly more generous, never stuck |
+| Guarantee clock (`lastArrivalTick`) | `TownEconomy` | Absent on an old save, reads as `0` — `TicksSinceLastArrival` then reads as the entire elapsed game time, the same "safe, a little eager, never stranded" shape `LordJob_ShopVisit.groupArrivedTick` already ships with. The next arrival, organic or guaranteed, re-anchors it |
+| Last-announced route tier (`lastAnnouncedTier`) | `TownEconomy` | `Scribe_Defs.Look`. Absent on an old save, reads as `null` — indistinguishable from "no depot has ever changed tier," so a reload can never spuriously re-announce one |
 | Mod settings | `OldWestTownSettings` | Global, not per save |
 
 `TownEconomy` rebuilds its business register in `FinalizeInit`, because comps register on spawn
 and a loaded map spawns them before the map component exists. `FalseFrontRegistry` rebuilds its
-own facade list the same way, for the same reason.
+own facade list the same way, for the same reason. Route tier and depot existence need no such
+rebuild — both are computed live off `CoachTierUtility`, never cached or registered.

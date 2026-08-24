@@ -182,6 +182,45 @@ Write a new `ServiceWorker` subclass only when the *effect* is genuinely new. Ov
 > and starting a second job tears the current driver down mid-toil. Apply the effect directly, as
 > `ServiceWorker_Ingest` does with `Thing.Ingested`.
 
+## Add a coach tier
+
+A rung of the [stagecoach line](economy.md#the-stagecoach-line)'s route ladder is pure data, the
+same shape as a [business kind](#add-a-business-kind). Add it to
+`Defs/CoachTierDefs/CoachTiers.xml`:
+
+```xml
+<OldWestTown.Stagecoach.CoachTierDef>
+  <defName>OWT_RouteOvernightMail</defName>
+  <label>overnight mail run</label>
+  <minAppeal>2.5</minAppeal>
+  <arrivalCeilingDays>3</arrivalCeilingDays>
+  <purseMultiplier>1.8</purseMultiplier>
+  <vipChance>0.12</vipChance>
+</OldWestTown.Stagecoach.CoachTierDef>
+```
+
+That's the whole addition — **no building change is needed**. Any [coach
+depot](buildings.md#coach-depot) already standing on a map picks up a new tier automatically once
+the town's appeal reaches it: `CoachTierUtility.CurrentTier` reads the full set of loaded tiers
+live on every check, never a fixed list baked into the depot itself.
+
+**The fields.**
+
+| Field | Type | Default | What it does |
+| --- | --- | --- | --- |
+| `minAppeal` | float | 0 | Appeal at or above which this tier can be the active one. |
+| `arrivalCeilingDays` | float | 7 | Longest gap, in days at 1.0× Customer volume, this tier lets pass between arrivals of any kind — organic or scheduled — before forcing one. |
+| `purseMultiplier` | float | 1.25 | Multiplies every ordinary customer's purse in a group this tier's ceiling forced into being. Inert for an organically-rolled group. |
+| `vipChance` | float | 0 | Chance, once this tier forces an arrival, that one pawn in that group is a VIP carrying a much larger purse. The purse multiplier itself is a flat constant shared by every tier — see the [reference tables](reference.md). |
+
+**Tuning notes.** Tiers don't have to be evenly spaced, and nothing requires exactly three of
+them — the active tier is always whichever loaded `CoachTierDef` has the highest `minAppeal` at
+or below current appeal, whatever else happens to be defined. A tier's own `arrivalCeilingDays`
+only ever adds a firing attempt where the ordinary [arrival clock](economy.md#the-arrival-clock)
+would otherwise have stayed quiet past it — see [a ceiling, not a second
+clock](economy.md#a-ceiling-not-a-second-clock) for why that structurally can't double up with,
+or land on top of, an organic arrival, however aggressively a tier gets tuned.
+
 ## Add a new kind of business entirely
 
 If the new business isn't "sell an item" or "sell a service" — a rentable bed, a gambling table,
