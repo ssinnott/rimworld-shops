@@ -102,4 +102,16 @@
   <OWT_SettingHospitalitySilverDesc>Top up a Hospitality guest's purse the same way an arriving customer's is, if they aren't already carrying enough to buy anything. Turn this off to only let guests spend silver they already have.</OWT_SettingHospitalitySilverDesc>
   <OWT_HospitalityBridgeEngaged>{0} wandered over from where they're staying and did business at {1}.</OWT_HospitalityBridgeEngaged>
 
+  <!-- Outlaws and the law: the stickup incident -->
+  <OWT_LetterStickupLabel>Stickup</OWT_LetterStickupLabel>
+  <OWT_LetterStickupText>A band from {0} is riding in on the tills, led by someone going by {1}.\n\nThey aren't here to browse. They'll head straight for whatever silver is sitting uncollected and clear out once it's gone — unless somebody gives them a reason to think twice first.</OWT_LetterStickupText>
+  <OWT_TillRobbed>{0} cracked the till at {1} and got away with {2}.</OWT_TillRobbed>
+  <OWT_StickupResisted>The stickup turns into a gunfight — the {0} are cutting their losses and running.</OWT_StickupResisted>
+  <OWT_StickupDeparted>The outlaws from {0} have cleared out of town.</OWT_StickupDeparted>
+  <OWT_AlertStickupRisk>Stickup risk ({0})</OWT_AlertStickupRisk>
+  <OWT_AlertStickupRiskDesc>Uncollected silver is piling up in your tills. The richer they get, the likelier an armed band comes to empty them. Collect your takings, or keep a sheriff on duty to slow the risk.</OWT_AlertStickupRiskDesc>
+  <OWT_RobberyLine>Stolen: {0} ({1}× robbed)</OWT_RobberyLine>
+  <OWT_SettingStickupsEnabled>Outlaw stickups</OWT_SettingStickupsEnabled>
+  <OWT_SettingStickupsEnabledDesc>Rich, uncollected tills draw armed robbers who empty them and leave unless resisted. Turn this off to remove the risk entirely.</OWT_SettingStickupsEnabledDesc>
+
 </LanguageData>

@@ -141,6 +141,8 @@ VANILLA_DEFS = {
     "Apparel", "Textiles", "Leathers", "Drugs", "Weapons",
     "ThinkNode_Priority", "JobGiver_WanderNearDutyLocation",
     "Light", "Medium", "Heavy",
+    # Outlaws and the law: OWT_Stickup's <category> (IncidentDef-only) and <letterDef>.
+    "ThreatBig",
 }
 
 

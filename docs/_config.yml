@@ -62,6 +62,7 @@ wiki_nav:
       - { page: economy,      title: The town economy }
       - { page: customers,    title: Customers }
       - { page: shopkeeping,  title: Shopkeeping }
+      - { page: outlaws,      title: Outlaws and the law }
   - section: Under the hood
     pages:
       - { page: architecture, title: Code map }

@@ -24,6 +24,10 @@ namespace OldWestTown
         /// arriving customer's is. Off leaves a guest to spend only silver they already carry.</summary>
         public bool hospitalityGuestsCarrySilver = true;
 
+        /// <summary>Master switch for the stickup incident (Incidents/IncidentWorker_Stickup.cs,
+        /// Shops/StickupWatch.cs). On by default, like every other risk this mod ships with.</summary>
+        public bool stickupsEnabled = true;
+
         public override void ExposeData()
         {
             base.ExposeData();
@@ -32,6 +36,7 @@ namespace OldWestTown
             Scribe_Values.Look(ref customerWealth, "customerWealth", 1f);
             Scribe_Values.Look(ref hospitalityBridgeEnabled, "hospitalityBridgeEnabled", true);
             Scribe_Values.Look(ref hospitalityGuestsCarrySilver, "hospitalityGuestsCarrySilver", true);
+            Scribe_Values.Look(ref stickupsEnabled, "stickupsEnabled", true);
         }
     }
 
@@ -60,6 +65,10 @@ namespace OldWestTown
 
             list.Label("OWT_SettingWealth".Translate(Settings.customerWealth.ToStringPercent()));
             Settings.customerWealth = list.Slider(Settings.customerWealth, 0.25f, 3f);
+            list.Gap();
+
+            list.CheckboxLabeled("OWT_SettingStickupsEnabled".Translate(), ref Settings.stickupsEnabled,
+                "OWT_SettingStickupsEnabledDesc".Translate());
 
             // Hospitality section: a status line always shown, so the player can tell the bridge
             // apart from a mod that's simply doing nothing; controls only once there's something

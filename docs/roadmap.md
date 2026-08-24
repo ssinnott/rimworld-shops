@@ -3,8 +3,8 @@ title: Roadmap
 summary: What is built, what is next, and the larger directions that build on top of it.
 ---
 
-The plan is staged so each step is playable on its own. All seven stages are shipped, and so is
-the first of the thematic expansions below — the gambling hall.
+The plan is staged so each step is playable on its own. All seven stages are shipped, and so are
+the first two of the thematic expansions below — the gambling hall, and outlaws and the law.
 
 For the reasoning behind the shipped stages, see the [design notes](DESIGN.md).
 
@@ -102,13 +102,25 @@ the reason a freshly built table is seeded with a bankroll of its own rather tha
 empty till. The stage-6 faro table is promoted into this, not duplicated alongside it: there is
 exactly one faro table in the build menu, not two confusingly similar ones.
 
-**Outlaws and the law.** A rich town becomes a target: the more silver sitting in tills
-(already tracked per counter), the higher the chance of a *stickup* — a small raider band that
-heads for counters instead of colonists, empties tills, and leaves unless resisted.
-Counterplay is the step-4 sheriff, plus a wanted board (bounty quests on recurring outlaw
-leaders) and a jail that converts captured outlaws into silver or reputation. Turns "collect the
-takings" from a chore into a real risk-management decision. A new event and a new kind of raid,
-both built on shapes the mod already has.
+**Outlaws and the law — done.** A rich town becomes a target: the more silver sitting
+uncollected across every till, the higher the chance of a *[stickup](outlaws.md)* — a small,
+capped raider band that heads straight for counters instead of colonists, empties whatever it can
+reach, and leaves unless resisted. Sized off the silver actually at risk, not colony wealth, so a
+very rich town's stickup stays a small, focused hit rather than an ordinary raid scaled to
+everything the colony owns. An [alert](outlaws.md#how-the-risk-builds) shows the risk climbing
+well before the clock behind it is even live, so "collect the takings" stops being a chore with no
+downside to postponing it and becomes a genuine risk-management call. Counterplay is the step-4
+[sheriff](shopkeeping.md#sheriffing): being on duty roughly halves both how often a stickup
+happens and how long one lasts — still a passive presence, not a new combat job, since the sheriff
+was built to calm drinkers, not shoot outlaws. Everything past that is ordinary, unmodified
+vanilla raid and prisoner machinery: self-defense is entirely vanilla's own, a downed raider is
+capturable and ransomable exactly like any other guilty hostile, and resisting routs the crew but
+never recovers silver they've already gotten away with. Deliberately cut, the same way stage 4
+named barkeep and banker as cut rather than silently dropping them: a **wanted board** with bounty
+quests on a recurring outlaw leader (there is no persistent outlaw identity anywhere in this mod,
+and RimWorld's own quest system is a large, thinly documented surface not worth the risk for what
+it would add), and a **bespoke jail** (vanilla's own prisoner mechanics already convert a captured
+outlaw into silver, reputation, or a recruit — there was nothing left for a second system to do).
 
 **Stagecoach line.** A coach depot that puts the town on a scheduled route: guaranteed
 high-budget customers every few days, outgoing mail contracts (deliver parcels for silver),

@@ -8,7 +8,7 @@ summary: Every defName, tunable constant, mod setting and translation key the mo
 > or extending it. If you are here to *play*, the pages under **Playing** and **Systems** explain
 > all of the same behaviour without the internal names: [buildings](buildings.md),
 > [business kinds](businesses.md), [services](services.md), [the town economy](economy.md),
-> [customers](customers.md), [shopkeeping](shopkeeping.md).
+> [customers](customers.md), [shopkeeping](shopkeeping.md), [outlaws and the law](outlaws.md).
 
 ## Defs
 
@@ -78,6 +78,13 @@ Everything this mod adds is prefixed `OWT_`.
 | `OWT_SleepInRentedBed` | `JobDriver_SleepInRentedBed` | sleeping at TargetA. |
 | `OWT_Patrol` | `JobDriver_Patrol` | patrolling TargetA. |
 | `OWT_CalmTrouble` | `JobDriver_CalmTrouble` | calming down TargetA. |
+| `OWT_RobTill` | `JobDriver_RobTill` | cracking the till at TargetB. |
+
+### Raid strategies
+
+| defName | Label | Worker |
+| --- | --- | --- |
+| `OWT_StickupStrategy` | stickup | `RaidStrategyWorker_Stickup` |
 
 ### Everything else
 
@@ -92,6 +99,8 @@ Everything this mod adds is prefixed `OWT_`.
 | `OWT_CalmDownPatron` | `WorkGiverDef` | Priority 200 in type (outranks `OWT_PatrolPost`); reactive half; needs Manipulation + Talking |
 | `OWT_Shop` | `DutyDef` | HighPriority hook; buy-then-wander think tree |
 | `OWT_ShopCustomers` | `IncidentDef` | Misc, baseChance 3, minRefireDays 0.6 |
+| `OWT_StickupDuty` | `DutyDef` | HighPriority hook; fight-then-rob-then-wander think tree — see [outlaws and the law](outlaws.md) |
+| `OWT_Stickup` | `IncidentDef` | ThreatBig, baseChance 2, minRefireDays 1.0; mainly fired by `StickupWatch`'s own clock, not this `baseChance` |
 | `OWT_FreshHaircut` | `ThoughtDef` | +5 mood, 1.5 days, stack limit 1 |
 | `OWT_SleptAtHotel` | `ThoughtDef` | 3 stages (room Impressiveness `< 20` / `< 60` / else), +2/+4/+7 mood, 1.5 days, stack limit 1, granted on waking |
 
@@ -216,6 +225,21 @@ where it lives in C# it is a `const` in the named file.
 | Shortfall reputation hit (`TownEconomy.RecordShortfall`) | −0.08 | The worst single-event reputation hit in the mod — worse than a disturbance's −0.05 |
 | `FactionStandingShortfallDelta` (`TownEconomy`) | −0.20 | The worst single-event standing hit in the mod — worse than a walkout's −0.10 |
 
+### Outlaws — `Shops/StickupWatch.cs`, `Incidents/IncidentWorker_Stickup.cs`, `Incidents/RaidStrategyWorker_Stickup.cs`, `Lords/LordToil_Stickup.cs`, `AI/JobDriver_RobTill.cs`, `Shops/CompBusiness.cs`, `Alerts/Alert_StickupRisk.cs`
+
+| Name | Value | Meaning |
+| --- | --- | --- |
+| `MinSilverAtRisk` (`StickupWatch`) | 300 | Below this much silver sitting uncollected across every till, the stickup clock never rolls at all |
+| MTB curve (`StickupWatch`) | `lerp(6, 0.75, clamp01((silver - 300) / 2000))` days, ×2 with a sheriff on duty | How the average gap between attempts shortens as uncollected silver climbs |
+| `ArrivalCheckInterval` (`StickupWatch`) | 600 ticks | How often the clock is consulted — same cadence as `TownEconomy`'s own arrival clock |
+| `AlertThreshold` (`Alert_StickupRisk`) | 150 | Deliberately below `MinSilverAtRisk` — the alert fires before the risk itself is even live |
+| Points scaling (`IncidentWorker_Stickup.ResolveRaidPoints`) | `clamp(silver × 0.6, 80, 400)` | Crew size and gear, scaled off silver at risk rather than colony wealth |
+| `baseChance` / `minRefireDays` (`OWT_Stickup`) | 2 / 1.0 | The small background trickle on top of `StickupWatch`'s own clock |
+| Duration cap (`RaidStrategyWorker_Stickup`) | 20000 ticks, 10000 with a sheriff on duty | Fixed once at raid creation; a sheriff coming on or off duty mid-raid can't retroactively change it |
+| `RobRadius` (`LordToil_Stickup`) | 30 | Same value as `LordToil_Shop.ShoppingRadius` |
+| `CrackTicks` (`JobDriver_RobTill`) | 180 | The "cracking the till" delay before silver actually moves |
+| `RobberyMessageCooldownTicks` (`CompBusiness`) | 400 | At most one robbery message per till in this window — same shape as `AccusationMessageCooldownTicks` |
+
 ## Mod settings
 
 `OldWestTownSettings`, saved in RimWorld's mod-settings file.
@@ -227,6 +251,7 @@ where it lives in C# it is a `const` in the named file.
 | `customerWealth` | 1.0 | 0.25–3.0 | Scales the silver each customer carries |
 | `hospitalityBridgeEnabled` | true | on/off | Master switch for the [Hospitality bridge](customers.md#hospitality-guests). Only shown, and only consulted, while `HospitalityInterop.Present` is true |
 | `hospitalityGuestsCarrySilver` | true | on/off | Whether the bridge tops up a Hospitality guest's purse the way an arriving customer's is. Only shown while the bridge itself is enabled |
+| `stickupsEnabled` | true | on/off | Master switch for [the stickup incident](outlaws.md). Off removes the risk from an uncollected till entirely |
 
 ## Translation keys
 
@@ -248,6 +273,7 @@ otherwise.
 | Sheriff's office gizmo and inspect panel | `OWT_CmdAssignSheriff`, `OWT_CmdAssignSheriffDesc`, `OWT_PostAlreadyFilled`, `OWT_PostVacant`, `OWT_PostOnDuty`, `OWT_PostOffDuty` |
 | Saloon trouble | `OWT_SaloonTrouble`, `OWT_DisturbanceLine`, `OWT_AlertRowdyPatrons`, `OWT_AlertRowdyPatronsDesc` |
 | Hospitality bridge | `OWT_HospitalityDetected`, `OWT_HospitalityNotDetected`, `OWT_SettingHospitalityEnabled`, `OWT_SettingHospitalityEnabledDesc`, `OWT_SettingHospitalitySilver`, `OWT_SettingHospitalitySilverDesc`, `OWT_HospitalityBridgeEngaged` |
+| Outlaws | `OWT_LetterStickupLabel`, `OWT_LetterStickupText`, `OWT_TillRobbed`, `OWT_StickupResisted`, `OWT_StickupDeparted`, `OWT_AlertStickupRisk`, `OWT_AlertStickupRiskDesc`, `OWT_RobberyLine`, `OWT_SettingStickupsEnabled`, `OWT_SettingStickupsEnabledDesc` |
 
 | Trouble | `OWT_SaloonTrouble`, `OWT_DisturbanceLine`, `OWT_AlertRowdyPatrons`, `OWT_AlertRowdyPatronsDesc` |
 | Gambling hall | `OWT_CmdHouseEdge`, `OWT_CmdHouseEdgeDesc`, `OWT_HouseEdgeSlider`, `OWT_HouseEdgeLine`, `OWT_ShortfallLine`, `OWT_PayoutLine`, `OWT_CheatingAccusation`, `OWT_HouseCantCover`, `OWT_CmdCollectDescWager` |
@@ -260,10 +286,12 @@ What survives a save/load, and where it lives.
 | --- | --- | --- |
 | Till contents | `CompBusiness` | Deep-saved `ThingOwner`; dropped on destroy |
 | Stock filter, open flag, markup, house edge | `CompBusiness` | Per business; house edge is inert for every kind but a gambling hall |
-| Per-business ledger, including shortfalls and payouts | `CompBusiness` | Daily figures rolled over at midnight |
+| Per-business ledger, including shortfalls, payouts, robberies and silver stolen | `CompBusiness` | Daily figures rolled over at midnight |
 | Town reputation, daily + lifetime figures | `TownEconomy` | One per map |
 | Per-faction standing | `TownEconomy` | Sparse `Dictionary<Faction, float>`; a save with no `standings` node reads every faction as `Reputation`, exactly like the untracked case |
 | Per-customer records, including a checked-in guest's rented bed | `LordJob_ShopVisit` | Saves and dies with the visiting group |
+| Stickup crew state (faction, town center, duration, arrival tick) | `LordJob_Stickup` | Only ever created going forward — no old save can have one running |
+| Uncollected-till total | `StickupWatch` | Not persisted at all — a live sum over `TownEconomy.Shops`, recomputed on every read |
 | Wait/serve progress | `JobDriver_PatronizeBusiness` | So a mid-sale save resumes correctly |
 | Sleep progress (`ticksAsleep`) | `JobDriver_SleepInRentedBed` | So a mid-stay save resumes correctly |
 | Current guest, selling desk | `CompRentableBed` | References only; released if the guest is dead on load |

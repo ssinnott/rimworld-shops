@@ -12,10 +12,15 @@ namespace OldWestTown
         public static JobDef OWT_SleepInRentedBed;
         public static JobDef OWT_Patrol;
         public static JobDef OWT_CalmTrouble;
+        public static JobDef OWT_RobTill;
 
         public static DutyDef OWT_Shop;
+        public static DutyDef OWT_StickupDuty;
 
         public static IncidentDef OWT_ShopCustomers;
+        public static IncidentDef OWT_Stickup;
+
+        public static RaidStrategyDef OWT_StickupStrategy;
 
         public static ThoughtDef OWT_SleptAtHotel;
 

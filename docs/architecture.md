@@ -41,6 +41,7 @@ All under `Source/OldWestTown/`, namespace `OldWestTown`.
 | `CompFalseFront.cs` | `CompProperties_FalseFront`, `CompFalseFront` | A [false front](buildings.md#false-front)'s one mechanical hook: `CurbAppealBonus` folds a small, capped bonus for a nearby dressed-up storefront into `ShopPricing.ValueAppeal`. Walks `FalseFrontRegistry` rather than the map, since `ValueAppeal` is a customer-AI hot path. Nothing here is persisted. |
 | `FalseFrontRegistry.cs` | `FalseFrontRegistry` | `MapComponent`. Live roster of spawned `CompFalseFront`s, registered the same way `TownEconomy` registers shops — so curb-appeal scoring never has to scan every Thing on the map. |
 | `TownEconomy.cs` | `TownEconomy` | `MapComponent`: business register, daily ledger, reputation, [appeal](economy.md#appeal), arrival clock, and — per faction — a sparse [standing](economy.md#standing-with-a-faction) dictionary that biases which faction's customers arrive next. `RecordShortfall` is the worst single-event reputation and standing hit the mod has — a gambling hall unable to pay out a win. |
+| `StickupWatch.cs` | `StickupWatch` | `MapComponent`: sums every registered business's `TillSilver`, open or closed, into the [stickup](outlaws.md) clock — an MTB roll that shortens as uncollected silver climbs, halved in frequency by an on-duty sheriff, firing `OWT_Stickup` through the storyteller the same way `TownEconomy` fires its own arrival incident. Read-only against `TownEconomy`; carries no persisted state of its own. |
 
 ### `AI/` — the pawn loops
 
@@ -58,6 +59,8 @@ All under `Source/OldWestTown/`, namespace `OldWestTown`.
 | `JobDriver_Patrol.cs` | `JobDriver_Patrol` | Stands the post and pings `CompRolePost.NotifyOnDuty` every tick, mirroring `JobDriver_ManShop`. Also polls `TroubleUtility.AnyoneWorthCalming` and breaks the patrol off early when there's someone to calm. |
 | `WorkGiver_CalmTrouble.cs` | `WorkGiver_CalmTrouble` | The reactive half: sends the assigned sheriff to one specific [rowdy patron](customers.md#trouble-at-the-saloon-and-the-gambling-hall) rather than a building. |
 | `JobDriver_CalmTrouble.cs` | `JobDriver_CalmTrouble` | Walks to the target and unilaterally zeroes their rowdiness. A no-op, not a false success, if the target's walked off mid-wait. |
+| `JobGiver_RobTill.cs` | `JobGiver_RobTill` | A [stickup](outlaws.md) raider's own scoring pass: every registered business, open or closed, by `TillSilver` against distance — no staffed bonus, no combat awareness. Runs beneath vanilla's own `JobGiver_AIFightEnemies` in the `OWT_StickupDuty` think tree, so self-defense always wins first. |
+| `JobDriver_RobTill.cs` | `JobDriver_RobTill` | Cracking a till: walk up, a short delay, take everything in it via `ShopTransaction.RobTill`. A plain `JobDriver`, deliberately not `IBusinessPatron` — see [boundaries worth keeping](#boundaries-worth-keeping). |
 
 ### `Roles/` — town roles
 
@@ -79,9 +82,14 @@ All under `Source/OldWestTown/`, namespace `OldWestTown`.
 | --- | --- | --- |
 | `Lords/LordJob_ShopVisit.cs` | `CustomerRecord`, `LordJob_ShopVisit` | The [visiting group](customers.md#the-visit) and its per-customer records — including, now, who's checked into a bed. Deliberately a flat graph: shopping, then exit; `Trigger_VisitComplete` additionally waits for every rented bed to empty before the group can leave. |
 | `Lords/LordToil_Shop.cs` | `LordToil_Shop` | Hands every group member the `OWT_Shop` duty. |
+| `Lords/LordJob_Stickup.cs` | `LordJob_Stickup` | A [stickup](outlaws.md) crew's own flat graph — near-twin of `LordJob_ShopVisit`'s shape, hostile instead of paying. Exits either on its own (the duration cap, sheriff-halved, or every till already emptied) or into `LordToil_PanicFlee` the instant anyone shoots back. `GuiltyOnDowned` is what makes capturing a downed raider ordinary vanilla prisoner mechanics rather than anything this mod builds. |
+| `Lords/LordToil_Stickup.cs` | `LordToil_Stickup` | Hands every crew member the `OWT_StickupDuty` duty. Byte-for-byte mirror of `LordToil_Shop`. |
 | `Incidents/IncidentWorker_ShopCustomers.cs` | `IncidentWorker_ShopCustomers` | Turns town appeal into [arrivals](customers.md#arrival), purses and group size, and — per faction standing — biases [which faction](customers.md#which-faction-turns-up) actually shows up. |
+| `Incidents/IncidentWorker_Stickup.cs` | `IncidentWorker_Stickup` | Subclasses `IncidentWorker_RaidEnemy` rather than hand-rolling a raid: `base.TryExecuteWorker` (untouched) resolves the faction, generates pawns and gear, and sends the letter. Five overrides turn that into a [stickup](outlaws.md) — `ResolveRaidPoints` scales a small, capped band off silver at risk rather than colony wealth; `ResolveRaidStrategy`/`ResolveRaidArriveMode` force `OWT_StickupStrategy` and a walk-in arrival; `GetLetterLabel`/`GetLetterText` supply the arrival letter's own copy. |
+| `Incidents/RaidStrategyWorker_Stickup.cs` | `RaidStrategyWorker_Stickup` | The one hook a raid strategy has to supply: `MakeLordJob` builds a `LordJob_Stickup`, reading `TroubleUtility.AnySheriffOnDuty` once, at raid creation, to fix the raid's duration for its whole lifetime. `CanUseWith` returns false — a second, independent guard (alongside `IncidentWorker_Stickup` never consulting it for its own firing) against an unrelated ordinary raid ever picking this non-combat strategy. |
 | `Alerts/Alert_CustomersWaiting.cs` | `Alert_CustomersWaiting` | Raised while customers burn patience at an unattended business. |
 | `Alerts/Alert_RowdyPatrons.cs` | `Alert_RowdyPatrons` | Raised while a patron is "getting loud" and still calmable — the sheriff's real window before a disturbance fires unattended. Mirrors `Alert_CustomersWaiting`'s shape. |
+| `Alerts/Alert_StickupRisk.cs` | `Alert_StickupRisk` | Raised once a map's uncollected till total crosses a threshold below `StickupWatch.MinSilverAtRisk` itself — the [risk](outlaws.md#how-the-risk-builds) is visible climbing before the clock behind it is even live. |
 | `UI/ITab_ShopStock.cs` | `ITab_ShopStock` | The Stock tab. Reuses vanilla's storage-filter widget, so it reads like a stockpile. |
 
 ### Root
@@ -298,3 +306,60 @@ anything changes hands.
   its own playtest too: it's a round number chosen in the same spirit as this file's other
   constants, not measured against how fast a real customer's Joy need actually decays while
   sitting at a table.
+- **[Outlaws and the law](outlaws.md) is entirely new pawn AI** — a lord graph, a duty think
+  tree, two job drivers — exactly the category this list opens with as impossible to validate
+  statically. Unproven in a live game like everything else raid-side in this mod.
+- **`IncidentWorker_Stickup`'s five `IncidentWorker_Raid` overrides, and
+  `RaidStrategyWorker_Stickup.MakeLordJob`, are confirmed genuine overrides by the compiler, not
+  by refdump** — refdump reports member existence and signature only, never accessibility or
+  virtual/override modifiers. Two of the five (`ResolveRaidStrategy`, `ResolveRaidArriveMode`)
+  first failed to compile as `protected override` with exactly the `CS0507` access-modifier
+  error this risk was expected to surface as, and compiled clean once corrected to `public
+  override`, matching the base class's own accessibility; `MakeLordJob` needed the opposite fix,
+  from `public` down to `protected`. `GetLetterLabel`, `GetLetterText` and `CanUseWith` compiled
+  as overrides on the first attempt. What the compiler *can't* confirm, because reference
+  assemblies carry no IL: whether `IncidentWorker_Raid`'s internal `TryExecuteWorker` genuinely
+  resolves strategy, arrival mode and points *before* generating pawns and gear, so overriding
+  them actually reaches the same raid rather than one generated a step earlier. If that
+  ordering assumption is wrong, the realistic worst case is a stickup whose gear reflects
+  different defaults while `LordJob_Stickup` still runs the actual encounter — degraded, not
+  broken, since `MakeLordJob` still receives whatever `parms.faction`/`points` ended up resolved.
+- **Whether a duty-hooked hostile pawn genuinely retains full vanilla self-preservation/combat
+  behavior alongside a custom think-tree objective beneath it** can't be proven from this
+  sandbox — no Core Defs XML is available to see how vanilla's own raid duties are actually
+  composed, and reference assemblies carry no IL. Mitigated by putting vanilla's own
+  `JobGiver_AIFightEnemies` at the top of `OWT_StickupDuty`'s priority list — the identical
+  composition shape (a reactive concern first, falling through on null) already proven to work in
+  `OWT_Shop`'s own duty, for lodging rather than combat.
+- **`LordToil_PanicFlee`'s parameterless constructor compiles clean** (`new
+  LordToil_PanicFlee()`), which resolves the one construction question refdump couldn't answer —
+  it doesn't inspect constructors, only fields, properties and methods. What compiling clean
+  can't confirm is what a fleeing raider actually looks like in play, or whether vanilla expects
+  this toil to be reached only through raid machinery this mod doesn't otherwise touch.
+- A robber, a gambling-hall payout, the player's own Collect gizmo, and deconstruction can all
+  touch the same till in overlapping windows. This degrades exactly the way the existing
+  gambling-hall concurrency note above already documents: `TakeFromTill` re-reads the till fresh
+  on every call, so it can never be over-drawn or duplicated — worst case is one party finding
+  less than expected, never a negative till or silver created from nothing. A robber is simply a
+  new third party to a race this file previously only reasoned about for customers and gamblers.
+- Two raiders can converge on the same till — best-effort `Pawn.Reserve` on the standing cell, not
+  a hard lock on the business itself, the same accepted, gracefully-degrading race this codebase
+  already documents for stock and hotel beds. `ShopTransaction.RobTill`'s own re-validate-before-
+  taking discipline means the loser gets nothing rather than duplicating or voiding silver.
+- **`JobDriver_RobTill` deliberately does not implement `IBusinessPatron`**, the one place this
+  mechanic actively *prevents* a synchronization the business layer would otherwise fall into —
+  see [boundaries worth keeping](#boundaries-worth-keeping). The accepted cost: a robber standing
+  at, but not reserving, a customer cell isn't recognized by an *approaching* customer's own
+  queue-fanout check the way another queueing customer would be — only physical occupancy is
+  checked. A minor, purely cosmetic edge case, the same category of imprecision `CustomerCellFor`
+  already discloses for ordinary queueing.
+- **Every stickup tunable is a first-pass guess, untested in a live game** — the MTB curve (six
+  days down to 0.75, past a 300-silver floor), the alert threshold (150), the points-scaling curve
+  and its 80–400 cap, and the sheriff's frequency and duration factors specifically. The thing most
+  worth playtesting: whether the MTB curve actually reads as "risk visibly building" rather than
+  "never happens" or "constant harassment," and whether the points cap produces a band that feels
+  small and focused rather than trivial or overwhelming.
+- `RaidStrategyDef`'s `SimpleCurve` XML shape (`selectionWeightPerPointsCurve`,
+  `pointsFactorCurve`, authored as `<points><li>(x, y)</li>...</points>`) is well-established
+  modding convention, not confirmed against a Core Defs example this sandbox can check — same
+  disclosed-but-unverifiable category as `OWT_BatwingDoor`'s `ParentName="Door"` assumption above.

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+
+  <!-- A stickup: fired mainly by StickupWatch's own clock (Shops/StickupWatch.cs), keyed off
+       silver actually sitting uncollected in tills, the same way OWT_ShopCustomers is mainly
+       fired by TownEconomy's own arrival clock. baseChance is a small background trickle on top
+       of that, in the same role OWT_ShopCustomers's own baseChance plays. -->
+  <IncidentDef>
+    <defName>OWT_Stickup</defName>
+    <label>stickup</label>
+    <category>ThreatBig</category>
+    <targetTags>
+      <li>Map_PlayerHome</li>
+    </targetTags>
+    <workerClass>OldWestTown.Incidents.IncidentWorker_Stickup</workerClass>
+    <baseChance>2</baseChance>
+    <minRefireDays>1.0</minRefireDays>
+    <letterDef>ThreatBig</letterDef>
+  </IncidentDef>
+
+</Defs>

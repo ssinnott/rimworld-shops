@@ -200,6 +200,12 @@ costs to build. Without it, the very first bet ever placed at a brand-new table 
 chance of winning a payout the till has no way to cover — not a rare accident, close to a coin flip,
 on transaction one.
 
+**Letting it sit is a risk, too.** A till only ever fills up on its own — collecting it is still
+entirely up to you, and nothing before this forced the question. Leave enough silver sitting
+uncollected across your tills for long enough, though, and it starts drawing armed attention: see
+[outlaws and the law](outlaws.md) for how that risk builds, what it targets, and what actually
+slows it down.
+
 ## What counts as stock
 
 The sales floor is a **room**, not a zone you paint. A shop is defined by walls you already

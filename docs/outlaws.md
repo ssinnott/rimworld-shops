@@ -1,0 +1,99 @@
+---
+title: Outlaws and the law
+summary: A rich, uncollected till is a target — how the risk builds, what a stickup actually does, and what a sheriff changes about it.
+---
+
+Every till in town only ever fills up until you empty it yourself — see [the till as a
+bankroll](economy.md#the-till-as-a-bankroll). Leave it sitting there long enough, on a good
+enough day, and somebody else notices. A **stickup** is a small, armed band that rides in for
+your tills specifically, not your colonists, empties whatever it can reach, and clears out —
+unless you make them regret it.
+
+## How the risk builds
+
+The town watches its own uncollected silver — every till across every business, added together,
+whether that business is open or closed. Below **300 silver** sitting uncollected, nothing is
+ever at risk at all: a modest shop or two, collected reasonably often, will rarely if ever see
+this. Above it, the risk climbs the longer that silver sits there: the average gap between
+attempts slides from around **six days** near the floor down to well under a single day once
+you're sitting on real money — somewhere north of **2,000 silver** uncollected across your
+tills.
+
+You can see this coming before it bites. An alert appears once your tills hold **150 silver**
+combined — before the risk itself is even live at 300 — and it names exactly which counters are
+carrying the money, so you know what a collection run would actually clear. There's also a
+small, independent chance of a stickup regardless, the same background trickle every arriving
+customer group already has. Either way, a stickup won't pile onto an existing threat: if
+something else hostile is already active on your map, the clock holds off rather than adding a
+second crisis on top of the first.
+
+Collecting your takings resets the clock the honest way — there's nothing left to be at risk
+until it builds back up. A [gambling hall](businesses.md#gambling-hall) is worth watching in
+particular: a single well-stocked table's own starting bankroll alone is enough to clear the
+300-silver floor on its own.
+
+## What a stickup targets
+
+A stickup crew doesn't browse, and it doesn't care what your sign says. It goes straight for
+whichever till holds the most silver for the distance, weighing every business you've registered
+— open or closed, staffed or not. **Staffing a counter is not a deterrent.** A shopkeeper
+standing at a counter being robbed just keeps working; nothing about the robbery interrupts them,
+and nothing about their presence gives the crew any reason to look elsewhere. The only things
+that actually stop a stickup are an empty till, or somebody making them pay for trying.
+
+The crew itself is small and focused on purpose — sized off exactly how much silver is actually
+at risk, not off how wealthy your colony is overall. A very rich colony with a lot uncollected
+still only draws a small, capped band; it never balloons into a colony-wide assault the way an
+ordinary raid scaled to your total wealth would.
+
+## What a sheriff changes
+
+The [sheriff](shopkeeping.md#sheriffing) was built to calm rowdy drinkers, not to fight, and a
+stickup doesn't hand them a new combat job — there's no dedicated "shoot the outlaws" duty here.
+What an on-duty sheriff actually changes is the two things that were already theirs to influence:
+
+- **How often it happens.** The same on-duty presence that slows [saloon
+  trouble](customers.md#trouble-at-the-saloon-and-the-gambling-hall) roughly halves how often a
+  stickup's own clock rolls in the first place — the average gap between attempts roughly
+  doubles.
+- **How long it lasts, once it starts.** A crew that isn't driven off eventually leaves on its
+  own — up to roughly **eight in-game hours**, or about **four** with a sheriff on duty when the
+  crew arrives. Either way, they leave sooner than that if there's nothing left in any till to
+  take.
+
+Both are passive: nothing about having a sheriff on duty sends them running toward gunfire, and a
+stickup crew never reacts to the sheriff specifically at all. The badge lowers the odds and
+shortens the ordeal; it was never meant to turn this into a shootout on demand.
+
+## If it happens
+
+Nobody in this mod hand-builds combat for a stickup — it's an ordinary hostile band underneath,
+and it responds to being shot at exactly the way any other raider does. Any armed colonist (or a
+turret) firing on the crew is enough: the whole band breaks and flees rather than finishing the
+job. Whatever silver they'd already taken before that point stays taken — there's no refund for
+resisting late. If you down or capture a raider before they escape with it, though, whatever
+silver *they personally* are still carrying is recoverable the ordinary way any raider's loot
+already is.
+
+A downed stickup raider is treated exactly like a downed raider from any other hostile band —
+guilty, not an innocent visitor — so every vanilla option for a prisoner is already open to you
+with nothing extra built for it: recruit them, sell them, ransom them back to their own faction,
+or simply let them go.
+
+## What this leaves out
+
+Two pieces the wider idea of "outlaws and the law" could have included aren't here, on purpose:
+
+- **No wanted board, and no bounty quests on a recurring outlaw leader.** The name attached to a
+  stickup's arrival letter is flavor only — nobody behind it is tracked from one raid to the
+  next, and there's no persistent "this particular outlaw" identity anywhere in the mod. Building
+  one honestly would have meant a new kind of long-lived state this mod has never needed before,
+  on top of RimWorld's own quest system — a large, thinly documented surface not worth the risk
+  for what it would have added on top of the mechanic above.
+- **No bespoke jail.** There's nothing to build here that the base game doesn't already do:
+  capturing a stickup raider works through completely ordinary, unmodified prisoner mechanics,
+  described above. A second system converting prisoners into silver or reputation would only
+  have duplicated a decision vanilla's own prisoner interface already owns.
+
+Turn the whole mechanic off from **Options → Mod settings → Old West Town** if you'd rather run a
+town with no risk attached to a full till at all.

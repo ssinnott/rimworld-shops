@@ -68,6 +68,7 @@ namespace OldWestTown.Shops
         private Pawn lastShopkeeper;
         private int lastWalkoutMessageTick = -99999;
         private int lastAccusationMessageTick = -99999;
+        private int lastRobberyMessageTick = -99999;
 
         /// <summary>A much shorter window than TryClaimWalkoutMessage's own patience-length
         /// one, deliberately: at a meaningful accusation chance and a wager's much shorter
@@ -76,6 +77,10 @@ namespace OldWestTown.Shops
         /// frequency swing this mechanic exists to make visible. This only collapses a genuine
         /// multi-patron burst, not the signal itself.</summary>
         private const int AccusationMessageCooldownTicks = 400;
+
+        /// <summary>Same window as AccusationMessageCooldownTicks — collapses only a genuine
+        /// same-tick multi-raider race on one till, not the signal itself.</summary>
+        private const int RobberyMessageCooldownTicks = 400;
 
         // Ledger. Daily figures are rolled over by the map's TownEconomy component.
         public int salesToday;
@@ -92,6 +97,13 @@ namespace OldWestTown.Shops
         public int lifetimeShortfalls;
         public int payoutsToday;
         public int lifetimePayouts;
+
+        // Any counter can be robbed, unlike the gambling-only figures above — a stickup doesn't
+        // care what a business sells, only what's sitting in its till.
+        public int robberiesToday;
+        public int lifetimeRobberies;
+        public int stolenToday;
+        public int lifetimeStolen;
 
         private List<Thing> cachedStock = new List<Thing>();
         private int cachedStockTick = -99999;
@@ -464,6 +476,20 @@ namespace OldWestTown.Shops
             lifetimePayouts += amount;
         }
 
+        /// <summary>A stickup emptying this till. Counter-only, mirroring RecordShortfall's own
+        /// shape — no reputation or standing consequence lives here: a robbery isn't something
+        /// the shop or the town did wrong, so it costs nothing the way a shortfall or a walkout
+        /// does. Silver already taken stays gone regardless; this is bookkeeping, not a
+        /// consequence.</summary>
+        public void RecordRobbery(int amount)
+        {
+            if (amount <= 0) return;
+            robberiesToday++;
+            lifetimeRobberies++;
+            stolenToday += amount;
+            lifetimeStolen += amount;
+        }
+
         /// <summary>
         /// At most one walkout message per counter per patience-window, so a whole group
         /// giving up at once reads as one event in the log, not a flood.
@@ -488,6 +514,17 @@ namespace OldWestTown.Shops
             return true;
         }
 
+        /// <summary>At most one robbery message per counter per RobberyMessageCooldownTicks —
+        /// mirrors TryClaimAccusationMessage's own shape. Collapses only a genuine same-tick
+        /// multi-raider race on one till, never the signal itself.</summary>
+        public bool TryClaimRobberyMessage()
+        {
+            int now = Find.TickManager.TicksGame;
+            if (now - lastRobberyMessageTick < RobberyMessageCooldownTicks) return false;
+            lastRobberyMessageTick = now;
+            return true;
+        }
+
         public void RollOverDay()
         {
             salesToday = 0;
@@ -496,6 +533,8 @@ namespace OldWestTown.Shops
             disturbancesToday = 0;
             shortfallsToday = 0;
             payoutsToday = 0;
+            robberiesToday = 0;
+            stolenToday = 0;
         }
 
         // ---------------------------------------------------------------- lifecycle
@@ -563,6 +602,10 @@ namespace OldWestTown.Shops
             Scribe_Values.Look(ref lifetimeShortfalls, "lifetimeShortfalls");
             Scribe_Values.Look(ref payoutsToday, "payoutsToday");
             Scribe_Values.Look(ref lifetimePayouts, "lifetimePayouts");
+            Scribe_Values.Look(ref robberiesToday, "robberiesToday");
+            Scribe_Values.Look(ref lifetimeRobberies, "lifetimeRobberies");
+            Scribe_Values.Look(ref stolenToday, "stolenToday");
+            Scribe_Values.Look(ref lifetimeStolen, "lifetimeStolen");
             Scribe_References.Look(ref lastShopkeeper, "lastShopkeeper");
 
             if (Scribe.mode == LoadSaveMode.PostLoadInit)
@@ -616,6 +659,10 @@ namespace OldWestTown.Shops
             {
                 sb.AppendLine("OWT_PayoutLine".Translate(((float)payoutsToday).ToStringMoney()));
                 sb.AppendLine("OWT_ShortfallLine".Translate(shortfallsToday));
+            }
+            if (lifetimeStolen > 0)
+            {
+                sb.AppendLine("OWT_RobberyLine".Translate(((float)lifetimeStolen).ToStringMoney(), lifetimeRobberies));
             }
 
             TownEconomy econ = parent.Map?.GetComponent<TownEconomy>();
@@ -762,6 +809,10 @@ namespace OldWestTown.Shops
                     sb.AppendLine("OWT_HouseEdgeLine".Translate(shop.HouseEdge.ToStringPercent()));
                     sb.AppendLine("OWT_PayoutLine".Translate(((float)shop.payoutsToday).ToStringMoney()));
                     sb.AppendLine("OWT_ShortfallLine".Translate(shop.shortfallsToday));
+                }
+                if (shop.lifetimeStolen > 0)
+                {
+                    sb.AppendLine("OWT_RobberyLine".Translate(((float)shop.lifetimeStolen).ToStringMoney(), shop.lifetimeRobberies));
                 }
             }
             return sb.ToString().TrimEndNewlines();

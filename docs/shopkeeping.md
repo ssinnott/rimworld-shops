@@ -60,6 +60,11 @@ someone down grants **35 Social XP**, the same training a shopkeeper earns for a
 the post, or take away their Sheriffing priority, and they simply stop — there's no notice to
 give and nothing to undo.
 
+An on-duty sheriff also has a second, unrelated job: they lower how often a
+[stickup](outlaws.md) happens at all, and shorten one that does. That's a passive effect of being
+on duty, not a new patrol or a combat job — the Shopkeeping work type itself is untouched by any
+of this. Staffing a counter, on its own, does nothing to protect its till.
+
 ## When a counter asks for staff
 
 Any business with something to offer will ask for staff; it doesn't matter what kind it is. A

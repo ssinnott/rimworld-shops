@@ -94,6 +94,14 @@ This mod is standalone. It does not require Hospitality, and is written to sit a
   Hospitality is already housing them. This is the one feature built against a mod that has
   never actually run alongside this one in this sandbox; it degrades to doing nothing at all,
   silently, if its one guess about how Hospitality is put together turns out wrong.
+- **Outlaws and the law.** Leave enough silver sitting uncollected across your tills for long
+  enough and it draws a *stickup* — a small, armed band, sized off the silver actually at risk
+  rather than your colony's total wealth, that heads straight for counters instead of colonists
+  and empties whatever it can reach. An alert shows the risk climbing well before it's live, so
+  collecting your takings goes from a chore to an actual call. Staffing a counter doesn't protect
+  it; a sheriff on duty does — halving both how often a stickup happens and how long one lasts.
+  Fight back and the crew routs, though whatever they've already taken stays gone; a captured
+  raider works through the same ordinary prisoner options any other downed hostile does.
 
 ## Installing
 

@@ -83,6 +83,40 @@ change itself, and update the [wiki page](contributing.md#the-workflow) it affec
   [the design notes](DESIGN.md#the-hospitality-bridge) and
   [the code map's known risks](architecture.md#known-risks) for the full account of what is, and
   isn't, verified here.
+- **[Outlaws and the law](outlaws.md)** — a rich town becomes a target. `StickupWatch`, a new
+  per-map `MapComponent`, sums every registered business's uncollected till silver and rolls an
+  MTB clock that shortens as that total climbs past 300, firing `OWT_Stickup` through the
+  storyteller exactly the way `TownEconomy` already fires its own arrival incident.
+  `Alert_StickupRisk` shows the risk building well before the clock is even live. `OWT_Stickup`
+  (`IncidentWorker_Stickup`) subclasses `IncidentWorker_RaidEnemy` rather than hand-rolling a
+  raid — faction resolution, pawn generation, gear and the arrival letter's send-off all stay
+  vanilla's own `base.TryExecuteWorker`, untouched — and overrides only what turns an ordinary
+  raid into a stickup: crew size and gear scaled off silver at risk rather than colony wealth
+  (capped small either way), a forced `OWT_StickupStrategy` (`RaidStrategyWorker_Stickup`) and
+  walk-in arrival, and the letter's own copy. `LordJob_Stickup`/`LordToil_Stickup` are a
+  near-twin of `LordJob_ShopVisit`'s own flat graph, hostile instead of paying: `OWT_StickupDuty`
+  runs vanilla's own `JobGiver_AIFightEnemies` ahead of the new `JobGiver_RobTill`/
+  `JobDriver_RobTill` (job `OWT_RobTill`), so self-defense always wins first, and any pawn
+  getting shot at routs the whole crew rather than finishing the job.
+  `ShopTransaction.RobTill` empties a till completely into the thief's inventory, structurally
+  incapable of over-drawing it the same way every other till primitive already is;
+  `CompBusiness` gains a robbery ledger (`robberiesToday`/`lifetimeRobberies`/`stolenToday`/
+  `lifetimeStolen`) alongside its existing sale and shortfall figures.
+  `JobDriver_RobTill` deliberately does **not** implement `IBusinessPatron` — the marker that
+  would otherwise make a colonist get dispatched to staff the very counter being robbed, and
+  make the waiting-customers alert misread an active robbery as an ordinary queue. The
+  step-4 [sheriff](shopkeeping.md#sheriffing) is the mechanic's only counterplay lever beyond
+  ordinary self-defense: being on duty roughly halves both how often a stickup happens
+  (`StickupWatch`'s own clock) and how long one lasts once it starts
+  (`RaidStrategyWorker_Stickup`, read once at raid creation) — two passive reads of the same
+  `TroubleUtility.AnySheriffOnDuty` flag that already suppresses saloon rowdiness, never a new
+  job or a reference to any raider. A downed raider's `LordJob_Stickup.GuiltyOnDowned` is what
+  makes capturing and ransoming one completely ordinary, unmodified vanilla prisoner mechanics —
+  deliberately the entire "jail" story this mechanic tells; a wanted board with bounty quests on
+  a recurring outlaw leader was cut for the same reason RimWorld's quest system was weighed and
+  declined elsewhere in this project. A new `stickupsEnabled` setting (default on) turns the
+  whole mechanic off. See [outlaws and the law](outlaws.md) and
+  [the code map's known risks](architecture.md#known-risks) for what's tuned but untested.
 
 ### Changed
 
@@ -161,6 +195,16 @@ change itself, and update the [wiki page](contributing.md#the-workflow) it affec
 
 ### Save compatibility
 
+- **Outlaws and the law** is additive throughout, with a zero-migration precedent already
+  established elsewhere in this codebase for every piece of it. `StickupWatch` is a brand-new
+  `MapComponent` — RimWorld auto-instantiates it on any map, old or new, and it carries no
+  persisted state at all (every value is a live sum), so there's nothing to migrate, not even the
+  "defaults to false" story a stateful comp would need. `CompBusiness` gains four new `int`
+  fields (`robberiesToday`/`lifetimeRobberies`/`stolenToday`/`lifetimeStolen`), each defaulting to
+  `0` on a save with no such node — identical to how `shortfallsToday`/`lifetimePayouts` already
+  behaved for a save from before the gambling hall existed. `LordJob_Stickup` is only ever
+  created going forward, so no old save can have one running. The new `stickupsEnabled` setting
+  defaults to `true`, the same precedent `hospitalityBridgeEnabled` already set.
 - No gameplay change from the documentation work above. Safe to drop into a save in progress.
 - The Hospitality bridge adds exactly one new persisted field: `HospitalityBridge.hasAnnouncedBridge`,
   a plain `bool` on a brand-new per-map `MapComponent`. An existing save gets a fresh instance

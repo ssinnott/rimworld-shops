@@ -205,6 +205,33 @@ namespace OldWestTown.Shops
             return total;
         }
 
+        /// <summary>The other place money leaves a till by force rather than by the player's own
+        /// hand — a stickup emptying it. Unlike PayOutFromTill, which moves a specific amount, a
+        /// robbery takes everything currently there: nobody making change for a holdup. Returns
+        /// the amount actually taken, which is exactly shop.TillSilver at the moment this runs
+        /// (zero if the till came up empty in the meantime — the same graceful "somebody beat you
+        /// to it" no-op every other race in this file already resolves to, not a failure).</summary>
+        public static int RobTill(CompBusiness shop, Pawn thief)
+        {
+            if (shop == null || thief?.inventory == null) return 0;
+
+            List<Thing> stacks = shop.TakeFromTill(shop.TillSilver);
+            int total = 0;
+            foreach (Thing stack in stacks)
+            {
+                total += stack.stackCount;
+                if (!thief.inventory.innerContainer.TryAdd(stack, true))
+                {
+                    // Inventory refused it (rare) — leave it on the floor rather than voiding
+                    // it, mirroring PayOutFromTill's own fallback.
+                    GenPlace.TryPlaceThing(stack, thief.Position, thief.Map, ThingPlaceMode.Near);
+                }
+            }
+
+            shop.RecordRobbery(total);
+            return total;
+        }
+
         /// <summary>Moves <paramref name="amount"/> silver out of the customer's purse and into the till.</summary>
         private static bool TakeSilver(Pawn customer, int amount, CompBusiness shop)
         {

@@ -440,6 +440,71 @@ that seeds the till a wager's first customer needs to exist at all — an empty 
 win chance would otherwise make the very first bet ever placed at a fresh table the likeliest one
 to be shorted.
 
+### Outlaws and the law: a third visitor to the same till
+
+The roadmap named three things for this expansion — a stickup incident, a wanted board with
+bounty quests, and a jail that converts prisoners into silver or reputation. Only the first
+shipped. The other two were cut deliberately, for reasons specific to each rather than a single
+"keep it small" instinct: a wanted board needs a recurring, *named* outlaw leader, which needs a
+kind of state this codebase has never had — an identity that survives across incidents and saves,
+unlike `CustomerRecord`, which is deliberately built to die with the visit it belongs to — sitting
+on top of RimWorld's quest system, a large, effectively invisible surface from this sandbox
+(reference-assembly metadata carries no Def content and no IL) with no graceful failure mode the
+way this mod's other guesses have one. A bespoke jail turned out to need nothing built at all: the
+moment `LordJob_Stickup.GuiltyOnDowned` returns true, a downed raider is an ordinary hostile-
+faction humanlike pawn, already capturable, holdable and ransomable through completely unmodified
+vanilla prisoner mechanics. Writing a parallel comp that also converts prisoners to silver on a
+schedule would have duplicated a decision space vanilla's own prisoner interface already owns.
+
+The incident itself leans on vanilla raid machinery as hard as it can, rather than re-deriving
+faction selection, pawn generation and gear from scratch the way an earlier draft of this feature
+considered. `IncidentWorker_Stickup` subclasses `IncidentWorker_RaidEnemy` and touches five hooks
+— `CanFireNowSub`, `ResolveRaidPoints`, `ResolveRaidStrategy`, `ResolveRaidArriveMode`, and the
+letter pair — leaving `base.TryExecuteWorker` to do everything else, unmodified. Two of those five
+overrides turned out to need a different access modifier than a first pass guessed
+(`ResolveRaidStrategy` and `ResolveRaidArriveMode` are `public` on `IncidentWorker_Raid`, not
+`protected`) — caught immediately by the compiler as a `CS0507`, not silently, which is exactly
+why this codebase leans on "does it compile as `override`" as a cheap, real check on an assumption
+`refdump` cannot make: reference-assembly metadata reports a member's existence and signature, but
+never its accessibility or virtual/override modifiers. What compiling clean still can't confirm —
+because reference assemblies carry no IL — is whether `IncidentWorker_Raid`'s own internal call
+order actually consults these overrides before generating the raid's pawns and gear, so the values
+this file sets land on the same raid rather than a later one. See [known
+risks](architecture.md#known-risks) for the honest account of what's confirmed and what's still
+inferred.
+
+Sizing the crew off silver actually at risk (`ResolveRaidPoints`, clamped small at both ends)
+rather than off colony wealth is the concrete answer to the brief's own worry about turning a
+shopkeeper sim into a combat mod: a stickup is small and focused by construction, whatever the
+colony is worth. `RaidStrategyWorker_Stickup.MakeLordJob` is the one place a custom `LordJob` is
+genuinely needed — a stickup's state machine (rob, flee on being harmed, leave once the clock or
+the tills run out) doesn't fit any existing vanilla strategy — and `LordJob_Stickup`/
+`LordToil_Stickup` are close enough to `LordJob_ShopVisit`/`LordToil_Shop`'s own shape that the
+customer visit's flat-graph reasoning above applies here verbatim, just with a hostile duty in
+place of a shopping one.
+
+The sheriff's entire contribution to this mechanic is two passive reads of
+`TroubleUtility.AnySheriffOnDuty` — once inside `StickupWatch`'s own clock tick, halving how often
+it rolls, and once inside `RaidStrategyWorker_Stickup.MakeLordJob` at raid creation, halving the
+raid's duration. Neither is a job, a reference, or a wait; it's the identical mechanism that
+already suppresses saloon rowdiness, pointed at a second, unrelated bad outcome. That is a
+deliberate answer to the brief's own framing — the sheriff was built to calm drunks, not shoot
+outlaws, and a toothless combat job would have been worse than none. Self-defense against a
+stickup crew is entirely vanilla's own `JobGiver_AIFightEnemies`, run ahead of `JobGiver_RobTill`
+in the crew's duty think tree; this mod contributes zero coordination code between "a raider" and
+whoever is shooting at them. `JobDriver_RobTill` deliberately does not implement
+`IBusinessPatron` — the one place this feature actively *prevents* a synchronisation the business
+layer would otherwise fall into, since without that guard `WorkGiver_ManShop` would dispatch an
+unarmed colonist to staff the very counter being robbed.
+
+A robber is a third kind of visitor to a primitive two others already share safely: `TillSilver`,
+moved through `CompBusiness.TakeFromTill`. A gambling hall's payout, the player's own Collect
+gizmo, and `ShopTransaction.RobTill` can all touch the same till in overlapping windows, and all
+three already degrade the same way — `TakeFromTill` re-reads the till fresh on every call, so it
+can never be over-drawn or duplicated, only found emptier than a given caller expected. Adding a
+robber to that mix needed no new discipline, only `ShopTransaction.RobTill`'s own re-validate-
+immediately-before-taking check, mirroring the same rule the rest of this file already lives by.
+
 ## The economy loop
 
 ```
