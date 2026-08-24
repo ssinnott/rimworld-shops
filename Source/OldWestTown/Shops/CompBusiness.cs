@@ -534,6 +534,85 @@ namespace OldWestTown.Shops
             }
         }
 
+        /// <summary>The colony's own way in.
+        ///
+        /// A stranger is sent here by their duty's think tree. A colonist is sent by the player and
+        /// by nothing else — an order on the building, the way every other one-off thing a pawn is
+        /// told to do is given. That is a decision, not a stub: an hour of a colonist's day is the
+        /// scarcest thing the colony owns and this feature spends two of them, the patron's and the
+        /// shopkeeper's. Nothing here should spend them unasked.
+        ///
+        /// Only a service whose ServiceDef names a colonistJobDef is offered, so no job this menu
+        /// can start has a route to the till.</summary>
+        public override IEnumerable<FloatMenuOption> CompFloatMenuOptions(Pawn selPawn)
+        {
+            if (selPawn == null || parent.Map == null || selPawn.Map != parent.Map) yield break;
+            if (selPawn.Faction != Faction.OfPlayer || selPawn.Drafted) yield break;
+
+            foreach (ServiceDef service in AvailableServices)
+            {
+                if (service.colonistJobDef == null) continue;
+
+                // One cell, decided once: the menu's reachability answer and the job's destination
+                // must be the same tile, or the order offers itself and then fails on the walk.
+                IntVec3 stand = CustomerCellFor(selPawn);
+
+                string reason = CannotOrder(service, selPawn, stand);
+                if (reason != null)
+                {
+                    yield return new FloatMenuOption(
+                        "OWT_OrderServiceDisabled".Translate(service.label, reason), null);
+                    continue;
+                }
+
+                yield return new FloatMenuOption("OWT_OrderService".Translate(service.label), () =>
+                {
+                    // Counter at B and the standing cell at C, the same indices every
+                    // IBusinessPatron uses: the queue spacing, the alert and the shopkeeper's
+                    // customer scan all read a patron's job by position, not by type. A is unused
+                    // here — a haircut has nothing to fetch.
+                    Job job = JobMaker.MakeJob(service.colonistJobDef, LocalTargetInfo.Invalid,
+                        parent, stand);
+                    selPawn.jobs.TryTakeOrderedJob(job, JobTag.Misc);
+                });
+            }
+        }
+
+        /// <summary>Why this colonist cannot be sent for this service right now, or null if they
+        /// can. Each branch is one of the bounds on the feature: the counter has to be trading, the
+        /// pawn has to actually want it, the chair holds one person at a time, and they have to be
+        /// able to walk to it.</summary>
+        private string CannotOrder(ServiceDef service, Pawn selPawn, IntVec3 stand)
+        {
+            if (!open) return "OWT_ReasonClosed".Translate();
+            if (service.worker.Desirability(selPawn) <= 0f) return "OWT_ReasonRecently".Translate();
+
+            // One at a time at a counter, asked of the people actually waiting there rather than of
+            // the reservation manager: a colonist who has claimed this building to repair or
+            // deconstruct it holds a reservation too, and "already waiting here" would be a lie
+            // about them. The patron's own claim is on their standing cell, not on the counter,
+            // precisely so it stays out of the way of orders like those.
+            Pawn waiting = ColonistWaitingHere(selPawn);
+            if (waiting != null) return "OWT_ReasonReserved".Translate(waiting.LabelShort);
+
+            if (!selPawn.CanReach(stand, PathEndMode.OnCell, Danger.Deadly)) return "OWT_ReasonUnreachable".Translate();
+            return null;
+        }
+
+        /// <summary>A colonist other than <paramref name="asking"/> already being served, or waiting
+        /// to be, at this counter.</summary>
+        private Pawn ColonistWaitingHere(Pawn asking)
+        {
+            List<Pawn> colonists = parent.Map.mapPawns.SpawnedPawnsInFaction(Faction.OfPlayer);
+            for (int i = 0; i < colonists.Count; i++)
+            {
+                Pawn p = colonists[i];
+                if (p == asking || !(p.jobs?.curDriver is IBusinessPatron)) continue;
+                if (p.CurJob?.GetTarget(TargetIndex.B).Thing == parent) return p;
+            }
+            return null;
+        }
+
         /// <summary>
         /// The town's books, readable in one place: the two numbers that drive the economy
         /// (appeal and reputation), today's trading, and each shop's takings.

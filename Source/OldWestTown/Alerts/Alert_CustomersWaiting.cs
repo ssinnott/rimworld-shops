@@ -8,7 +8,7 @@ using Verse.AI;
 namespace OldWestTown.Alerts
 {
     /// <summary>
-    /// Raised while customers stand at an unattended counter burning patience — the window in
+    /// Raised while visiting customers stand at an unattended counter burning patience — the window in
     /// which assigning a shopkeeper still saves the sale, and the reputation hit that follows
     /// a walkout. Silent for a patron whose service honors the global self-service setting
     /// while it's on, since nobody is actually stuck there — but a service that opts out of the
@@ -47,6 +47,15 @@ namespace OldWestTown.Alerts
                 for (int i = 0; i < pawns.Count; i++)
                 {
                     if (!(pawns[i].jobs?.curDriver is IBusinessPatron patronizing)) continue;
+
+                    // A colonist waiting is not this alert's business. No sale is at stake and no
+                    // reputation, so its explanation would be a lie and its High priority a false
+                    // alarm — nothing is lost but the colonist's own afternoon, they give up
+                    // quietly, and the message that fires when they do is the right size for it.
+                    // The honest response to a colonist at an empty counter is the work giver
+                    // noticing them, which is exactly what now happens.
+                    if (pawns[i].Faction == Faction.OfPlayer) continue;
+
                     if (!patronizing.WaitingForService) continue;
 
                     Thing counter = pawns[i].CurJob?.GetTarget(TargetIndex.B).Thing;

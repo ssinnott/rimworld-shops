@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using OldWestTown.Lords;
 using OldWestTown.Shops;
 using RimWorld;
@@ -23,11 +22,11 @@ namespace OldWestTown.AI
 
         /// <summary>Which ServiceDef this job is for, recovered from the JobDef — Job has no
         /// generic Def-reference slot, so a JobDef-to-ServiceDef lookup is how a service driver
-        /// knows what it's running. Not saved: re-derived from job.def, the same way Shop is
-        /// re-derived from job targets rather than cached across saves.</summary>
-        private ServiceDef ResolvedService =>
-            resolvedService ??= DefDatabase<ServiceDef>.AllDefsListForReading
-                .FirstOrDefault(sd => sd.jobDef == job.def);
+        /// knows what it's running. The lookup itself lives on ServiceDef.ForJob because the
+        /// mapping now has two sides, a visitor's job and a colonist's, and two copies of it could
+        /// disagree. Not saved: re-derived from job.def, the same way Shop is re-derived from job
+        /// targets rather than cached across saves.</summary>
+        private ServiceDef ResolvedService => resolvedService ??= ServiceDef.ForJob(job.def);
 
         protected override int ServeTicksRequired => ResolvedService?.serveTicks ?? 180;
 

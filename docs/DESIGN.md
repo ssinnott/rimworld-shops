@@ -74,6 +74,7 @@ hotel clerk, a bank teller, a gambling dealer) should use the same shape.
 | `TownEconomy` | `Shops/TownEconomy.cs` | `MapComponent`. Shop register, daily ledger, reputation, and `Appeal` — surveys the town every 60 ticks. |
 | `JobGiver_BuyFromShop`, `JobDriver_PatronizeBusiness` (`JobDriver_BuyFromShop`, `JobDriver_UseService`) | `AI/` | Customer side: picks a business — goods or a service, whichever scores best — and runs the shared walk/wait/patience shape. |
 | `WorkGiver_/JobDriver_ManShop` | `AI/` | Colonist side. Kind-agnostic: it staffs any `CompBusiness` with something to offer. |
+| `JobDriver_ColonistUseService` | `AI/` | The colony's own side of a counter. Waits on the same staffing flag a stranger does, receives the same `ServiceWorker` effect, and touches nothing else — no price, no till, no ledger, no lord. |
 | `LordJob_ShopVisit`, `LordToil_Shop`, `LordToil_CloseUp` | `Lords/` | The visiting group, the per-customer records, and what closing time does to a customer part-way through a purchase. |
 | `IncidentWorker_ShopCustomers` | `Incidents/` | Turns town appeal into arrivals. |
 
@@ -192,6 +193,85 @@ A service business counts toward town appeal the same way a stocked one does
 service's value is already counted once, as stock — the town's survey only adds services with
 no `Thing` behind them at all, so a saloon's beer isn't counted twice for being sellable two
 ways.
+
+### The town's own people
+
+Every path into a business used to be a stranger's. The shopping job giver runs from the `OWT_Shop`
+duty and only a visiting group's lord hands that out, so a colony could build a barber shop its own
+people were locked out of, and the `+5` haircut thought could never land on the pawns it was written
+for. The mod's whole surface was a service the colony provided and could not use.
+
+A colonist is not a customer, and the sharpest way to say so is that nothing on their path touches
+money. Silver moving from the colony into the colony's own till is a wash that buys a bookkeeping
+entry and a wealth illusion. Worse, the town's name is now one verdict per person per day: a
+colonist counted as a patron would be a reputation printer — send ten pawns to the chair, earn a
+perfect day, and buy the arrival rate and the price band with labour that was going to be spent
+anyway. So a colonist leaves no row in the patron table, no sale in any ledger, no walkout and no
+reputation, and the guarantee is structural rather than a flag. `JobDriver_ColonistUseService` does
+not name `ShopTransaction`, `TownEconomy` or the `Lords` layer at all; there is nothing to leak
+through, and a reviewer can check that with a grep rather than by reasoning about branches. The
+patron table is guarded a second time at its own door — `NotePatron` refuses a player-faction pawn —
+which is unreachable from anything shipped today and is meant to be: it makes the rule true of the
+next path into a business as well as this one.
+
+Which is why the colonist path does not extend `JobDriver_PatronizeBusiness`. That base is a
+*visit*: it ends itself when the group's duty is swapped away — a colonist has no duty, so it would
+end on the first tick — and its patience branch is a walkout, which is a shop ledger entry, a patron
+row and a reputation hit in one call. The reuse that pays is a layer lower: the `ServiceDef` and its
+worker's effect, the counter's staffing flag, the customer cell and its queue spacing, and the small
+`IBusinessPatron` view of a patron. Everything above that is a stranger's, and a colonist wants none
+of it.
+
+What a colonist costs is time, twice. Their own, waiting and then sitting; and a second colonist's
+whole shift standing behind the counter. That second cost is not incidental — it is the feature.
+A colonist is never allowed to serve themselves, even at a counter whose service permits the honesty
+box and with the setting on, because the honesty box is a bargain priced in reputation and a
+colonist leaves no reputation to pay it with. For the colony's own it would simply be free, and no
+counter would ever be staffed for its own people again. Being served by somebody is also the entire
+content of the thought.
+
+That second cost is also the dispatch mechanism, and it needed exactly one widening. The
+shopkeeper's customer scan already counted anybody patronizing *this* counter whatever their purse
+or duty said, because a serve outliving its duty was the case that clause was written for; it now
+runs that test before the player-faction filter instead of after it. That is the whole of a
+colonist's visibility to the business layer — scoped to the counter they stand at, so they can never
+pull staff across town — and it is what breaks the circle the gap concealed: nobody posted, so
+nobody served, so nobody posted. It is also what keeps a barber at their post through a 2200-tick
+haircut, which outlasts a shopkeeper's 1250-tick idle patience. Both pawns are in the player's
+faction for the first time in this mod and they still never wait on each other: the patron reads
+`Staffed`, the shopkeeper never learns who they are serving, and a keeper who wanders off empties
+the progress bar rather than stranding anybody. The one new rule is that `Staffed` alone is not
+enough — the keeper must not be the patron, because the flag's 60-tick grace is comfortably long
+enough for a colonist to stop minding a counter, walk three tiles and cut their own hair.
+
+The player sends them, and nothing else does. That is a decision about whose hours these are. An
+automatic urge would need a demand model and, worse, a thrash guard: with nobody free to staff the
+chair it marches the same colonist back to wait out patience again, and bounding that means scribed
+per-pawn, per-counter cooldown state invented to fix a dispatcher nobody asked for. An order has no
+such loop. It also answers "what stops ten colonists queueing at one chair" without inventing
+anything: the player clicks once per pawn, the counter is reserved so vanilla refuses the second
+claim and the menu names who holds it, and a pawn who already carries the thought cannot be ordered
+at all — `Desirability` returning zero is one answer read by both the stranger's scoring and the
+order menu, and it puts the rate limit on the thought's own `durationDays`, in XML, where a modder
+retuning the reward retunes the pacing with it. The claim is on the standing cell rather than on the
+counter, so it cannot grey out a work order on the counter itself — which is the one order a player
+reaches for when nobody has come to serve their colonist. Travellers are unaffected by any of it,
+not because reservations are per-faction (RimWorld respects them between non-hostile factions too)
+but because no visitor path in this mod reserves anything at all, so a counter can serve the town
+and one of its own at the same time.
+
+A colonist ordered into the chair also comes out of it with a different, randomly chosen hairstyle,
+which is worth saying out loud in the building's own description: on a stranger passing through it
+is a flourish nobody will see again, and on a pawn the player designed and has looked at for two
+hundred hours it is a change they did not choose and, without Ideology's styling station, cannot
+undo.
+
+Only the haircut is opened this way, and the restriction is enforced at load: a `colonistJobDef` on
+a service that consumes stock is a config error. A drink or a meal is an item on a shelf that
+vanilla's own recreation and food jobs already send colonists to *under the player's drug policy* —
+routing it through here would either override that policy or reimplement it, and would destroy a
+saleable item with nobody to answer for it. The stock-free service is the only one vanilla cannot
+already do for a colonist, and it is the one that ships.
 
 ## The economy loop
 
@@ -431,3 +511,18 @@ competitive rather than solitaire.
   suggests. Each one is bounded by its own serve and by the counter staying staffed (or, with the
   honesty box on, by the 180 ticks a self-served sale takes), but it has not been watched in a
   live game.
+- A colonist waiting for a service reserves the counter, so the building cannot be deconstructed,
+  repaired or uninstalled while it lasts. Bounded by one patience window plus one serve, and the
+  player can cancel the job — but it is a lock the counter did not have before.
+- `ServiceWorker_Thought.Desirability` now returns zero for a pawn already carrying the thought.
+  That is the point of the thought's duration and it makes the order menu and the stranger's scoring
+  read one answer, but it also changes shipped behaviour: a visitor who was in the chair earlier
+  will no longer be scored for a second haircut.
+- The `NotePatron` faction guard is unreachable from anything this mod ships. It is there so the
+  rule survives the next author, at the cost of a branch no test can exercise.
+- `ThingComp.CompFloatMenuOptions` is confirmed present in the 1.6 reference assemblies, confirmed
+  reachable through `FloatMenuOptionProvider_FromThing`, and confirmed to be the hook vanilla's own
+  building comps use — but that a right-click on a 2x1 impassable counter reaches it has not been
+  run in a live game, like everything else here.
+- The give-up message has no rate limit, unlike a walkout's. A player who re-orders a haircut into
+  an unstaffed shop gets a message each time, which is right: they caused each one.

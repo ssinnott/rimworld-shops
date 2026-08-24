@@ -50,6 +50,14 @@
   <OWT_TabStockHeader>Offered for sale ({0} on the shelves)</OWT_TabStockHeader>
   <OWT_ResetStock>Reset</OWT_ResetStock>
 
+  <!-- Ordering a service for a colonist -->
+  <OWT_OrderService>Get a {0} here</OWT_OrderService>
+  <OWT_OrderServiceDisabled>Get a {0} here ({1})</OWT_OrderServiceDisabled>
+  <OWT_ReasonClosed>closed</OWT_ReasonClosed>
+  <OWT_ReasonRecently>had one recently</OWT_ReasonRecently>
+  <OWT_ReasonReserved>{0} is already waiting here</OWT_ReasonReserved>
+  <OWT_ReasonUnreachable>can't get there</OWT_ReasonUnreachable>
+
   <!-- Events -->
   <OWT_LetterCustomersLabel>Customers arriving ({0})</OWT_LetterCustomersLabel>
   <OWT_LetterCustomersText>{0} travellers from {1} have heard there is business to be done here, and have come to spend.\n\nThey will browse whatever your open shops have on display and pay across the counter — if there is someone there to serve them.</OWT_LetterCustomersText>
@@ -57,6 +65,7 @@
   <OWT_CustomersScared>Violence in town. The customers from {0} are leaving.</OWT_CustomersScared>
   <OWT_CustomerWalkedOut>{0} gave up waiting at {1} and left the goods behind. They think the less of the town for it, and won't go back to that counter until somebody is standing behind it.</OWT_CustomerWalkedOut>
   <OWT_CustomerWalkedOutService>{0} gave up waiting at {1} and left. They think the less of the town for it, and won't go back to that counter until somebody is standing behind it.</OWT_CustomerWalkedOutService>
+  <OWT_ColonistGaveUp>{0} gave up waiting for a {1} at {2}. Nobody came to work the counter — raise Shopkeeping's priority, or right-click the counter with another colonist to send them to it. It cost the town nothing, and {0} the better part of an hour.</OWT_ColonistGaveUp>
 
   <!-- Alerts -->
   <OWT_AlertUnattended>Customers waiting ({0})</OWT_AlertUnattended>

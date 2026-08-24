@@ -101,6 +101,23 @@ namespace OldWestTown.Shops
     {
         public ThoughtDef thoughtDef;
 
+        /// <summary>Nobody wants a thought they already carry. Zero and not merely low: the score
+        /// this multiplies is compared against a floor of zero, so a customer who was in the chair
+        /// an hour ago simply stops picking the barber, and the colonist order menu reads the same
+        /// answer to refuse an order that would do nothing. One question, answered in one place —
+        /// and the rate limit therefore lives on the thought's own durationDays, in XML, where a
+        /// modder retuning the reward retunes the pacing with it.</summary>
+        public override float Desirability(Pawn customer)
+        {
+            if (thoughtDef == null) return 0f;
+            // A pawn with no mood need reads as "has never had this thought" through the null
+            // chain, which is the wrong answer twice over: they cannot receive it either, so the
+            // honest answer to "would this do anything for you" is no.
+            MemoryThoughtHandler memories = customer?.needs?.mood?.thoughts?.memories;
+            if (memories == null) return 0f;
+            return memories.GetFirstMemoryOfDef(thoughtDef) == null ? 1f : 0f;
+        }
+
         public override void ApplyEffect(Pawn customer, Thing consumed)
         {
             if (thoughtDef == null) return;

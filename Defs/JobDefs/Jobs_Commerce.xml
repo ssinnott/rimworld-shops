@@ -36,4 +36,13 @@
     <casualInterruptible>false</casualInterruptible>
   </JobDef>
 
+  <!-- The colony's own side of the barber chair. A separate JobDef from OWT_ServeHaircut because
+       it runs a separate driver: a colonist's visit ends in an effect, not a transaction. -->
+  <JobDef>
+    <defName>OWT_GetHaircut</defName>
+    <driverClass>OldWestTown.AI.JobDriver_ColonistUseService</driverClass>
+    <reportString>getting a haircut at TargetB.</reportString>
+    <casualInterruptible>false</casualInterruptible>
+  </JobDef>
+
 </Defs>

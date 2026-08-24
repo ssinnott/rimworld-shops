@@ -346,8 +346,17 @@ namespace OldWestTown.Shops
             return a.parent.Position.DistanceTo(b.parent.Position) <= reach;
         }
 
+        /// <summary>The town's own people are not its customers. Nothing that happens to a colonist
+        /// at a counter belongs in the day's books: reputation is a verdict per person per day, so
+        /// one colonist filed as a patron would let a player move the town's name — and with it its
+        /// prices and its arrivals — using pawns they control, and the takings would count silver
+        /// the colony paid itself. Asked at every door into the books rather than at each caller, so
+        /// it stays true of the next path into a business as well as today's.</summary>
+        private static bool IsOwnColonist(Pawn customer) => customer?.Faction == Faction.OfPlayer;
+
         public void RecordSale(Pawn customer, int price, bool selfService = false)
         {
+            if (IsOwnColonist(customer)) return;
             revenueToday += price;
             lifetimeRevenue += price;
             NotePatron(customer, selfService ? PatronSelfServed : PatronServed);
@@ -355,6 +364,7 @@ namespace OldWestTown.Shops
 
         public void RecordWalkout(Pawn customer)
         {
+            if (IsOwnColonist(customer)) return;
             NotePatron(customer, PatronWalkedOut);
         }
 
@@ -364,6 +374,9 @@ namespace OldWestTown.Shops
         private void NotePatron(Pawn customer, int flag)
         {
             if (customer == null) return;
+
+            if (IsOwnColonist(customer)) return;
+
             int id = customer.thingIDNumber;
             for (int i = 0; i < patronIds.Count; i++)
             {
