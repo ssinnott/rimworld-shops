@@ -30,6 +30,13 @@ namespace OldWestTown.Shops
     public interface IBusinessPatron
     {
         bool WaitingForService { get; }
+
+        /// <summary>True while somebody is attending this customer's transaction. Its complement
+        /// in all but name — a customer walking or browsing is neither — and the reason both live
+        /// here: what a customer is in the middle of is a fact about the business, and the two
+        /// callers that need it (the unattended-counter alert, and closing time) may not name the
+        /// AI namespace.</summary>
+        bool BeingServed { get; }
     }
 
     /// <summary>

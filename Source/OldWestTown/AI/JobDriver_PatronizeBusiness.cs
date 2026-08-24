@@ -29,6 +29,17 @@ namespace OldWestTown.AI
         /// within a tick of loading.</summary>
         public bool WaitingForService { get; private set; }
 
+        /// <summary>Somebody is working this customer's transaction. The wait toil zeroes
+        /// <c>servedTicks</c> on any tick the counter is not attended, so this reads "a sale is in
+        /// progress", not "was once" — which is what makes it safe for closing time to spare a
+        /// customer on the strength of it. Saved, because the serve it measures is.</summary>
+        public bool BeingServed => servedTicks > 0;
+
+        /// <summary>The group has been called home — the hours running out, gunfire, or a lord
+        /// that no longer exists. Read off the duty rather than the lord's clock, because the duty
+        /// swap is the one thing every ending has in common.</summary>
+        private bool VisitOver => pawn.mindState?.duty?.def != OWTDefOf.OWT_Shop;
+
         protected CompBusiness Shop => job.GetTarget(CounterInd).Thing?.TryGetComp<CompBusiness>();
 
         /// <summary>Continuous staffed ticks this visit needs: 180 for a goods sale, a
@@ -53,6 +64,13 @@ namespace OldWestTown.AI
         {
             this.FailOnDespawnedOrNull(CounterInd);
             this.FailOn(() => Shop == null || !Shop.Open);
+
+            // The group is leaving and nobody is serving this customer: go home, quietly. This is
+            // what bounds the grace closing time hands a serve in progress — without it a spared
+            // customer whose shopkeeper stepped away would drop back into the wait branch and burn
+            // the rest of their patience at the counter of a town that has already closed, and be
+            // charged a walkout for a departure the clock caused.
+            this.FailOn(() => VisitOver && !BeingServed);
         }
 
         /// <summary>Paid-for goods (or a fetched-but-unpaid-for consumable) go into the

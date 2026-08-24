@@ -84,7 +84,9 @@ namespace OldWestTown.Lords
         /// self-service-eligible visit from a haircut needs per-service knowledge this layer
         /// doesn't have, and a haircut still needs a body behind the chair.
         ///
-        /// Takes a plain bool rather than the comp — the Lords layer names nothing in Shops or AI.</summary>
+        /// Takes a plain bool rather than the comp — a rule about which way the layers point, not
+        /// about keeping them apart: Shops names neither AI nor Lords, and the record itself asks
+        /// for an answer rather than reaching for a comp to work it out.</summary>
         public bool WillQueueAt(Thing business, bool staffedNow)
         {
             if (staffedNow) return true;
@@ -174,7 +176,8 @@ namespace OldWestTown.Lords
             graph.AddToil(shopping);
             graph.StartingToil = shopping;
 
-            LordToil_ExitMap leave = new LordToil_ExitMap(LocomotionUrgency.Walk, false, true);
+            // A serve already under way finishes; everyone else is interrupted as vanilla would.
+            LordToil_CloseUp leave = new LordToil_CloseUp(LocomotionUrgency.Walk);
             graph.AddToil(leave);
 
             // Business hours are up.

@@ -74,7 +74,7 @@ hotel clerk, a bank teller, a gambling dealer) should use the same shape.
 | `TownEconomy` | `Shops/TownEconomy.cs` | `MapComponent`. Shop register, daily ledger, reputation, and `Appeal` — surveys the town every 60 ticks. |
 | `JobGiver_BuyFromShop`, `JobDriver_PatronizeBusiness` (`JobDriver_BuyFromShop`, `JobDriver_UseService`) | `AI/` | Customer side: picks a business — goods or a service, whichever scores best — and runs the shared walk/wait/patience shape. |
 | `WorkGiver_/JobDriver_ManShop` | `AI/` | Colonist side. Kind-agnostic: it staffs any `CompBusiness` with something to offer. |
-| `LordJob_ShopVisit`, `LordToil_Shop` | `Lords/` | The visiting group, and per-customer records. |
+| `LordJob_ShopVisit`, `LordToil_Shop`, `LordToil_CloseUp` | `Lords/` | The visiting group, the per-customer records, and what closing time does to a customer part-way through a purchase. |
 | `IncidentWorker_ShopCustomers` | `Incidents/` | Turns town appeal into arrivals. |
 
 ### Why the lord graph is flat
@@ -89,6 +89,60 @@ Per-customer state (budget spent, purchases, counters they've given up on for as
 stay unattended) hangs off `LordJob_ShopVisit` rather than the pawn. That means it saves and
 loads with the group, needs no def patching of humanlike pawns, and disappears when the visit
 does.
+
+### Closing time
+
+The visit clock is the only clock here that can end something the player is in the middle of, so
+it is the only one that has to decide what "in the middle of" is worth. Vanilla's exit toil takes
+an `interruptCurrentJob` flag and, set, ends every pawn's job the instant the group is sent home.
+That is right for a group that has to be gone and wrong for a shop: it tears up the sale at the
+counter one tick from the till, drops the goods on the floor, and throws away however long a
+colonist had already spent on it — worst at the barber's, whose 2200-tick haircut is the longest
+serve in the mod and the whole of its shop's patience window.
+
+`LordToil_CloseUp` keeps that interrupt for everyone except the customer being served. It hands
+out the same exit duty, then ends the same jobs itself, skipping any customer whose transaction is
+being worked that tick. Closing is "the town stops taking new customers", not "the town empties":
+the barber finishes the head in the chair, and does not start another. Keeping the interrupt for
+everybody else is not incidental — customers are allowed to eat, drink and sleep between
+purchases, and a sleeping visitor left to wake up on its own is a group that never leaves.
+
+Nothing about closing is written down. A customer sent home was not served and did not give up: no
+sale, no walkout, no row in the day's patron table, no weight in the nightly verdict. A walkout has
+to stay a thing the player did — a counter left unstaffed for a whole patience window, with the
+alert up and the time to answer it — and charging the same halved verdict because the hours ran out
+would make it a tax on a clock the player cannot see, levied hardest on the counters the alert was
+already pointing at. That is also why the grace has a floor under it. A spared customer is holding
+a job that never completes on its own and does not yield to a duty, so a shopkeeper who walked away
+would drop them back into the wait branch to run their patience down to exactly that walkout. Their
+own end condition — the group has been called home and nobody is serving me — is what prevents it,
+and it is what bounds the whole exemption. What it bounds is per customer, not per town: a serve
+advances for everyone whose transaction is running at that counter, so a bar with three at it
+spares all three. And "being served" means the same thing at closing as it does at noon — with the
+honesty-box setting on, a counter with nobody behind it counts, so such a sale runs itself out in
+its own 180 ticks and lands as the self-served half-mark it would have been at any other hour.
+Each spared customer is bounded by one serve, and a keeper who walks away ends theirs inside the
+staffing grace.
+
+The grace runs the other way once. A customer who gave up at some counter earlier carries a halved
+verdict all day; if the last thing that happens to them is being served out at closing, the sale
+lands and their verdict is a half rather than a nought. Standing a counter at closing time is the
+one thing that can partly repair a bad day.
+
+Violence is still the exception, with one edge worth naming: the harm transition leaves the
+shopping state, so once the clock has already sent the group home it cannot fire again. A raid that
+starts during business hours ends every job including a serve — `TransitionAction_EndAllJobs` never
+consults the exemption — while one that starts after closing leaves the last serve running until
+the colonist stops working it, which drops the customer within a tick or two of the staffing grace.
+
+The shopkeeper's side needed no change at all, which is the sign the seam is in the right place.
+The customer scan already counts a pawn patronizing *this* counter whatever their purse or their
+duty says — it was written for a serve outliving the shopping duty, and until now that was the one
+case it could never actually see — so the colonist stays posted while the last customer is served
+out and knocks off on the same idle timer as always. Neither pawn waits on the other.
+
+Under fire none of this applies: the violence transition still ends every job after the duty swap,
+mid-serve included.
 
 ### Why the sales floor is a room
 
@@ -127,10 +181,11 @@ alternative is a driver that has to guess.
 The customer side factors the shared "walk up, wait to be served, get served or walk out" shape
 into `JobDriver_PatronizeBusiness`, with `JobDriver_BuyFromShop` and `JobDriver_UseService` as
 its two concrete shapes — a goods sale (or a stock-consuming service) fetches an item first; a
-stock-free service (Haircut) skips straight to waiting. A small marker interface,
-`IBusinessPatron`, lets `CompBusiness` recognize "a pawn is patronizing something" for
-queue-spacing and the waiting-customers alert without the Shops layer ever depending on the AI
-namespace.
+stock-free service (Haircut) skips straight to waiting. A small business-facing view of a patron,
+`IBusinessPatron`, lets code outside the AI namespace ask the two things about a patron that are
+not its own business to work out — are they waiting, and is their transaction running — for
+queue-spacing, the waiting-customers alert and closing time, without the Shops layer ever depending
+on the AI namespace.
 
 A service business counts toward town appeal the same way a stocked one does
 (`CompBusiness.HasAnythingToOffer`, `AvailableServices`), with one wrinkle: a stock-consuming
@@ -370,3 +425,9 @@ competitive rather than solitaire.
   involved is confirmed against the real 1.6 reference assembly, but the exact in-game outcome
   (whether a customer visibly gets `AlcoholHigh`, whether a hair change reliably repaints a
   transient visitor) hasn't been confirmed in a live game.
+- Closing lets every customer whose transaction is already running outlive the group's "heading
+  home" line while they are served out — a whole queue at one counter, and up to a haircut's 2200
+  ticks each — so the lord and its per-customer records live that much longer than the message
+  suggests. Each one is bounded by its own serve and by the counter staying staffed (or, with the
+  honesty box on, by the 180 ticks a self-served sale takes), but it has not been watched in a
+  live game.
