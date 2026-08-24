@@ -201,8 +201,10 @@ namespace OldWestTown.AI
                 // The whole colonist transaction, in one line. No price, no till, no ledger, no
                 // patron row, no Social XP for the barber: the effect is the only thing a
                 // stranger's visit and a neighbour's have in common, and it is the only thing that
-                // happens here.
-                worker.ApplyEffect(pawn, null);
+                // happens here. The shop and the service go in because a worker that claims
+                // something for longer than the transaction says so through its return — nothing a
+                // colonist can be ordered into does, so the return is deliberately dropped.
+                worker.ApplyEffect(Shop, Service, pawn, null);
             };
             return toil;
         }

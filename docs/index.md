@@ -15,6 +15,12 @@ Hospitality gets guests onto your map. This is about what they do once they're t
 > your shelves or orders a drink, a meal or a haircut — queues, and pays either way, and your own
 > colonists can be sent to use a service too. The breadth
 > (hotels, banks, stables, town roles) is designed but not built. See the [roadmap](roadmap.md).
+> **Status:** goods and services both work, and the town has a main street to put them on. A
+> customer arrives, then either picks something off your shelves, orders a drink, a meal or a
+> haircut, or checks into a room for the night — queues, and pays either way. A sheriff can
+> now be posted to keep rowdy saloon patrons in line. An optional Hospitality bridge, and a
+> few more business kinds (banks, stables), are designed but not built. See the
+> [roadmap](roadmap.md).
 
 This mod is standalone. It does not require Hospitality, and is written to sit alongside it.
 

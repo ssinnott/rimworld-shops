@@ -1,14 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Defs>
 
-  <!-- Held by every member of a customer group for the length of their visit.
-       Buying comes first; wandering is what they do when there is nothing to buy. -->
+  <!-- Held by every member of a customer group for the length of their visit. A tired,
+       already-checked-in guest goes to bed first; buying comes next; wandering is what's left
+       when there is nothing to buy and no reason to sleep. -->
   <DutyDef>
     <defName>OWT_Shop</defName>
     <hook>HighPriority</hook>
     <socialModeMax>Normal</socialModeMax>
     <thinkNode Class="ThinkNode_Priority">
       <subNodes>
+        <li Class="OldWestTown.AI.JobGiver_SleepInRentedBed" />
         <li Class="OldWestTown.AI.JobGiver_BuyFromShop" />
         <li Class="JobGiver_WanderNearDutyLocation">
           <wanderRadius>12</wanderRadius>

@@ -73,6 +73,10 @@ At midnight the town averages those verdicts and moves its name toward the avera
 **fifth** of the gap, and less on a thin day, six callers counting as a full day's evidence. On a
 day when nobody came to a counter at all, it drifts **5%** back toward 0.5 instead.
 
+A [disturbance](customers.md#trouble-at-the-saloon) is charged on top, at **5%** of the town's name
+for each one, and it is charged the same night rather than as the brawl happens — an unpoliced
+saloon is the fastest way to burn through a good name.
+
 Two things follow. Volume never enters into it: a customer who opened their purse six times is one
 satisfied customer, not six, so what moves the number is how many *people* you looked after, not
 how much they spent. And no single afternoon settles the question — a busy main street earns a
@@ -86,6 +90,37 @@ Reputation feeds two things:
   gets away with **10% above**. So a good name brings more customers in *and* lets you charge each
   of them a little more. The **Stock** tab prints what customers actually pay whenever that differs
   from the slider.
+
+## Standing with a faction
+
+Reputation is still one number for the whole town — it's the honest answer to "should anyone set
+out for this town at all," and no single faction gets a different answer to that. But the town
+also keeps a private **standing** with each faction it has actually done business with, 0 to 1,
+sitting quietly alongside the town-wide number.
+
+| Event | Effect on that faction's standing |
+| --- | --- |
+| A staffed sale or service | rises **sharply** |
+| A customer walks out, or a hotel guest is evicted | falls **sharply** |
+| A self-service sale | no effect — nobody chose to serve *this* customer in particular |
+| Every day | drifts back toward the town's own reputation |
+
+A faction the town has never dealt with specifically simply **reads as the town's own
+reputation** — there's nothing to seed, and nothing for an existing save to migrate. Once a
+faction's standing has genuinely pulled away from that shared number, though, it starts to
+matter: **standing, not reputation, decides which faction's customers turn up next** — see
+[which faction turns up](customers.md#which-faction-turns-up). Treat one faction's customers
+well often enough and they become **regulars**, showing up more often than everybody else;
+mistreat them and they taper off, without punishing anyone you haven't touched.
+
+The **Town ledger** names the single best and single worst relationship on record, but only once
+either has actually pulled clear of the town's own name — a fresh game, or a town that's treated
+every visiting faction about the same, says nothing extra.
+
+Hostile factions, the player's own faction, and any faction with nowhere in the world to actually
+send customers from never accrue standing at all — there's no meaningful "relationship" to have
+with them. A faction that turns hostile mid-visit (a relations swing unrelated to anything
+happening in your town) simply stops being tracked from that moment on.
 
 ## Pricing
 
@@ -112,6 +147,15 @@ doorstep), and for a service, how much that particular customer wants it counts 
 
 The practical upshot: **undercutting a rival shop genuinely pulls customers away from it**, and
 staffing a counter beats leaving it open and empty.
+
+### Curb appeal
+
+A [false front](buildings.md#false-front) near a shop's customer-facing side folds a small,
+**capped** bonus into that scoring — enough to win a close call between two similarly-priced
+rivals, never enough on its own to make an overpriced shop look like a bargain. One qualifying
+facade nearby is worth something; a second is worth a little more; a street dressed up with a
+false front on every building is worth no more than one with two. It's advertising, and
+advertising has diminishing returns.
 
 ### Partial purchases
 

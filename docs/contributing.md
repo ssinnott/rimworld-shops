@@ -10,7 +10,7 @@ summary: Building the assembly, the static checks that stand in for launching th
 | `About/` | Mod metadata and preview image |
 | `Defs/` | All XML defs, one folder per def type |
 | `Languages/English/Keyed/` | Translation strings |
-| `Textures/Things/Building/Commerce/` | Building art (generated — see below) |
+| `Textures/Things/Building/Commerce/`, `Textures/Things/Building/MainStreet/`, `Textures/Terrain/Surfaces/` | Building and terrain art (generated — see below) |
 | `docs/assets/textures/` | Copies of that art, so the [gallery](art.md) can show it |
 | `Source/OldWestTown/` | C# source ([code map](architecture.md)) |
 | `1.6/Assemblies/OldWestTown.dll` | **Committed** compiled assembly |

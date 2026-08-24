@@ -23,6 +23,37 @@ staffed.
 Serving a customer — goods or a service alike — grants **35 Social XP**, so a dedicated
 shopkeeper trains the skill their job runs on.
 
+## Sheriffing
+
+Shopkeeping is a *priority* — any colonist who has it can staff any counter. **Sheriffing** is a
+*post* — one specific colonist, and only that colonist, does anything with it at all. The two are
+built the same way a game gives you a floor job and a named role: assigning nobody to a
+[sheriff's office](buildings.md#sheriffs-office) leaves the Sheriffing column sitting there,
+switched off, doing nothing for every other colonist in the colony.
+
+Getting a sheriff on duty is two separate steps:
+
+1. **Assign the post.** Right-click the sheriff's office and choose **Assign sheriff**, the same
+   gizmo you'd use to assign an owner to a throne or a grave. Only one colonist can hold it at a
+   time; assigning a second person first requires unassigning the one already there.
+2. **Give them the priority.** The assigned colonist still needs Sheriffing switched on in their
+   own Work tab, same as any other job — being assigned the post doesn't put them to work on its
+   own, it just makes them *eligible* to be.
+
+| | |
+| --- | --- |
+| Column in the Work tab | sheriff |
+| What a colonist doing it is called | sheriff |
+| Switched on for new colonists | **no** — it would sit inert for everyone but the one badge-holder |
+| Relevant skill | **Social** |
+| Needs | working hands and the ability to talk |
+
+With both in place, the sheriff patrols their office and steps in to calm down
+[rowdy patrons](customers.md#trouble-at-the-saloon) before they cause a disturbance — walking
+someone down grants **35 Social XP**, the same training a shopkeeper earns for a sale. Reassign
+the post, or take away their Sheriffing priority, and they simply stop — there's no notice to
+give and nothing to undo.
+
 ## When a counter asks for staff
 
 Any business with something to offer will ask for staff; it doesn't matter what kind it is. A

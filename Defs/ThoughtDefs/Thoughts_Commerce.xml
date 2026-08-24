@@ -14,4 +14,31 @@
     </stages>
   </ThoughtDef>
 
+  <!-- Granted on waking, not at check-in — see ServiceWorker_Lodging / JobDriver_SleepInRentedBed.
+       Staged by the room's own Impressiveness stat, so a bare bunkroom and a well-appointed
+       suite don't read as the same stay. Stage bounds are a tuning guess: no reference for what
+       a modest bunkroom vs. a lavish one actually scores. -->
+  <ThoughtDef>
+    <defName>OWT_SleptAtHotel</defName>
+    <durationDays>1.5</durationDays>
+    <stackLimit>1</stackLimit>
+    <stages>
+      <li>
+        <label>slept at the hotel</label>
+        <description>The room was plain, but the bed was better than the ground.</description>
+        <baseMoodEffect>2</baseMoodEffect>
+      </li>
+      <li>
+        <label>slept at the hotel</label>
+        <description>A decent room for the night. Can't complain.</description>
+        <baseMoodEffect>4</baseMoodEffect>
+      </li>
+      <li>
+        <label>slept at the hotel</label>
+        <description>A fine room. I slept like a stone.</description>
+        <baseMoodEffect>7</baseMoodEffect>
+      </li>
+    </stages>
+  </ThoughtDef>
+
 </Defs>

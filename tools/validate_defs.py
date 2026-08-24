@@ -140,6 +140,7 @@ VANILLA_DEFS = {
     "Foods", "FoodMeals", "Manufactured", "ResourcesRaw", "Medicine",
     "Apparel", "Textiles", "Leathers", "Drugs", "Weapons",
     "ThinkNode_Priority", "JobGiver_WanderNearDutyLocation",
+    "Light", "Medium", "Heavy",
 }
 
 
@@ -157,7 +158,7 @@ DEF_REF_ELEMENTS = ["shopKind", "workType", "researchPrerequisites", "defaultSto
                     "defaultStockThings", "stuffCategories", "relevantSkills",
                     "requiredCapacities", "targetTags", "letterDef",
                     "designationCategory", "constructEffect",
-                    "services", "jobDef", "colonistJobDef", "thoughtDef"]
+                    "services", "jobDef", "colonistJobDef", "thoughtDef", "affordances"]
 
 # Elements that name a def only under certain def types. <category>, for instance, is an
 # IncidentCategoryDef on IncidentDef but the ThingCategory *enum* on ThingDef.

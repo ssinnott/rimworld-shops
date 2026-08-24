@@ -18,7 +18,8 @@ namespace OldWestTown.Shops
             NoStock,
             CannotAfford,
             ShopClosed,
-            NotServed
+            NotServed,
+            NotAvailable
         }
 
         public static Result TrySell(CompBusiness shop, Pawn customer, Thing goods, int count, out int pricePaid)
@@ -83,16 +84,29 @@ namespace OldWestTown.Shops
         /// <summary>The service equivalent of TrySell: pays for one visit and applies the
         /// service's effect. <paramref name="consumed"/> is the item a stock-consuming service
         /// (Drink, Meal) picked up off the shelf, already carried by the customer; null for a
-        /// service that consumes nothing but time (Haircut).</summary>
-        public static Result TryServe(CompBusiness shop, Pawn customer, ServiceDef service, Thing consumed, out int pricePaid)
+        /// service that consumes nothing but time (Haircut). <paramref name="claimed"/> is
+        /// whatever ApplyEffect claimed for longer than this transaction — the bed Lodging just
+        /// booked — or null for every other service.</summary>
+        public static Result TryServe(CompBusiness shop, Pawn customer, ServiceDef service, Thing consumed, out int pricePaid, out Thing claimed)
         {
             pricePaid = 0;
+            claimed = null;
             if (shop == null || customer == null || service?.worker == null) return Result.NoStock;
             if (!shop.Open) return Result.ShopClosed;
 
             bool selfService = !shop.Staffed;
             if (selfService && !(service.allowsSelfService && OldWestTownMod.Settings.allowSelfService))
                 return Result.NotServed;
+
+            // Re-checked here, right before silver moves, not just when the customer picked
+            // this service a moment ago: a stock-free service can still run out from under a
+            // payment (Lodging's last bed taken by a faster customer, or the only reachable one
+            // going unreachable) the way a shelf item already could. Passing customer through,
+            // not just shop, means this uses the same reachability filter ApplyEffect itself
+            // applies a moment later — a bed vacant only for somebody else must not read as
+            // available here. Catching it here, not after, is what keeps "paid but got nothing"
+            // structurally impossible.
+            if (!service.worker.IsAvailable(shop, customer)) return Result.NotAvailable;
 
             bool consumesStock = service.worker.ConsumesStock;
             if (consumesStock)
@@ -134,7 +148,7 @@ namespace OldWestTown.Shops
                 }
             }
 
-            service.worker.ApplyEffect(customer, served);
+            claimed = service.worker.ApplyEffect(shop, service, customer, served);
 
             shop.RecordSale(price);
             shop.RefreshStock();

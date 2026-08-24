@@ -16,6 +16,22 @@ namespace OldWestTown.Shops
         /// </summary>
         public static IEnumerable<Thing> ScanFor(CompBusiness shop)
         {
+            Map map = shop?.parent?.Map;
+            foreach (Thing t in ThingsOnFloor(shop))
+            {
+                if (Sellable(shop, t, map)) yield return t;
+            }
+        }
+
+        /// <summary>
+        /// The raw candidate set a shop's sales floor contains — everything in its room, or
+        /// within its open-air radius outdoors — before any per-Thing filter is applied. Shared
+        /// by ScanFor (goods and stock-backed services, filtered through Sellable) and
+        /// ChooseVacantBed/CountBeds (rentable beds, filtered by type instead): both care about
+        /// "what's on this floor", they just disagree about what counts.
+        /// </summary>
+        private static IEnumerable<Thing> ThingsOnFloor(CompBusiness shop)
+        {
             Thing counter = shop?.parent;
             Map map = counter?.Map;
             if (map == null) yield break;
@@ -30,7 +46,7 @@ namespace OldWestTown.Shops
                     // ContainedAndAdjacentThings also lists things merely next to the room —
                     // in a doorway, or just outside the walls. Only what is inside is on sale.
                     if (t.GetRoom() != room) continue;
-                    if (Sellable(shop, t, map)) yield return t;
+                    yield return t;
                 }
                 yield break;
             }
@@ -42,7 +58,7 @@ namespace OldWestTown.Shops
                 List<Thing> here = cell.GetThingList(map);
                 for (int i = 0; i < here.Count; i++)
                 {
-                    if (Sellable(shop, here[i], map)) yield return here[i];
+                    yield return here[i];
                 }
             }
         }
@@ -169,6 +185,48 @@ namespace OldWestTown.Shops
                 }
             }
             return best;
+        }
+
+        /// <summary>The first vacant rentable bed on this shop's sales floor, or null. A bed
+        /// has no "better" the way a priced stack does, so unlike ChoosePurchase/ChooseService
+        /// there's no score to tie-break on — first vacant one found is as good as any other.
+        /// Pass <paramref name="customer"/> to also require they can actually reach it —
+        /// ServiceWorker_Lodging.IsAvailable calls this customer-agnostically, the same
+        /// customer=null shape ChooseService already uses.</summary>
+        public static Thing ChooseVacantBed(CompBusiness shop, Pawn customer = null)
+        {
+            foreach (Thing t in ThingsOnFloor(shop))
+            {
+                if (!(t is Building_Bed bed) || !t.Spawned || t.Destroyed) continue;
+                CompRentableBed comp = bed.TryGetComp<CompRentableBed>();
+                if (comp == null || !comp.Vacant) continue;
+                if (customer != null && !customer.CanReach(bed, PathEndMode.OnCell, Danger.Deadly)) continue;
+                return bed;
+            }
+            return null;
+        }
+
+        /// <summary>Total rentable beds on this shop's sales floor, with how many are vacant
+        /// right now — feeds the inspect string and town ledger's occupancy line.</summary>
+        public static int CountBeds(CompBusiness shop, out int vacant)
+        {
+            int total = 0;
+            vacant = 0;
+            // ThingsOnFloor's outdoor fallback scans cell by cell, so a bed (unlike the 1x1
+            // goods that traversal was written for) would otherwise be counted once per cell
+            // of its footprint. Unlike ChooseVacantBed, which returns on its first match and
+            // never notices, this method sums across every match, so it needs the dedup.
+            HashSet<Thing> seen = new HashSet<Thing>();
+            foreach (Thing t in ThingsOnFloor(shop))
+            {
+                if (!(t is Building_Bed bed) || !t.Spawned || t.Destroyed) continue;
+                if (!seen.Add(bed)) continue;
+                CompRentableBed comp = bed.TryGetComp<CompRentableBed>();
+                if (comp == null) continue;
+                total++;
+                if (comp.Vacant) vacant++;
+            }
+            return total;
         }
     }
 }

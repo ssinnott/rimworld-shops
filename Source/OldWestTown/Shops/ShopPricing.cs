@@ -53,13 +53,17 @@ namespace OldWestTown.Shops
         /// <summary>
         /// How appealing this price is to a shopper: 1 at market value, falling as markup rises.
         /// Customers use it to choose between shops, so undercutting a rival actually wins trade.
+        /// Also folds in a dressed-up storefront's curb appeal — see
+        /// <see cref="CompFalseFront.CurbAppealBonus"/> — so a false front nudges close calls
+        /// between similarly-priced rivals without ever outweighing price itself.
         /// </summary>
         public static float ValueAppeal(CompBusiness shop)
         {
             if (shop == null) return 0f;
             float effective = shop.Markup * shop.ReputationPriceFactor;
             // 1.0x markup -> 1.0, 2.0x -> ~0.5, 3.0x -> ~0.33.
-            return Mathf.Clamp(1f / Mathf.Max(0.25f, effective), 0.1f, 2f);
+            float priceAppeal = Mathf.Clamp(1f / Mathf.Max(0.25f, effective), 0.1f, 2f);
+            return priceAppeal + CompFalseFront.CurbAppealBonus(shop);
         }
 
         /// <summary>Price for a service with no backing Thing to read a market value from (Haircut).

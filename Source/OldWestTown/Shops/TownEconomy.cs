@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using System.Linq;
 using RimWorld;
+using RimWorld.Planet;
 using UnityEngine;
 using Verse;
 
@@ -9,7 +11,9 @@ namespace OldWestTown.Shops
     /// The town's books. Keeps the live shop register, rolls the day over, surveys what the town
     /// has to offer, and settles what people think of it — <see cref="Appeal"/> (how many
     /// customers the town pulls in) and <see cref="Reputation"/> (what they'll pay, and how many
-    /// bother coming).
+    /// bother coming). It also keeps, per <see cref="Faction"/>, that faction's own standing with
+    /// the town — the thing that decides who is likelier to visit next — settled from the same
+    /// nightly verdicts the town's own name is.
     /// </summary>
     public class TownEconomy : MapComponent
     {
@@ -73,6 +77,19 @@ namespace OldWestTown.Shops
         /// rate from when this ran every night; it now runs only on the nights it was written for.</summary>
         private const float IdleDrift = 0.05f;
 
+        /// <summary>A served customer's nudge to their own faction's standing — five times the
+        /// town-wide scale, deliberately: standing has to move fast enough over normal play for a
+        /// "regular" to read as one within a reasonable number of visits.</summary>
+        private const float FactionStandingSaleDelta = 0.05f;
+
+        /// <summary>Twice the sale delta, the same 2:1 ratio the town's own verdicts use.</summary>
+        private const float FactionStandingWalkoutDelta = -0.10f;
+
+        /// <summary>What a night of disturbances costs the town's name, per disturbance. Applied
+        /// once at settling rather than as each brawl breaks out, so that the town's name still
+        /// moves exactly once a day and from one place.</summary>
+        private const float DisturbanceNightlyCost = 0.05f;
+
         // What befell one customer today. Flags, not an enum: the same person can be served at one
         // counter and give up at another on the same trip.
         private const int PatronServed = 1;      // somebody stood behind the counter for them
@@ -105,6 +122,25 @@ namespace OldWestTown.Shops
         /// the mechanic. Cleared at midnight, so it is never more than a day of ints.</summary>
         private List<int> patronIds = new List<int>();
         private List<int> patronFlags = new List<int>();
+
+        /// <summary>Who each of today's callers came with, at the same index. Kept so that a
+        /// faction's standing settles from the same verdicts the town's own name does, rather than
+        /// from a nudge per receipt — a customer who opened their purse six times is one satisfied
+        /// customer to their faction too.</summary>
+        private List<Faction> patronFactions = new List<Faction>();
+
+        /// <summary>Disturbances anywhere in town today. Charged at settling; see JudgeTheDay.</summary>
+        private int disturbancesToday;
+
+        /// <summary>
+        /// Per-faction standing, 0..1, layered beside <see cref="reputation"/> rather than
+        /// replacing it. Sparse on purpose: a faction with no entry here hasn't diverged from
+        /// the town's own name yet, which is also the whole migration story for a save written
+        /// before this existed — see <see cref="StandingWith"/>.
+        /// </summary>
+        private List<Faction> standingFactions = new List<Faction>();
+        private List<float> standingValues = new List<float>();
+        private Dictionary<Faction, float> standings = new Dictionary<Faction, float>();
 
         public TownEconomy(Map map) : base(map) { }
 
@@ -142,6 +178,52 @@ namespace OldWestTown.Shops
                 for (int i = 0; i < patronFlags.Count; i++) sum += Verdict(patronFlags[i]);
                 return sum / patronFlags.Count;
             }
+        }
+
+        /// <summary>
+        /// This faction's own standing with the town, 0..1. An untracked faction reads as the
+        /// town's own <see cref="Reputation"/> — the honest answer for "we've never given them
+        /// any reason to feel differently than everyone else does," and the entire migration
+        /// story for a save written before this field existed: nothing needs seeding, because
+        /// an untracked faction and a fresh save's empty dictionary look identical.
+        /// </summary>
+        public float StandingWith(Faction faction) =>
+            faction != null && standings.TryGetValue(faction, out float value) ? value : Reputation;
+
+        /// <summary>
+        /// Whether standing can mean anything for this faction at all: not the player, not
+        /// hidden or defeated, a humanlike faction, not already at war with us, and one that
+        /// actually has somewhere in the world to send customers from. The one predicate reused
+        /// everywhere standing is written or read, so a faction that stops qualifying (a
+        /// relations crash turns them hostile mid-visit, say) drops out of all of them at once.
+        /// </summary>
+        public bool IsEligibleFaction(Faction faction)
+        {
+            if (faction == null) return false;
+            if (faction.IsPlayer) return false;
+            if (faction.Hidden) return false;
+            if (faction.defeated) return false;
+            if (faction.def == null || !faction.def.humanlikeFaction) return false;
+            if (faction.HostileTo(Faction.OfPlayer)) return false;
+            return Find.WorldObjects.Settlements.Any(s => s.Faction == faction);
+        }
+
+        /// <summary>
+        /// How hard this faction's standing should tilt the arrival draw — roughly a 20x spread
+        /// floor to ceiling. Lives here rather than on the incident worker so it sits next to
+        /// <see cref="MinAppealForCustomers"/> and the MTB bounds in
+        /// <see cref="TryAttractCustomers"/>, this file's other arrival-shaping numbers.
+        /// </summary>
+        public float ArrivalWeight(Faction faction) => Mathf.Lerp(0.15f, 3f, StandingWith(faction));
+
+        /// <summary>Tracked standings worth a player's attention — the town ledger's source.</summary>
+        public IEnumerable<KeyValuePair<Faction, float>> TrackedStandings =>
+            standings.Where(kv => IsEligibleFaction(kv.Key));
+
+        private void NudgeStanding(Faction customerFaction, float delta)
+        {
+            if (!IsEligibleFaction(customerFaction)) return;
+            standings[customerFaction] = Mathf.Clamp01(StandingWith(customerFaction) + delta);
         }
 
         public IReadOnlyList<CompBusiness> Shops => shops;
@@ -362,6 +444,15 @@ namespace OldWestTown.Shops
             NotePatron(customer, selfService ? PatronSelfServed : PatronServed);
         }
 
+        /// <summary>A saloon boiling over costs the town more than one shrugged-off walkout —
+        /// word of an actual disturbance travels further than word of slow service. Filed for
+        /// tonight rather than charged now, because the town's name moves once a day, from
+        /// <see cref="JudgeTheDay"/> and nowhere else.</summary>
+        public void RecordDisturbance()
+        {
+            disturbancesToday++;
+        }
+
         public void RecordWalkout(Pawn customer)
         {
             if (IsOwnColonist(customer)) return;
@@ -386,6 +477,7 @@ namespace OldWestTown.Shops
             }
             patronIds.Add(id);
             patronFlags.Add(flag);
+            patronFactions.Add(customer.Faction);
         }
 
         /// <summary>What one customer thinks of the town at the end of their day, 0..1.
@@ -459,8 +551,19 @@ namespace OldWestTown.Shops
             JudgeTheDay();
 
             revenueToday = 0;
+            disturbancesToday = 0;
             patronIds.Clear();
             patronFlags.Clear();
+            patronFactions.Clear();
+
+            // Standing decays toward the town's own name at the same rate — a specific faction's
+            // regard drifts back to "just another stranger" if nothing keeps happening between
+            // them and this town.
+            List<Faction> tracked = new List<Faction>(standings.Keys);
+            for (int i = 0; i < tracked.Count; i++)
+            {
+                standings[tracked[i]] = Mathf.Lerp(standings[tracked[i]], reputation, 0.05f);
+            }
         }
 
         /// <summary>Turns a day of outcomes into one move on the town's name, at midnight.
@@ -470,6 +573,10 @@ namespace OldWestTown.Shops
         /// ledger shows the day's record forming as it happens.</summary>
         private void JudgeTheDay()
         {
+            // Before the early return below: a brawl on a day when nobody reached a counter is
+            // still a brawl, and the counter is cleared either way when the day rolls.
+            ChargeDisturbances();
+
             if (patronFlags.Count == 0)
             {
                 // Nobody came to a counter, so nobody has anything to say. A town no one trades with
@@ -482,6 +589,40 @@ namespace OldWestTown.Shops
 
             float weight = MaxDayWeight * Mathf.Clamp01(patronFlags.Count / FullEvidencePatrons);
             reputation = Mathf.Lerp(reputation, ServiceScoreToday, weight);
+            SettleStandings();
+        }
+
+        /// <summary>Trouble in town is charged once, tonight, however many brawls there were.</summary>
+        private void ChargeDisturbances()
+        {
+            if (disturbancesToday <= 0) return;
+            reputation = Mathf.Clamp01(reputation - DisturbanceNightlyCost * disturbancesToday);
+        }
+
+        /// <summary>Moves each visiting faction's own standing from the same table the town's name
+        /// was just settled from — one verdict per person per day, not one per receipt. Nudging on
+        /// every sale would put a faction's regard on the granularity the town's own name was taken
+        /// off: a group of four buying a few things each would cross the whole range in an
+        /// afternoon, and every faction would read as a regular by the end of the first visit.
+        ///
+        /// An honesty-box sale earns nothing here, deliberately: nobody chose to serve that
+        /// customer, so there is no relationship to credit — only the half-verdict the town's own
+        /// name already took for it.</summary>
+        private void SettleStandings()
+        {
+            // Bounded by both columns: they are written together, and the load path pads a save
+            // from before the faction column existed, but a loop that trusts one length to index
+            // the other is one bad save away from throwing every midnight.
+            int rows = Mathf.Min(patronFactions.Count, patronFlags.Count);
+            for (int i = 0; i < rows; i++)
+            {
+                Faction faction = patronFactions[i];
+                if (!IsEligibleFaction(faction)) continue;
+
+                int flags = patronFlags[i];
+                if ((flags & PatronServed) != 0) NudgeStanding(faction, FactionStandingSaleDelta);
+                if ((flags & PatronWalkedOut) != 0) NudgeStanding(faction, FactionStandingWalkoutDelta);
+            }
         }
 
         public override void ExposeData()
@@ -493,6 +634,10 @@ namespace OldWestTown.Shops
             Scribe_Values.Look(ref reputation, "reputation", 0.5f);
             Scribe_Collections.Look(ref patronIds, "patronIds", LookMode.Value);
             Scribe_Collections.Look(ref patronFlags, "patronFlags", LookMode.Value);
+            Scribe_Collections.Look(ref patronFactions, "patronFactions", LookMode.Reference);
+            Scribe_Values.Look(ref disturbancesToday, "disturbancesToday");
+            Scribe_Collections.Look(ref standings, "standings", LookMode.Reference, LookMode.Value,
+                ref standingFactions, ref standingValues);
 
             if (Scribe.mode == LoadSaveMode.PostLoadInit)
             {
@@ -505,6 +650,25 @@ namespace OldWestTown.Shops
                 bool preServiceSave = patronIds == null;
                 if (patronIds == null) patronIds = new List<int>();
                 if (patronFlags == null) patronFlags = new List<int>();
+                if (patronFactions == null) patronFactions = new List<Faction>();
+
+                if (standings == null)
+                {
+                    standings = new Dictionary<Faction, float>();
+                }
+                else if (standings.ContainsKey(null))
+                {
+                    // A reference key that failed to resolve comes back null, and a Dictionary
+                    // indexer throws on a null key -- which would take out the nightly settling
+                    // from then on. Standing for a faction that no longer exists means nothing
+                    // anyway, so drop it here rather than guard every write site.
+                    standings.Remove(null);
+                }
+
+                // The faction column is additive, so a save from before it existed has the other
+                // two and not this one. Pad rather than drop the day: an unknown faction simply
+                // earns nobody anything tonight.
+                while (patronFactions.Count < patronIds.Count) patronFactions.Add(null);
                 if (preServiceSave && reputation > 0.9f) reputation = NeutralReputation;
             }
         }

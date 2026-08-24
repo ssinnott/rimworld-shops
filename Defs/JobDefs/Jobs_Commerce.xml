@@ -45,4 +45,32 @@
     <casualInterruptible>false</casualInterruptible>
   </JobDef>
 
+  <JobDef>
+    <defName>OWT_ServeLodging</defName>
+    <driverClass>OldWestTown.AI.JobDriver_UseService</driverClass>
+    <reportString>checking in at TargetB.</reportString>
+    <casualInterruptible>false</casualInterruptible>
+  </JobDef>
+
+  <JobDef>
+    <defName>OWT_SleepInRentedBed</defName>
+    <driverClass>OldWestTown.AI.JobDriver_SleepInRentedBed</driverClass>
+    <reportString>sleeping at TargetA.</reportString>
+    <casualInterruptible>false</casualInterruptible>
+  </JobDef>
+
+  <JobDef>
+    <defName>OWT_Patrol</defName>
+    <driverClass>OldWestTown.AI.JobDriver_Patrol</driverClass>
+    <reportString>patrolling TargetA.</reportString>
+    <allowOpportunisticPrefix>true</allowOpportunisticPrefix>
+  </JobDef>
+
+  <JobDef>
+    <defName>OWT_CalmTrouble</defName>
+    <driverClass>OldWestTown.AI.JobDriver_CalmTrouble</driverClass>
+    <reportString>calming down TargetA.</reportString>
+    <casualInterruptible>false</casualInterruptible>
+  </JobDef>
+
 </Defs>

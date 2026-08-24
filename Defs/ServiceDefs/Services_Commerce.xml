@@ -12,6 +12,9 @@
     <worker Class="OldWestTown.Shops.ServiceWorker_Ingest">
       <foodType>Liquor</foodType>
       <needHook>Joy</needHook>
+      <!-- The one service in the mod that generates trouble — see TroubleUtility. Meal leaves
+           this at its default of zero: a hot meal doesn't make anyone rowdier. -->
+      <rowdinessPerServing>0.2</rowdinessPerServing>
     </worker>
   </OldWestTown.Shops.ServiceDef>
 
@@ -41,6 +44,20 @@
     <worker Class="OldWestTown.Shops.ServiceWorker_Haircut">
       <thoughtDef>OWT_FreshHaircut</thoughtDef>
     </worker>
+  </OldWestTown.Shops.ServiceDef>
+
+  <!-- A night's stay. Like Haircut, consumes nothing but time — the "stock" it needs (a
+       vacant bed) lives on the sales floor rather than the shelves, which is what
+       ServiceWorker.IsAvailable exists to check. Self-service makes no sense here: an empty
+       desk can't hand anyone a key. -->
+  <OldWestTown.Shops.ServiceDef>
+    <defName>OWT_Lodging</defName>
+    <label>lodging</label>
+    <jobDef>OWT_ServeLodging</jobDef>
+    <serveTicks>200</serveTicks>
+    <basePrice>40</basePrice>
+    <allowsSelfService>false</allowsSelfService>
+    <worker Class="OldWestTown.Shops.ServiceWorker_Lodging" />
   </OldWestTown.Shops.ServiceDef>
 
 </Defs>

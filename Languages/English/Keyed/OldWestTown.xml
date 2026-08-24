@@ -16,9 +16,16 @@
   <OWT_QueueLine>Waiting their turn: {0}</OWT_QueueLine>
   <OWT_StockLine>On sale: {0} stacks ({1})</OWT_StockLine>
   <OWT_ServicesLine>Services offered: {0}</OWT_ServicesLine>
+  <OWT_RoomsLine>Rooms: {0} of {1} vacant</OWT_RoomsLine>
   <OWT_MarkupLine>Markup: {0} of market value</OWT_MarkupLine>
   <OWT_TillLine>Till: {0} (today: {1})</OWT_TillLine>
   <OWT_TownLine>Town appeal: {0} — reputation: {1}</OWT_TownLine>
+
+  <!-- Rentable bed inspect panel and gizmo -->
+  <OWT_BedVacant>Vacant</OWT_BedVacant>
+  <OWT_BedOccupiedBy>Occupied by {0}</OWT_BedOccupiedBy>
+  <OWT_CmdEvictGuest>Evict guest</OWT_CmdEvictGuest>
+  <OWT_CmdEvictGuestDesc>Release this bed's current guest immediately. They lose the room they already paid for — a guest evicted this way won't come back to this hotel for the rest of their visit.</OWT_CmdEvictGuestDesc>
 
   <!-- Counter gizmos -->
   <OWT_CmdOpen>Open for business</OWT_CmdOpen>
@@ -43,6 +50,8 @@
   <OWT_LedgerLifetimeLine>Lifetime takings: {0}.</OWT_LedgerLifetimeLine>
   <OWT_LedgerShopLine>{0} — {1} today, {2} in the till.</OWT_LedgerShopLine>
   <OWT_LedgerShopWalkouts>({0} gave up here.)</OWT_LedgerShopWalkouts>
+  <OWT_LedgerRegularLine>Customers from {0} have become regulars ({1} standing).</OWT_LedgerRegularLine>
+  <OWT_LedgerColdLine>Customers from {0} want nothing more to do with this town ({1} standing).</OWT_LedgerColdLine>
 
   <!-- Stock tab -->
   <OWT_TabStock>Stock</OWT_TabStock>
@@ -76,9 +85,28 @@
   <OWT_ColonistGaveUp>{0} gave up waiting for a {1} at {2}. Nobody came to work the counter — raise Shopkeeping's priority, or right-click the counter with another colonist to send them to it. It cost the town nothing, and {0} the better part of an hour.</OWT_ColonistGaveUp>
   <OWT_ColonistNotReached>{0} gave up waiting for a {1} at {2}. The counter was busy with other customers the whole time — it serves one at a time, so a second one is what would have fitted {0} in. It cost the town nothing, and {0} a few hours.</OWT_ColonistNotReached>
   <OWT_CounterBusy>Customers are walking past {0} rather than wait — a counter serves one at a time. Nobody was neglected and the town's name is untouched; what it costs is the sale. Another counter with somebody behind it is what turns them back into money.</OWT_CounterBusy>
+  <OWT_GuestEvicted>{0}'s room at {1} was taken from them. Word of the poor treatment spreads.</OWT_GuestEvicted>
 
   <!-- Alerts -->
   <OWT_AlertUnattended>Customers waiting ({0})</OWT_AlertUnattended>
   <OWT_AlertUnattendedDesc>Customers are queueing at a counter with nobody behind it. If a colonist with the Shopkeeping work type doesn't serve them soon, they will walk out — losing you the sale and hurting the town's reputation.</OWT_AlertUnattendedDesc>
+
+  <!-- False front -->
+  <OWT_FalseFrontAdvertising>Currently advertising for: {0}</OWT_FalseFrontAdvertising>
+  <OWT_FalseFrontIdle>No open shop nearby to advertise for</OWT_FalseFrontIdle>
+
+  <!-- Sheriff's office: assignment gizmo and inspect panel -->
+  <OWT_CmdAssignSheriff>Assign sheriff</OWT_CmdAssignSheriff>
+  <OWT_CmdAssignSheriffDesc>Assign a colonist to hold this post as sheriff. While they're on duty here, saloon patrons town-wide get rowdy more slowly, and the sheriff can step in to calm a specific patron down before they cause a disturbance.</OWT_CmdAssignSheriffDesc>
+  <OWT_PostAlreadyFilled>This post is already filled. Unassign its current holder first.</OWT_PostAlreadyFilled>
+  <OWT_PostVacant>No sheriff assigned</OWT_PostVacant>
+  <OWT_PostOnDuty>Sheriff: {0} (on duty)</OWT_PostOnDuty>
+  <OWT_PostOffDuty>Sheriff: {0} (off duty)</OWT_PostOffDuty>
+
+  <!-- Saloon trouble -->
+  <OWT_SaloonTrouble>{0} caused a scene at {1}. Word of the disturbance spreads, and they've had enough for one visit.</OWT_SaloonTrouble>
+  <OWT_DisturbanceLine>Disturbances today: {0}</OWT_DisturbanceLine>
+  <OWT_AlertRowdyPatrons>Rowdy patrons ({0})</OWT_AlertRowdyPatrons>
+  <OWT_AlertRowdyPatronsDesc>A patron is getting loud at a saloon. If nothing steps in, it will turn into a disturbance — losing you their custom for the rest of their visit and hurting the town's reputation. An assigned, on-duty sheriff can calm them down first.</OWT_AlertRowdyPatronsDesc>
 
 </LanguageData>

@@ -57,6 +57,10 @@ namespace OldWestTown.Shops
         /// queue is something to invest against, and the counter's own pane carries the live version.</summary>
         private const int BusyMessageIntervalTicks = 15000;
 
+        /// <summary>How far a faction's standing has to diverge from the town's own name
+        /// before the ledger calls it out by name — a small divergence isn't a "regular" yet.</summary>
+        private const float LedgerStandingDivergenceThreshold = 0.1f;
+
         private ThingOwner<Thing> till;
         private ThingFilter stockFilter;
         private bool open = true;
@@ -88,6 +92,8 @@ namespace OldWestTown.Shops
         public int lifetimeSales;
         public int lifetimeRevenue;
         public int walkoutsToday;
+        public int disturbancesToday;
+        public int lifetimeDisturbances;
 
         private List<Thing> cachedStock = new List<Thing>();
 
@@ -352,6 +358,7 @@ namespace OldWestTown.Shops
                 if (kind == null) yield break;
                 foreach (ServiceDef sd in kind.services)
                 {
+                    if (!sd.worker.IsAvailable(this)) continue;
                     if (!sd.worker.ConsumesStock) { yield return sd; continue; }
                     if (ShopStock.HasStockFor(this, sd)) yield return sd;
                 }
@@ -545,6 +552,15 @@ namespace OldWestTown.Shops
             walkoutsToday++;
         }
 
+        /// <summary>A saloon-only concern today (see TroubleUtility), but kept here rather than
+        /// on a saloon-specific type — the same reasoning RecordSale/RecordWalkout already
+        /// follow for every other kind-agnostic counter.</summary>
+        public void RecordDisturbance()
+        {
+            disturbancesToday++;
+            lifetimeDisturbances++;
+        }
+
         /// <summary>
         /// At most one walkout message per counter per patience-window, so a whole group
         /// giving up at once reads as one event in the log, not a flood.
@@ -563,6 +579,7 @@ namespace OldWestTown.Shops
             salesToday = 0;
             revenueToday = 0;
             walkoutsToday = 0;
+            disturbancesToday = 0;
         }
 
         // ---------------------------------------------------------------- lifecycle
@@ -609,6 +626,8 @@ namespace OldWestTown.Shops
             Scribe_Values.Look(ref lifetimeSales, "lifetimeSales");
             Scribe_Values.Look(ref lifetimeRevenue, "lifetimeRevenue");
             Scribe_Values.Look(ref walkoutsToday, "walkoutsToday");
+            Scribe_Values.Look(ref disturbancesToday, "disturbancesToday");
+            Scribe_Values.Look(ref lifetimeDisturbances, "lifetimeDisturbances");
             Scribe_References.Look(ref lastShopkeeper, "lastShopkeeper");
 
             if (Scribe.mode == LoadSaveMode.PostLoadInit)
@@ -652,6 +671,15 @@ namespace OldWestTown.Shops
             {
                 sb.AppendLine("OWT_ServicesLine".Translate(
                     string.Join(", ", Kind.services.Select(s => s.LabelCap))));
+            }
+            if (Kind != null && Kind.services.Any(sd => sd.worker is ServiceWorker_Lodging))
+            {
+                int total = ShopStock.CountBeds(this, out int vacant);
+                sb.AppendLine("OWT_RoomsLine".Translate(vacant, total));
+            }
+            if (Kind != null && Kind.services.Any(sd => sd.worker.RowdinessPerUse > 0f))
+            {
+                sb.AppendLine("OWT_DisturbanceLine".Translate(disturbancesToday));
             }
             sb.AppendLine("OWT_MarkupLine".Translate(Markup.ToStringPercent()));
             sb.Append("OWT_TillLine".Translate(((float)TillSilver).ToStringMoney(), ((float)revenueToday).ToStringMoney()));
@@ -818,6 +846,27 @@ namespace OldWestTown.Shops
             sb.AppendLine("OWT_LedgerPurseLine".Translate(
                 (econ.PurseFactor * OldWestTownMod.Settings.customerWealth).ToString("0.00")));
             sb.AppendLine("OWT_LedgerReputationLine".Translate(econ.Reputation.ToStringPercent()));
+
+            List<KeyValuePair<Faction, float>> tracked = econ.TrackedStandings.ToList();
+            if (tracked.Count > 0)
+            {
+                KeyValuePair<Faction, float> best = tracked.OrderByDescending(kv => kv.Value).First();
+                KeyValuePair<Faction, float> worst = tracked.OrderBy(kv => kv.Value).First();
+                if (best.Value - econ.Reputation > LedgerStandingDivergenceThreshold)
+                {
+                    sb.AppendLine("OWT_LedgerRegularLine".Translate(best.Key.Name, best.Value.ToStringPercent()));
+                }
+                // No key-equality guard needed here: a single value can't be simultaneously
+                // above Reputation+threshold and below Reputation-threshold, so this condition
+                // and the one above it can never both fire for the same faction — including
+                // when tracked.Count == 1, where best and worst are literally the same entry
+                // and only one of the two checks can possibly pass.
+                if (econ.Reputation - worst.Value > LedgerStandingDivergenceThreshold)
+                {
+                    sb.AppendLine("OWT_LedgerColdLine".Translate(worst.Key.Name, worst.Value.ToStringPercent()));
+                }
+            }
+
             sb.AppendLine();
             sb.AppendLine("OWT_LedgerTodayLine".Translate(
                 econ.PatronsToday, econ.UnservedToday, ((float)econ.revenueToday).ToStringMoney()));
@@ -836,6 +885,15 @@ namespace OldWestTown.Shops
                 if (shop.walkoutsToday > 0)
                 {
                     sb.Append(" ").Append("OWT_LedgerShopWalkouts".Translate(shop.walkoutsToday));
+                }
+                if (shop.Kind != null && shop.Kind.services.Any(sd => sd.worker is ServiceWorker_Lodging))
+                {
+                    int total = ShopStock.CountBeds(shop, out int vacant);
+                    sb.AppendLine("OWT_RoomsLine".Translate(vacant, total));
+                }
+                if (shop.Kind != null && shop.Kind.services.Any(sd => sd.worker.RowdinessPerUse > 0f))
+                {
+                    sb.AppendLine("OWT_DisturbanceLine".Translate(shop.disturbancesToday));
                 }
                 sb.AppendLine();
             }
