@@ -42,7 +42,7 @@ All under `Source/OldWestTown/`, namespace `OldWestTown`.
 | `FalseFrontRegistry.cs` | `FalseFrontRegistry` | `MapComponent`. Live roster of spawned `CompFalseFront`s, registered the same way `TownEconomy` registers shops — so curb-appeal scoring never has to scan every Thing on the map. |
 | `TownEconomy.cs` | `TownEconomy` | `MapComponent`: business register, daily ledger, reputation, [appeal](economy.md#appeal), arrival clock, and — per faction — a sparse [standing](economy.md#standing-with-a-faction) dictionary that biases which faction's customers arrive next. `RecordShortfall` is the worst single-event reputation and standing hit the mod has — a gambling hall unable to pay out a win. |
 | `StickupWatch.cs` | `StickupWatch` | `MapComponent`: sums every registered business's `TillSilver`, open or closed, into the [stickup](outlaws.md) clock — an MTB roll that shortens as uncollected silver climbs, halved in frequency by an on-duty sheriff, firing `OWT_Stickup` through the storyteller the same way `TownEconomy` fires its own arrival incident. Read-only against `TownEconomy`; carries no persisted state of its own. |
-| `TownEconomy.cs` | `TownEconomy` | `MapComponent`: business register, daily ledger, reputation, [appeal](economy.md#appeal), arrival clock, and — per faction — a sparse [standing](economy.md#standing-with-a-faction) dictionary that biases which faction's customers arrive next. `RecordShortfall` is the worst single-event reputation and standing hit the mod has — a gambling hall unable to pay out a win. Also owns the [stagecoach line](economy.md#the-stagecoach-line)'s guarantee clock — `RouteTier`, `TicksSinceLastArrival`, `GuaranteedArrivalDue`, `NotifyArrival` — an OR folded into the existing MTB roll below, not a second, independent clock. |
+| `TownEconomy.cs` | `TownEconomy` | `MapComponent`: business register, daily ledger, reputation, [appeal](economy.md#appeal), arrival clock, and — per faction — a sparse [standing](economy.md#standing-with-a-faction) dictionary that biases which faction's customers arrive next. `RecordShortfall` is the worst single-event reputation and standing hit the mod has — a gambling hall unable to pay out a win. Also owns the [stagecoach line](economy.md#the-stagecoach-line)'s guarantee clock — `RouteTier`, `TicksSinceLastArrival`, `GuaranteedArrivalDue`, `NotifyArrival` — an OR folded into the existing MTB roll below, not a second, independent clock. And [regional competition](economy.md#regional-competition) — `PriceIndex`, `MarketPull`, `CompetingPull`, `RegionalShare` — reads `Rivals/RivalTowns.cs` to stretch the same arrival clock by a provably-bounded 1.0–1.6×, never suppressing or speeding it up. |
 
 ### `AI/` — the pawn loops
 
@@ -85,6 +85,13 @@ All under `Source/OldWestTown/`, namespace `OldWestTown`.
 | `CoachTierUtility.cs` | `CoachTierUtility` | Stateless reads off the map, nothing cached or registered: `HasDepot` (a `ListerThings` scan, mirroring `TroubleUtility.AnySheriffOnDuty`'s own "ask, don't track" shape), `CurrentTier`/`NextTier` (which rung is active and which is next), `CeilingTicks` (a tier's arrival ceiling in ticks, at the player's own Customer volume setting). |
 | `CompCoachDepot.cs` | `CompProperties_CoachDepot`, `CompCoachDepot` | The [coach depot](buildings.md#coach-depot)'s only behaviour: an inspect string reading the town's current tier, next tier and countdown live off `TownEconomy` and `CoachTierUtility`. A passive marker like `CompRolePost` and `CompFalseFront` — never staffed, never targeted by a job, nothing persisted on the comp itself. |
 
+### `Rivals/` — regional competition
+
+| File | Type | Job |
+| --- | --- | --- |
+| `RivalTownDef.cs` | `RivalTownDef` | Data-driven rival archetype: starting and ceiling appeal, daily growth rate, and the MTB days, duration and price index behind an [undercutting swing](economy.md#undercutting). Same "kind is a stanza, not a class" idiom `ShopKindDef` and `CoachTierDef` already use. |
+| `RivalTowns.cs` | `RivalTown`, `RivalTowns` | `RivalTowns` is this mod's first `WorldComponent` — a world-scoped roster of `RivalTown` instances, one per loaded `RivalTownDef`, shared by every loaded map rather than owned by any one of them. `WorldComponentTick` grows each rival's appeal toward its own ceiling once per elapsed world-day and rolls its own MTB clock for an undercutting swing, messaging on each transition — gated on the rival towns master switch, which freezes growth and rolling while off without letting the missed days pile up into a jump on re-enable. `TotalRivalPull` is the sum `TownEconomy.CompetingPull` reads; that getter itself never reads `OldWestTownMod.Settings`, so a given sum means the same thing regardless of any one map's settings — the `rivalStrength` scaling happens exactly once, on the `TownEconomy` side. |
+
 ### `Lords/`, `Incidents/`, `Alerts/`, `UI/`
 
 | File | Type | Job |
@@ -106,7 +113,7 @@ All under `Source/OldWestTown/`, namespace `OldWestTown`.
 
 | File | Type | Job |
 | --- | --- | --- |
-| `OldWestTownMod.cs` | `OldWestTownSettings`, `OldWestTownMod` | The three [mod settings](reference.md#mod-settings) and their window. |
+| `OldWestTownMod.cs` | `OldWestTownSettings`, `OldWestTownMod` | The [mod settings](reference.md#mod-settings) and their window. |
 | `OWTDefOf.cs` | `OWTDefOf` | Static def references. |
 | `AssemblyInfo.cs` | — | Assembly metadata. |
 
@@ -398,3 +405,28 @@ anything changes hands.
   either is actually used.** Worth a first-play check that a route promotion letter genuinely
   renders, and that reloading a save genuinely doesn't re-announce a tier the player has already
   seen.
+- **`Rivals/RivalTowns.cs` is this mod's first `WorldComponent`, and the confirmed-vs-inferred
+  picture is worth stating plainly.** `refdump` confirms `WorldComponent` itself exists with
+  `ExposeData()`, `FinalizeInit(bool fromLoad)` (note the `bool` — unlike this mod's own
+  parameterless `MapComponent.FinalizeInit()` overrides), `WorldComponentTick()` and a `world`
+  field, and that `World.GetComponent<T>()`, `World.components`, `World.FillComponents()` and
+  `GenTypes.AllSubclassesNonAbstract` all exist. What it *can't* confirm, because reference
+  assemblies carry no IL: whether `World.FillComponents()` genuinely auto-discovers `RivalTowns`
+  the same zero-registration way this mod's four existing `MapComponent`s already rely on — that
+  part is inferred from the `MapComponent` precedent, not confirmed by decompiling anything.
+  `RivalTowns(World world) : base(world)` compiling clean at least resolves the one construction
+  question `refdump` can't answer at all, the same way it did for `LordToil_PanicFlee`'s
+  parameterless constructor above.
+- **`WorldComponentTick`'s real firing cadence is unobserved** — with zero maps loaded (the main
+  menu, or between colonies), with exactly one, and with two or more loaded at once.
+  `RivalTowns.ProcessDay`'s catch-up math (`daysPassed = today - lastProcessedDay`) is designed to
+  stay correct however sparsely or densely this actually fires in a live game, but that design has
+  never been checked against how often vanilla genuinely calls it.
+- **Every rival tunable is a first-pass guess, untested in a live game** — `baseAppeal`,
+  `maxAppeal`, `growthPerDay`, `undercutMTBDays`, `undercutDurationDays` and `undercutPriceIndex`
+  for both shipped `RivalTownDef`s, and `MaxRegionalSlowdown` (1.6×) on the `TownEconomy` side, in
+  the same spirit as this file's other untested constants. The bound itself — never more than 60%
+  slower, never faster — is proven by construction (see [regional
+  competition](economy.md#regional-competition)); whether that 60% actually *feels* like
+  meaningful competition, rather than a barely-noticeable tax or an overbearing one, is exactly
+  what a playtest would tell that the math alone can't.

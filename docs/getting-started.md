@@ -97,7 +97,7 @@ today's takings; **Collect takings** drops the silver on the floor for a hauler.
 
 ## Mod settings
 
-Two sliders and two checkboxes, under Options → Mod settings → Old West Town.
+Three sliders and three checkboxes, under Options → Mod settings → Old West Town.
 
 | Setting | Default | What it does |
 | --- | --- | --- |
@@ -105,3 +105,4 @@ Two sliders and two checkboxes, under Options → Mod settings → Old West Town
 | **Customer volume** | 100% | Scales both how often groups arrive and how large they are. Range 25%–300%. |
 | **Customer wealth** | 100% | Scales the silver each customer arrives carrying. Range 25%–300%. |
 | **Outlaw stickups** | on | Rich, uncollected tills draw armed robbers who empty them and leave unless resisted. Off removes the risk entirely. See [outlaws and the law](outlaws.md). |
+| **Rival towns** | on | One or two NPC towns compete for the same regional trade — your share of it slows your own arrival clock, never by more than 60%. A **Rival strength** slider (25%–300%) appears while this is on, scaling how hard a rival's own numbers count. Off restores today's arrival clock exactly. See [regional competition](economy.md#regional-competition). |

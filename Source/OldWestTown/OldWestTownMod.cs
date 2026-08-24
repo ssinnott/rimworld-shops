@@ -28,6 +28,15 @@ namespace OldWestTown
         /// Shops/StickupWatch.cs). On by default, like every other risk this mod ships with.</summary>
         public bool stickupsEnabled = true;
 
+        /// <summary>Master switch for rival towns (Rivals/RivalTowns.cs). On by default, like
+        /// every other risk this mod ships with.</summary>
+        public bool rivalTownsEnabled = true;
+
+        /// <summary>Scales every rival's own pull before it's weighed against this town's own —
+        /// a multiplier on a sum, not a divisor, so it carries no near-zero floor the way
+        /// customerVolume/customerWealth do; see TownEconomy.CompetingPull.</summary>
+        public float rivalStrength = 1f;
+
         public override void ExposeData()
         {
             base.ExposeData();
@@ -37,6 +46,8 @@ namespace OldWestTown
             Scribe_Values.Look(ref hospitalityBridgeEnabled, "hospitalityBridgeEnabled", true);
             Scribe_Values.Look(ref hospitalityGuestsCarrySilver, "hospitalityGuestsCarrySilver", true);
             Scribe_Values.Look(ref stickupsEnabled, "stickupsEnabled", true);
+            Scribe_Values.Look(ref rivalTownsEnabled, "rivalTownsEnabled", true);
+            Scribe_Values.Look(ref rivalStrength, "rivalStrength", 1f);
         }
     }
 
@@ -69,6 +80,15 @@ namespace OldWestTown
 
             list.CheckboxLabeled("OWT_SettingStickupsEnabled".Translate(), ref Settings.stickupsEnabled,
                 "OWT_SettingStickupsEnabledDesc".Translate());
+
+            list.Gap();
+            list.CheckboxLabeled("OWT_SettingRivalTownsEnabled".Translate(), ref Settings.rivalTownsEnabled,
+                "OWT_SettingRivalTownsEnabledDesc".Translate());
+            if (Settings.rivalTownsEnabled)
+            {
+                list.Label("OWT_SettingRivalStrength".Translate(Settings.rivalStrength.ToStringPercent()));
+                Settings.rivalStrength = list.Slider(Settings.rivalStrength, 0.25f, 3f);
+            }
 
             // Hospitality section: a status line always shown, so the player can tell the bridge
             // apart from a mod that's simply doing nothing; controls only once there's something

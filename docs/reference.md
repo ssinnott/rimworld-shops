@@ -75,6 +75,15 @@ The [stagecoach line](economy.md#the-stagecoach-line)'s route ladder, `OldWestTo
 | `OWT_RouteWeeklyCoach` | weekly coach | 1.5 | 4 days | ×1.6 | 8% |
 | `OWT_RouteDailyExpress` | daily express | 3.5 | 2 days | ×2.0 | 20% |
 
+### Rival town kinds
+
+[Regional competition](economy.md#regional-competition)'s two shipped rivals, `OldWestTown.Rivals.RivalTownDef` — pure data, in `Defs/RivalTownDefs/RivalTowns.xml`.
+
+| defName | Label | Base appeal | Max appeal | Growth/day | Undercut MTB | Undercut duration | Undercut price index |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `OWT_RivalTown_TwoForks` | Two Forks | 0.3 | 2.0 | 0.003 | 14 days | 4 days | 1.3 |
+| `OWT_RivalTown_Prospect` | Prospect Junction | 0.15 | 1.3 | 0.002 | 9 days | 3 days | 1.5 |
+
 ### Jobs
 
 | defName | Driver | Report string |
@@ -260,6 +269,19 @@ where it lives in C# it is a `const` in the named file.
 | `CeilingTicks` (`CoachTierUtility`) | `tier.arrivalCeilingDays * 60000 / max(0.25, customerVolume)` | A tier's arrival ceiling in ticks, at the player's own Customer volume setting — same clamp-floor and unit convention as the MTB clock's own `mtbDays` scaling |
 | `VipPurseMultiplier` (`IncidentWorker_ShopCustomers`) | 5.0 | Flat multiplier on a VIP passenger's purse, on top of the ordinary appeal-scaled amount — one number for every tier, not an escalating one |
 
+### Regional competition — `Shops/TownEconomy.cs`, `Rivals/RivalTowns.cs`
+
+| Name | Value | Meaning |
+| --- | --- | --- |
+| `MaxRegionalSlowdown` (`TownEconomy`) | 1.6 | Structural cap on the arrival clock's regional-competition multiplier — never faster than today, never more than 60% slower, for any rival configuration |
+| `PriceIndex` (`TownEconomy`) | unweighted mean of `ShopPricing.ValueAppeal(shop)` over `OpenShops()` with something to offer; 1 if none | The price half of `MarketPull` — the identical score a customer already uses to pick between your own shops |
+| `MarketPull` (`TownEconomy`) | `Appeal × PriceIndex` | This town's own pull — the player-side half of `RegionalShare` |
+| `CompetingPull` (`TownEconomy`) | `RivalTowns.TotalRivalPull × max(0, rivalStrength)`; 0 if rivals disabled or no `RivalTowns` component | Every rival's combined pull, at the player's own strength setting |
+| `RegionalShare` (`TownEconomy`) | `1` if `MarketPull ≤ 0` or `CompetingPull ≤ 0`; else `MarketPull / (MarketPull + CompetingPull)` | This town's share of regional trade — feeds `TryAttractCustomers`'s `mtbDays *= Lerp(1, MaxRegionalSlowdown, 1 − RegionalShare)` |
+| `baseAppeal` / `maxAppeal` / `growthPerDay` / `undercutMTBDays` / `undercutDurationDays` / `undercutPriceIndex` (`RivalTownDef`) | see [rival town kinds](#rival-town-kinds) | One archetype of rival — pure data, per rival |
+| `Undercutting` / `PriceIndex` / `Pull` (`RivalTown`) | `undercutEndDay ≥ 0 && GenDate.DaysPassed < undercutEndDay`; `def.undercutPriceIndex` while undercutting else 1; `currentAppeal × PriceIndex` | One rival's own live, computed state |
+| `TotalRivalPull` (`RivalTowns`) | Sum of every rival's `Pull` | Deliberately settings-agnostic — `rivalStrength` is applied once, on the `TownEconomy` side, only |
+
 ## Mod settings
 
 `OldWestTownSettings`, saved in RimWorld's mod-settings file.
@@ -272,6 +294,8 @@ where it lives in C# it is a `const` in the named file.
 | `hospitalityBridgeEnabled` | true | on/off | Master switch for the [Hospitality bridge](customers.md#hospitality-guests). Only shown, and only consulted, while `HospitalityInterop.Present` is true |
 | `hospitalityGuestsCarrySilver` | true | on/off | Whether the bridge tops up a Hospitality guest's purse the way an arriving customer's is. Only shown while the bridge itself is enabled |
 | `stickupsEnabled` | true | on/off | Master switch for [the stickup incident](outlaws.md). Off removes the risk from an uncollected till entirely |
+| `rivalTownsEnabled` | true | on/off | Master switch for [regional competition](economy.md#regional-competition). Off restores pre-feature arrival-clock behavior exactly — `CompetingPull` reads 0 everywhere |
+| `rivalStrength` | 1.0 | 0.25–3.0 | Scales every rival's own pull before it's weighed against this town's. A multiplier on a sum, not a divisor, so it carries no near-zero floor the way the sliders above do |
 
 ## Translation keys
 
@@ -299,6 +323,7 @@ otherwise.
 | Gambling hall | `OWT_CmdHouseEdge`, `OWT_CmdHouseEdgeDesc`, `OWT_HouseEdgeSlider`, `OWT_HouseEdgeLine`, `OWT_ShortfallLine`, `OWT_PayoutLine`, `OWT_CheatingAccusation`, `OWT_HouseCantCover`, `OWT_CmdCollectDescWager` |
 | Stagecoach line letters and route-tier announcements | `OWT_LetterCoachLabel`, `OWT_LetterCoachText`, `OWT_LetterCoachVIPLabel`, `OWT_LetterCoachVIPText`, `OWT_RouteTierUpLabel`, `OWT_RouteTierUpText`, `OWT_RouteTierDownMessage`, `OWT_RouteTierLostMessage` |
 | Coach depot inspect panel | `OWT_DepotTierLine`, `OWT_DepotNextArrivalLine`, `OWT_DepotNextTierLine`, `OWT_DepotMaxTierLine`, `OWT_DepotNoRoute`, `OWT_DepotNoTiers` |
+| Regional competition: inspect line, ledger and settings | `OWT_RegionalShareLine`, `OWT_LedgerRivalsHeader`, `OWT_LedgerRivalLine`, `OWT_LedgerRivalLineUndercutting`, `OWT_LedgerRegionalShareLine`, `OWT_RivalUndercutStartMessage`, `OWT_RivalUndercutEndMessage`, `OWT_RegionalLeadGainedMessage`, `OWT_RegionalLeadLostMessage`, `OWT_SettingRivalTownsEnabled`, `OWT_SettingRivalTownsEnabledDesc`, `OWT_SettingRivalStrength` |
 
 ## Saved state
 
@@ -323,9 +348,15 @@ What survives a save/load, and where it lives.
 | Per-`(pawn, shop)` cooldown table | `HospitalityBridge` | Deliberately **not** persisted, same reasoning as `CompRolePost`'s on-duty flag above — a reload starts every guest's cooldown fresh, which can only make the bridge briefly more generous, never stuck |
 | Guarantee clock (`lastArrivalTick`) | `TownEconomy` | Absent on an old save, reads as `0` — `TicksSinceLastArrival` then reads as the entire elapsed game time, the same "safe, a little eager, never stranded" shape `LordJob_ShopVisit.groupArrivedTick` already ships with. The next arrival, organic or guaranteed, re-anchors it |
 | Last-announced route tier (`lastAnnouncedTier`) | `TownEconomy` | `Scribe_Defs.Look`. Absent on an old save, reads as `null` — indistinguishable from "no depot has ever changed tier," so a reload can never spuriously re-announce one |
+| Rival roster (`rivals`) | `RivalTowns` | One per world, not per map. `Scribe_Collections.Look(..., LookMode.Deep)`. Absent on any save from before rival towns existed — `FinalizeInit(true)` seeds one `RivalTown` per shipped `RivalTownDef` at its own `baseAppeal` the first time an old save loads under this version, the identical "a sparse collection defaults itself" story `TownEconomy.standings` already tells, now one level up at the world scope |
+| Rival-clock throttle (`lastProcessedDay`) | `RivalTowns` | Absent on an old save, reads as `-1` — the next `WorldComponentTick` treats that as "catch up by exactly one day," the same shape `TownEconomy.lastDayRolled` already uses |
+| Regional lead tracking (`lastRegionLead` / `regionLeadKnown`) | `TownEconomy` | Absent on an old save, read as `true` / `false` — `regionLeadKnown` reading `false` means `CheckRegionalLeadChange`'s first call on that map silently *records* the current lead rather than announcing one, so an upgraded save can never itself produce a spurious "you've fallen behind" message |
 | Mod settings | `OldWestTownSettings` | Global, not per save |
 
 `TownEconomy` rebuilds its business register in `FinalizeInit`, because comps register on spawn
 and a loaded map spawns them before the map component exists. `FalseFrontRegistry` rebuilds its
 own facade list the same way, for the same reason. Route tier and depot existence need no such
-rebuild — both are computed live off `CoachTierUtility`, never cached or registered.
+rebuild — both are computed live off `CoachTierUtility`, never cached or registered. `RivalTowns`
+seeds any *missing* rival on `FinalizeInit` rather than rebuilding its whole roster from scratch —
+a fresh game, an old save, and a modder adding a third `RivalTownDef` mid-save all take the
+identical code path, and an already-grown rival's own state is never touched by it.

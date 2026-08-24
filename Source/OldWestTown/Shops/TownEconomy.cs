@@ -3,6 +3,7 @@ using System.Linq;
 using RimWorld;
 using UnityEngine;
 using Verse;
+using OldWestTown.Rivals;
 using OldWestTown.Stagecoach;
 
 namespace OldWestTown.Shops
@@ -47,6 +48,14 @@ namespace OldWestTown.Shops
         /// trust break than slow service ever is.</summary>
         private const float FactionStandingShortfallDelta = -0.20f;
 
+        /// <summary>
+        /// Structural cap on the arrival clock's regional-competition slowdown — see
+        /// <see cref="RegionalShare"/>. <c>Mathf.Lerp</c> clamps its own interpolant to [0,1], so
+        /// this is a provable bound, not a tuning promise: never faster than today, never more
+        /// than 60% slower, for any rival appeal, any rivalStrength setting, any number of rivals.
+        /// </summary>
+        private const float MaxRegionalSlowdown = 1.6f;
+
         private readonly List<CompBusiness> shops = new List<CompBusiness>();
 
         private int lastDayRolled = -1;
@@ -78,6 +87,17 @@ namespace OldWestTown.Shops
         /// <summary>The tier <see cref="CheckRouteTierChange"/> last announced, so a reload
         /// can't re-announce a tier the player has already been told about.</summary>
         private CoachTierDef lastAnnouncedTier;
+
+        /// <summary>Whether this map's own town was leading the region the last time
+        /// <see cref="CheckRegionalLeadChange"/> actually evaluated it.</summary>
+        private bool lastRegionLead = true;
+
+        /// <summary>False until <see cref="CheckRegionalLeadChange"/> has evaluated the lead at
+        /// least once on this map. Kept separate from <see cref="lastRegionLead"/> itself so the
+        /// very first evaluation — a fresh colony crossing the threshold, or an old save loading
+        /// under this version for the first time — can silently record state rather than
+        /// announcing a spurious change.</summary>
+        private bool regionLeadKnown = false;
 
         public TownEconomy(Map map) : base(map) { }
 
@@ -132,6 +152,71 @@ namespace OldWestTown.Shops
                 float goods = Mathf.Sqrt(stockScore / 1000f);          // diminishing returns on wealth
                 float standing = Mathf.Lerp(0.5f, 1.5f, Reputation);   // a good name doubles your draw
                 return kindScore * Mathf.Clamp(goods, 0.25f, 3f) * standing;
+            }
+        }
+
+        /// <summary>
+        /// Unweighted mean of every open, stocked shop's own <see cref="ShopPricing.ValueAppeal"/>
+        /// — the identical score a customer already uses to pick between your own shops, now
+        /// averaged into one town-wide number. Shares <see cref="Appeal"/>'s exact gate
+        /// (<c>HasAnythingToOffer</c>), so the two can never disagree about whether there's
+        /// anything here worth pricing at all; 1f (neutral) when there isn't.
+        /// </summary>
+        public float PriceIndex
+        {
+            get
+            {
+                float total = 0f;
+                int count = 0;
+                foreach (CompBusiness shop in OpenShops())
+                {
+                    if (!shop.HasAnythingToOffer) continue;
+                    total += ShopPricing.ValueAppeal(shop);
+                    count++;
+                }
+                return count > 0 ? total / count : 1f;
+            }
+        }
+
+        /// <summary>What this town actually pulls: <see cref="Appeal"/> weighted by how
+        /// competitively it's priced. The player-side half of <see cref="RegionalShare"/>.</summary>
+        public float MarketPull => Appeal * PriceIndex;
+
+        /// <summary>
+        /// Every rival's combined pull, at the player's own rivalStrength setting. 0f with rivals
+        /// disabled, or no world component to read — defensive, degrading silently the way this
+        /// file always has. The floor is 0f, not the 0.25f the volume/wealth sliders use:
+        /// rivalStrength is a multiplier on a sum here, not a divisor, so there's no near-zero
+        /// denominator to guard against — 0f only stops a corrupted negative setting from ever
+        /// making this negative, which would break <see cref="RegionalShare"/>'s arithmetic.
+        /// </summary>
+        private float CompetingPull
+        {
+            get
+            {
+                if (!OldWestTownMod.Settings.rivalTownsEnabled) return 0f;
+                RivalTowns rivalsComp = Find.World?.GetComponent<RivalTowns>();
+                if (rivalsComp == null) return 0f;
+                return rivalsComp.TotalRivalPull * Mathf.Max(0f, OldWestTownMod.Settings.rivalStrength);
+            }
+        }
+
+        /// <summary>
+        /// This town's share of regional trade: this town's own <see cref="MarketPull"/> against
+        /// the combined pull of every rival. Exactly 1f — "as good as no competition exists" —
+        /// whenever there is nothing to compare against: rivals disabled, no rival has grown past
+        /// zero yet, or this town has no appeal yet. Otherwise a proper fraction strictly less
+        /// than 1f. Feeds the arrival clock's slowdown in <see cref="TryAttractCustomers"/>, and
+        /// the ledger and inspect-pane display.
+        /// </summary>
+        public float RegionalShare
+        {
+            get
+            {
+                float pull = MarketPull;
+                float competing = CompetingPull;
+                if (pull <= 0f || competing <= 0f) return 1f;
+                return pull / (pull + competing);
             }
         }
 
@@ -318,6 +403,42 @@ namespace OldWestTown.Shops
         }
 
         /// <summary>
+        /// Announces a change in who's ahead regionally — this town's own <see cref="MarketPull"/>
+        /// against every rival's combined pull — the moment <see cref="RollOverDay"/> notices
+        /// one. Silent below <see cref="MinAppealForCustomers"/>, or with no qualifying rival to
+        /// be ahead of at all (both mirror <see cref="RegionalShare"/>'s own guard), and silent on
+        /// the very first evaluation on a given map — a fresh colony crossing the threshold, or
+        /// an old save loading under this version for the first time — so the feature turning on
+        /// can never itself read as "you've fallen behind." A Message, not a Letter: unlike a
+        /// route-tier promotion (rare, close to monotonic), this can flip more than once across a
+        /// single undercut swing near parity, and a Letter for a potentially flip-floppy signal
+        /// would be disproportionate.
+        /// </summary>
+        private void CheckRegionalLeadChange()
+        {
+            if (Appeal < MinAppealForCustomers || CompetingPull <= 0f) return;
+
+            bool leading = MarketPull >= CompetingPull;
+            if (!regionLeadKnown)
+            {
+                regionLeadKnown = true;
+                lastRegionLead = leading;
+                return;
+            }
+            if (leading == lastRegionLead) return;
+
+            lastRegionLead = leading;
+            if (leading)
+            {
+                Messages.Message("OWT_RegionalLeadGainedMessage".Translate(), MessageTypeDefOf.PositiveEvent);
+            }
+            else
+            {
+                Messages.Message("OWT_RegionalLeadLostMessage".Translate(), MessageTypeDefOf.NeutralEvent);
+            }
+        }
+
+        /// <summary>
         /// Word of a good town spreads: appeal directly drives how often customer groups set
         /// out, rather than leaving frequency to the storyteller's flat random roll. Firing
         /// goes through the storyteller so the incident's own minRefireDays still applies —
@@ -343,6 +464,10 @@ namespace OldWestTown.Shops
             float mtbDays = Mathf.Lerp(3.5f, 0.8f,
                 Mathf.Clamp01((appeal - MinAppealForCustomers) / 3.5f));
             mtbDays /= Mathf.Max(0.25f, OldWestTownMod.Settings.customerVolume);
+            // Regional competition stretches the gap, never shrinks it: RegionalShare is 1f
+            // (Lerp's own t=0) whenever there's no qualifying rival, so this is a no-op until one
+            // exists. See RegionalShare and MaxRegionalSlowdown for the provable [1.0x, 1.6x] cap.
+            mtbDays *= Mathf.Lerp(1f, MaxRegionalSlowdown, 1f - RegionalShare);
             if (!Rand.MTBEventOccurs(mtbDays, 60000f, ArrivalCheckInterval) && !GuaranteedArrivalDue) return;
 
             IncidentParms parms = StorytellerUtility.DefaultParmsNow(
@@ -369,6 +494,8 @@ namespace OldWestTown.Shops
                 Faction f = trackedFactions[i];
                 standings[f] = Mathf.Lerp(standings[f], reputation, 0.05f);
             }
+
+            CheckRegionalLeadChange();
         }
 
         public override void ExposeData()
@@ -392,6 +519,12 @@ namespace OldWestTown.Shops
             // spuriously re-announce a tier on its first load with this feature.
             Scribe_Values.Look(ref lastArrivalTick, "lastArrivalTick");
             Scribe_Defs.Look(ref lastAnnouncedTier, "lastAnnouncedTier");
+            // Absent on any save from before rival towns existed: regionLeadKnown reads false,
+            // so CheckRegionalLeadChange's first call on that map silently records the current
+            // lead rather than announcing one — an upgraded save can never itself produce a
+            // spurious "you've fallen behind" message.
+            Scribe_Values.Look(ref lastRegionLead, "lastRegionLead", true);
+            Scribe_Values.Look(ref regionLeadKnown, "regionLeadKnown", false);
 
             if (Scribe.mode == LoadSaveMode.PostLoadInit)
             {

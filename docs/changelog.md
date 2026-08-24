@@ -137,6 +137,40 @@ change itself, and update the [wiki page](contributing.md#the-workflow) it affec
   RimWorld's quest system in a mod that has never run in a live game. See [the stagecoach
   line](economy.md#the-stagecoach-line), [scheduled coach
   arrivals](customers.md#scheduled-coach-arrivals) and [the coach depot](buildings.md#coach-depot).
+- **Rival towns** — one or two NPC towns as abstract world-map state, this mod's first use of
+  `RimWorld.Planet.WorldComponent`. A new `Rivals/` namespace: `RivalTownDef` (pure data —
+  starting and ceiling appeal, daily growth rate, undercut MTB days, undercut duration and
+  undercut price index) and `RivalTowns`, a world-scoped roster of `RivalTown` instances shared by
+  every loaded map, growing each rival's appeal toward its own ceiling once per world-day and
+  rolling its own MTB clock for a discrete, messaged **undercutting** swing rather than a
+  continuous drift. `TownEconomy` gains `PriceIndex` (the unweighted mean of
+  `ShopPricing.ValueAppeal` across every open, stocked shop — the identical score a customer
+  already uses to pick between your own shops) and `MarketPull` (`Appeal × PriceIndex`), then
+  compares that against every rival's own combined pull (`CompetingPull`, scaled by a new
+  `rivalStrength` setting) to produce `RegionalShare` — your share of regional trade.
+  `RegionalShare` stretches `TryAttractCustomers`'s own `mtbDays`, structurally bounded to `[1.0×,
+  1.6×]` for any rival configuration — `Mathf.Lerp` clamps its own interpolant, so this is a
+  proven bound, not a tuning promise — never faster than today, never more than 60% slower, and
+  completely inert until a rival has actually grown large enough to matter. The stagecoach
+  guarantee's own ceiling is entirely immune to it. A new inspect-pane line (gated on a qualifying
+  rival actually existing) and a new Town ledger section (gated only on the `rivalTownsEnabled`
+  setting, so it can show what a player is up against before their own town even qualifies to
+  compete) make the mechanic legible; a message announces the first time the regional lead
+  actually changes hands on a given map, silent on the very first evaluation so the feature
+  turning on can never itself read as "you've fallen behind." Two new settings,
+  `rivalTownsEnabled` (default on) and `rivalStrength` (default 100%, 25%–300%), mirror every
+  other "new risk" this mod ships. Deliberately cut: **staff poaching** (no per-pawn shopkeeping
+  performance exists anywhere in this codebase to target), **saboteurs** (a second, independent
+  hostile-pawn mechanic — lord graph, duty think tree, job drivers — on top of an
+  already-ambitious world-map feature), **literal ghost-town salvage** (needs a real world-tile
+  settlement and caravan/loot machinery this mod has never touched), and — beyond what either
+  candidate design considered — a **rival decline/concession mechanic** (`RegionalShare`'s own
+  `1.0×` floor, once a town's pull matches or exceeds every rival's combined, already delivers a
+  genuine, player-caused "neutralized" state without one). See [regional
+  competition](economy.md#regional-competition), [the design
+  notes](DESIGN.md#rival-towns-an-opponent-not-a-second-town) and [the code map's known
+  risks](architecture.md#known-risks) for the full account, including the confirmed-vs-inferred
+  breakdown for this mod's first `WorldComponent`.
 
 ### Changed
 
@@ -252,6 +286,25 @@ change itself, and update the [wiki page](contributing.md#the-workflow) it affec
   else needs migrating: depot existence and the active route tier are both computed live off
   `CoachTierUtility` on every read, never registered or cached. Safe to drop into a save in
   progress, with or without a coach depot already built.
+- **Rival towns adds exactly one new `WorldComponent` and two new `TownEconomy` fields, with zero
+  changes to any existing persisted field.** `RivalTowns` is entirely new at the world scope — an
+  old save's world XML has no matching subtree at all, so `World.FillComponents()` instantiates a
+  fresh instance with its field initializers (`rivals` empty), and `FinalizeInit(true)` seeds one
+  `RivalTown` per shipped `RivalTownDef` at its own `baseAppeal` the first time that save loads
+  under this version — the identical "a sparse collection defaults itself, no migration code
+  needed" story `TownEconomy.standings` and `HospitalityBridge.hasAnnouncedBridge` already
+  established, now one level up at the world scope. `TownEconomy.lastRegionLead` (default `true`)
+  and `regionLeadKnown` (default `false`) are absent from an old save's per-map XML the same way,
+  and `regionLeadKnown` reading `false` on first load means `CheckRegionalLeadChange`'s first
+  evaluation on that map silently *records* the current lead rather than announcing one — an
+  upgraded save can never itself produce a spurious "you've fallen behind" message, mirroring
+  `lastArrivalTick`'s own "safe, a little eager, never stranded" precedent by construction, not
+  extra code. `PriceIndex`/`MarketPull`/`RegionalShare` are pure, live-recomputed properties,
+  never cached or stored, matching `Appeal`/`RouteTier`'s own "recompute, never cache" precedent
+  exactly. The two new mod settings (`rivalTownsEnabled` default on, `rivalStrength` default
+  100%) read their coded defaults from a settings file written before this feature existed, like
+  every setting before them. Safe to drop into a save in progress, with or without any rival
+  having grown large enough to matter yet.
 
 ---
 

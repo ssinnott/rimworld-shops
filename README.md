@@ -113,6 +113,15 @@ This mod is standalone. It does not require Hospitality, and is written to sit a
   names the current tier and what the next one needs. Built as one extra way for the existing
   customer incident to fire, not a second, independent one, so it can never double up with, or
   land on top of, an ordinary arrival.
+- **Rival towns, and an opponent for the arrival clock.** One or two NPC towns sit on the wider
+  map with an appeal of their own, priced the identical way your own shops are, and your share of
+  regional trade — your pull against theirs — now slows or leaves alone how often customers set
+  out for you. Worked out, not assumed: it can never stretch the gap by more than **60%**, and
+  never speeds it up, however many rivals exist or how far a *Rival strength* setting is dialed. A
+  rival occasionally undercuts prices for a several-day stretch, a named, messaged event; a
+  message also tells you the first time the regional lead actually changes hands. Any counter's
+  inspect pane shows your current share, and the Town ledger names every known rival by its own
+  appeal and posture. A coach depot's own arrival guarantee is completely immune to all of this.
 
 ## Installing
 

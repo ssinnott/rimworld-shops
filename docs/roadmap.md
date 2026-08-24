@@ -3,9 +3,8 @@ title: Roadmap
 summary: What is built, what is next, and the larger directions that build on top of it.
 ---
 
-The plan is staged so each step is playable on its own. All seven stages are shipped, and so are
-the first three of the thematic expansions below — the gambling hall, outlaws and the law, and
-the stagecoach line.
+The plan is staged so each step is playable on its own. All seven stages are shipped, and so is
+every thematic expansion below marked **— done**.
 
 For the reasoning behind the shipped stages, see the [design notes](DESIGN.md).
 
@@ -150,11 +149,25 @@ boom decays reputation faster; when the vein dries up, arrivals crash below base
 reputation recovers. Exercises the markup slider and the breadth-over-depth appeal math
 dramatically, and gives long saves a narrative arc.
 
-**Rival towns.** One or two NPC towns as world-map neighbours with their own abstract appeal
-score. Customer groups *choose* between towns — your share of regional traffic is your appeal
-relative to theirs, so the arrival clock has an opponent. Rivals undercut prices, poach your
-best shopkeeper with a job-offer event, or send saboteurs; out-compete one long enough and it
-becomes a ghost town you can salvage. The most ambitious of the four, since it adds state to the world map,
-but the one that most directly deepens the pricing-and-appeal loop — it gives your town's appeal
-something to be measured against, and makes pricing genuinely competitive rather than
-solitaire.
+**Rival towns — done.** One or two NPC towns sit on the wider map with an abstract appeal of
+their own, and your share of regional trade is now your own appeal *relative to theirs* — priced,
+not just counted, since a rival's own competitiveness folds in the identical price-appeal score a
+customer already judges your shops by. That share stretches your arrival clock, provably bounded
+to never more than 60% slower and never faster, for any rival configuration a player or a modder
+could produce. A rival isn't a static number, either: it occasionally undercuts prices for a
+several-day stretch, a named, messaged event rather than an invisible drift. Both a counter's
+inspect pane and the Town ledger show a rival's own numbers and how your share compares, so the
+mechanic is never an invisible multiplier sitting on top of everything else. Of the four other
+ideas this entry once named, all are cut, each for its own reason: **staff poaching** needs
+per-pawn shopkeeping performance this codebase has never tracked, the same missing-state reason
+that already cut the wanted board from outlaws and the law; **saboteurs** would need a second,
+independent hostile-pawn mechanic — a lord graph, a duty think tree, job drivers — layered onto an
+already-ambitious world-map feature; **literal ghost-town salvage** needs a real world-tile
+settlement and caravan or loot machinery this mod has never touched, the same category of
+unproven surface mail contracts and the quest-giver VIP were already declined for; and **rival
+decline or concession** turned out to need no dedicated mechanic at all — the arrival-clock
+multiplier's own floor of exactly `1.0×`, once a town's own pull matches or exceeds every rival's
+combined, is already a real, player-caused "you've neutralized them" state. See [regional
+competition](economy.md#regional-competition) for how it plays, and [the design
+notes](DESIGN.md#rival-towns-an-opponent-not-a-second-town) for the reasoning, the worked bound,
+and the multi-colony answer.

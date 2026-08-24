@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+
+  <!-- Two rival towns, abstract world-state only — no Faction, no world-tile WorldObject, no
+       pawns. Every number here is a first-pass tuning guess, in the same spirit as this mod's
+       other untested constants — see docs/architecture.md#known-risks. Two Forks is the
+       steadier, established competitor (higher ceiling, slower undercut cadence); Prospect
+       Junction is the scrappier price-warrior (lower ceiling, faster and deeper undercuts). -->
+
+  <OldWestTown.Rivals.RivalTownDef>
+    <defName>OWT_RivalTown_TwoForks</defName>
+    <label>Two Forks</label>
+    <description>A settled town a few days' ride out, with a main street of its own and no particular hurry about anything. It doesn't undercut you often, but when it does, it means it.</description>
+    <baseAppeal>0.3</baseAppeal>
+    <maxAppeal>2.0</maxAppeal>
+    <growthPerDay>0.003</growthPerDay>
+    <undercutMTBDays>14</undercutMTBDays>
+    <undercutDurationDays>4</undercutDurationDays>
+    <undercutPriceIndex>1.3</undercutPriceIndex>
+  </OldWestTown.Rivals.RivalTownDef>
+
+  <OldWestTown.Rivals.RivalTownDef>
+    <defName>OWT_RivalTown_Prospect</defName>
+    <label>Prospect Junction</label>
+    <description>A scrappy camp-turned-town that never stopped acting like it's still fighting for its first customer. A smaller ceiling than Two Forks, but a shorter fuse on a price war.</description>
+    <baseAppeal>0.15</baseAppeal>
+    <maxAppeal>1.3</maxAppeal>
+    <growthPerDay>0.002</growthPerDay>
+    <undercutMTBDays>9</undercutMTBDays>
+    <undercutDurationDays>3</undercutDurationDays>
+    <undercutPriceIndex>1.5</undercutPriceIndex>
+  </OldWestTown.Rivals.RivalTownDef>
+
+</Defs>
