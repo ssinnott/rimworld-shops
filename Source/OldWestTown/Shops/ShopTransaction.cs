@@ -85,11 +85,16 @@ namespace OldWestTown.Shops
         /// (Drink, Meal) picked up off the shelf, already carried by the customer; null for a
         /// service that consumes nothing but time (Haircut). <paramref name="claimed"/> is
         /// whatever ApplyEffect claimed for longer than this transaction — the bed Lodging just
-        /// booked — or null for every other service.</summary>
-        public static Result TryServe(CompBusiness shop, Pawn customer, ServiceDef service, Thing consumed, out int pricePaid, out Thing claimed)
+        /// booked — or null for every other service. <paramref name="roundRowdiness"/> is how
+        /// much this one round should nudge the customer's own rowdiness — a plain echo of the
+        /// service's RowdinessPerUse for every service before Wager, but outcome-dependent for
+        /// a wager; see ServiceWorker.ApplyEffect. Every early-return path below leaves it at
+        /// its 0f default, since nothing happened for any of them to be rowdy about.</summary>
+        public static Result TryServe(CompBusiness shop, Pawn customer, ServiceDef service, Thing consumed, out int pricePaid, out Thing claimed, out float roundRowdiness)
         {
             pricePaid = 0;
             claimed = null;
+            roundRowdiness = 0f;
             if (shop == null || customer == null || service?.worker == null) return Result.NoStock;
             if (!shop.Open) return Result.ShopClosed;
 
@@ -147,7 +152,7 @@ namespace OldWestTown.Shops
                 }
             }
 
-            claimed = service.worker.ApplyEffect(shop, service, customer, served);
+            claimed = service.worker.ApplyEffect(shop, service, customer, served, price, out roundRowdiness);
 
             shop.RecordSale(price);
             shop.DirtyStock();
@@ -170,6 +175,34 @@ namespace OldWestTown.Shops
         public static int SilverCarriedBy(Pawn pawn)
         {
             return pawn?.inventory?.innerContainer?.TotalStackCountOfDef(ThingDefOf.Silver) ?? 0;
+        }
+
+        /// <summary>The one place money leaves a till instead of entering it — TakeSilver's
+        /// mirror image, for a wager's payout. Moves up to <paramref name="amount"/> silver out
+        /// of the till and into <paramref name="recipient"/>'s purse, and returns the amount
+        /// actually paid, which may be less than <paramref name="amount"/> if the till came up
+        /// short — CompBusiness.TakeFromTill can structurally never hand back more than the
+        /// till holds. The caller (ServiceWorker_Wager) is what decides a shortfall like that is
+        /// a failure and reacts to it; this only ever moves what silver exists.</summary>
+        public static int PayOutFromTill(CompBusiness shop, Pawn recipient, int amount)
+        {
+            if (shop == null || recipient?.inventory == null || amount <= 0) return 0;
+
+            List<Thing> stacks = shop.TakeFromTill(amount);
+            int total = 0;
+            foreach (Thing stack in stacks)
+            {
+                total += stack.stackCount;
+                if (!recipient.inventory.innerContainer.TryAdd(stack, true))
+                {
+                    // Inventory refused it (rare) — leave it on the floor rather than voiding
+                    // it, mirroring TrySell's own goods handoff.
+                    GenPlace.TryPlaceThing(stack, recipient.Position, recipient.Map, ThingPlaceMode.Near);
+                }
+            }
+
+            shop.RecordPayout(total);
+            return total;
         }
 
         /// <summary>Moves <paramref name="amount"/> silver out of the customer's purse and into the till.</summary>

@@ -1,12 +1,12 @@
 ---
 title: Business kinds
-summary: What a business kind decides, and the four that ship — general store, saloon, barber shop, hotel.
+summary: What a business kind decides, and the five that ship — general store, saloon, barber shop, hotel, gambling hall.
 ---
 
-A **business kind** is what a counter *is*: a general store, a saloon, a barber shop, a hotel. The
-building is just furniture; the kind supplies everything that makes one behave differently from
-another — what it stocks by default, what it may charge, how much it draws customers to town,
-how patient those customers are, and which [services](services.md) it offers.
+A **business kind** is what a counter *is*: a general store, a saloon, a barber shop, a hotel, a
+gambling hall. The building is just furniture; the kind supplies everything that makes one behave
+differently from another — what it stocks by default, what it may charge, how much it draws
+customers to town, how patient those customers are, and which [services](services.md) it offers.
 
 Business kinds are data rather than code, so adding one is a matter of editing files rather than
 writing any. See [adding content](extending.md#add-a-business-kind).
@@ -95,7 +95,7 @@ night."*
 | Customers called | guests |
 | Default markup | **160%**, adjustable 50%–350% |
 | Appeal | 1.3 |
-| Patience | **just over an hour** — the most patient of the four kinds, nearly twice a saloon patron's |
+| Patience | **just over an hour** — the most patient of the five kinds, nearly twice a saloon patron's |
 | Services | [Lodging](services.md#lodging) |
 | Default stock | none — it sells nothing off a shelf |
 
@@ -104,3 +104,33 @@ isn't consumed the moment it's paid for. A guest checks in and pays at the desk,
 shopping and only heads for a [hotel bed](buildings.md#hotel-bed) once they're actually tired —
 see [lodging](services.md#lodging) for the rest of how a stay plays out. A hotel desk needs a
 vacant bed somewhere on its own sales floor to have anything to sell at all.
+
+## Gambling hall
+
+*"A faro table and a house that always has an edge. Gamblers come to bet, not to browse — what
+they leave with is down to the cards and the house's own nerve."*
+
+| | |
+| --- | --- |
+| Building | [Faro table](buildings.md#faro-table) |
+| Customers called | gamblers |
+| Default markup | **100%**, adjustable 50%–300% |
+| Appeal | 1.3 |
+| Patience | about 40 in-game minutes |
+| Services | [Wager](services.md#wager) |
+| Default stock | none — it sells nothing off a shelf |
+
+Like the barber shop and the hotel, a gambling hall stocks nothing; its entire trade is one
+service. What makes it different from every other kind is that the service is a bet, not a
+purchase — the customer can walk away with *more* silver than they sat down with, not less. See
+[the wager](services.md#wager) for how a hand actually resolves.
+
+A gambling hall carries a second dial alongside its markup: **house edge**, set from the table's
+own **Set house edge** button, the same slider idiom as **Set prices** and living right next to
+it in the counter's gizmo row. Markup sets the stakes — it prices a hand exactly like a haircut,
+through the same value-times-markup-times-reputation formula every other price in the mod uses.
+House edge sets the odds: it is, by construction, the fraction of every silver wagered the house
+keeps on average, nothing more and nothing less. A low edge keeps a table fair and its gamblers
+staying all evening; a greedy one wins the house more per hand but pays out less often, which
+burns through patience — and through the till's own bankroll — much faster too. See [the till as a
+bankroll](economy.md#the-till-as-a-bankroll) for the numbers behind both.

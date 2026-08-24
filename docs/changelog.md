@@ -24,8 +24,8 @@ change itself, and update the [wiki page](contributing.md#the-workflow) it affec
   caught up to it, the same way the batch below did:
   [sheriff's office](buildings.md#sheriffs-office), [sheriffing](shopkeeping.md#sheriffing) and
   how it differs from the Shopkeeping work type, and
-  [trouble at the saloon](customers.md#trouble-at-the-saloon) — the rowdiness hediff, the
-  disturbance it fires, and the two ways to suppress it — plus the matching rows in the
+  [trouble at the saloon](customers.md#trouble-at-the-saloon-and-the-gambling-hall) — the
+  rowdiness hediff, the disturbance it fires, and the two ways to suppress it — plus the matching rows in the
   [reference tables](reference.md), the [code map](architecture.md) and its
   [known risks](architecture.md#known-risks), and a new [gallery](art.md) entry for the sheriff's
   office art. `tools/validate_docs.py`'s `ART_SOURCES` never watched
@@ -63,8 +63,41 @@ change itself, and update the [wiki page](contributing.md#the-workflow) it affec
   every push to `main`.
 - `CLAUDE.md`, recording the repository's layout, commands and conventions — including the rule
   that a change to the mod updates the wiki and this changelog in the same commit.
+- **Gambling hall** (`OWT_GamblingHall`) — a fifth business kind, and the first where the customer
+  can walk away with *more* silver than they sat down with. Sells one new service, **wager**
+  (`OWT_Wager`, `ServiceWorker_Wager`, job `OWT_ServeWager`): a hand priced and paid for exactly
+  like a haircut, then resolved as a win, a loss, or — rarely — a shortfall. **House edge**, a new
+  dial on `ShopKindDef`/`CompBusiness` living right next to markup, is exactly the fraction of
+  every silver wagered the house keeps on average, by construction, for any payout multiple. A win
+  pays straight out of the business's own till (`ShopTransaction.PayOutFromTill`,
+  `CompBusiness.TakeFromTill`) — the first place in the mod money leaves a till rather than
+  entering it, structurally capped at whatever the till actually holds. A loss makes that gambler
+  a little rowdier, the same `OWT_Rowdy` hediff a saloon's drink already uses — every rowdiness-
+  capable service is now gated on the new `ServiceWorker.CanCauseTrouble` rather than a fixed
+  `RowdinessPerUse`, since a wager's outcome-dependent rowdiness can't be read off one constant —
+  and an unlucky loss can additionally draw a Social-skill-gated **cheating accusation** against
+  the dealer. A shortfall — the table winning a hand and then not being able to pay it in full —
+  is the worst reputation and standing hit anywhere in the mod, and force-closes the table until
+  reopened by hand. See [businesses](businesses.md#gambling-hall), [services](services.md#wager)
+  and [the till as a bankroll](economy.md#the-till-as-a-bankroll).
+- **A played hand relieves boredom, not just money.** `ServiceWorker_Wager.ApplyEffect` grants a
+  flat `joyGainPerHand` to the customer's Joy need on every hand — win, loss or shortfall — the
+  same unconditional shape `ServiceWorker_Ingest` already uses for nutrition. `Desirability`
+  already scored a wager against Joy; nothing previously satisfied it, so repeat play now tapers
+  off the same way another round at the bar already does.
+- **`OWT_FaroTable` is promoted, not recreated.** The faro table shipped in stage 6 as pure street
+  furniture (`Buildings_MainStreet.xml`, vanilla's own `CompGatherSpot`, no wager); it now lives in
+  `Buildings_Commerce.xml` as a real gambling-hall business, with a new **300-silver** cost on top
+  of its stuff cost that seeds its own till (`startingTillSilver`) so its first customer isn't a
+  coin flip to be shorted. Same defName throughout, same art — one faro table in the build menu,
+  not two.
 
 ### Changed
+
+- `OWT_AlertRowdyPatronsDesc`, `OWT_CmdAssignSheriffDesc` and `OWT_Rowdy`'s description dropped
+  their saloon-specific wording now that a gambling hall can generate the same trouble a saloon
+  does — see [trouble at the saloon and the gambling
+  hall](customers.md#trouble-at-the-saloon-and-the-gambling-hall).
 
 - `docs/DESIGN.md` is now the *why* only. Its component map, roadmap and known-risk list moved
   into the wiki so each has a single home: [code map](architecture.md),
@@ -93,7 +126,15 @@ change itself, and update the [wiki page](contributing.md#the-workflow) it affec
 
 ### Save compatibility
 
-- No gameplay change. Safe to drop into a save in progress.
+- No gameplay change from the wiki and tooling work above. Safe to drop into a save in progress.
+- **Except a save with an `OWT_FaroTable` already placed.** It now loads as a live, staffable
+  gambling-hall business instead of decoration — every `CompBusiness` field it gains initializes
+  to its correct, safe default the same way `Markup` already does for any table that never had one
+  before, but `startingTillSilver` only seeds a *fresh* spawn, not a respawn from a load, so a
+  pre-existing table opens with no bankroll of its own. That's the same "first winner might be
+  shorted" situation seed capital exists to avoid, but only for a table placed before this update.
+  Given the mod has no players yet, accepted as a documented, pre-release-only risk rather than
+  patched with bespoke migration code — see [known risks](architecture.md#known-risks).
 
 ---
 
@@ -116,7 +157,7 @@ suppress before the badge itself could mean anything.
   duty. `WorkGiver_CalmTrouble` / `JobDriver_CalmTrouble` (job `OWT_CalmTrouble`) are the reactive
   half: they target one specific rowdy patron directly and walk the sheriff over to calm them
   down, granting the same 35 Social XP a shopkeeper earns for a served sale.
-- **[Trouble at the saloon](customers.md#trouble-at-the-saloon)**: a new `OWT_Rowdy` hediff that
+- **[Trouble at the saloon](customers.md#trouble-at-the-saloon-and-the-gambling-hall)**: a new `OWT_Rowdy` hediff that
   a round of [drink](services.md#drink) — never a meal — nudges upward, decaying on its own via
   vanilla's own `HediffCompProperties_SeverityPerDay`. Crossing its top stage fires a scripted
   **disturbance** (`TroubleUtility.Notify_ServiceRound`): a message, a reputation hit worse than

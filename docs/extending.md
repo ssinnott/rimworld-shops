@@ -45,6 +45,8 @@ pricing, appeal and ledger are all kind-agnostic.
 | `defaultStockThings` | list of `ThingDef` | empty | Individual defs switched on beyond those categories. |
 | `defaultMarkup` | float | 1.35 | Markup a fresh counter starts at. |
 | `markupRange` | `FloatRange` | 0.5~3.0 | The band the player's price slider may move within. |
+| `defaultHouseEdge` | float | 0.15 | Markup's twin dial for a kind offering a wager: the house's average take. Inert unless the kind's `services` includes one. |
+| `houseEdgeRange` | `FloatRange` | 0.0~0.5 | The band the player's house-edge slider may move within. |
 | `appeal` | float | 1.0 | How much one open, stocked business of this kind adds to town [appeal](economy.md#appeal). |
 | `customerNoun` | string | "customer" | The word the UI uses for this business's customers. |
 | `customerPatienceTicks` | int | 2500 | How long a customer waits at an unattended counter before [walking out](customers.md#walkouts). |
@@ -155,6 +157,7 @@ new service usually needs no new code at all — just XML pointing at one of the
 | `ServiceWorker_Ingest` | yes | Consumes one matching item off the display and resolves its effect through that item's own vanilla ingestion outcome. Filtered by `foodType` and/or `requireMeal`; scored against a `needHook` of `Food`, `Joy` or `None`. Ships parameterized twice: [drink](services.md#drink) (Liquor / Joy) and [meal](services.md#meal) (any meal / Food). |
 | `ServiceWorker_Thought` | no | A bare "grant a thought" primitive. Deliberately does nothing else — reusable by any future stock-free service. |
 | `ServiceWorker_Haircut` | no | `ServiceWorker_Thought` plus a visible hair change, using the same helper vanilla's own automatic styling uses. |
+| `ServiceWorker_Wager` | no | Rolls a win/loss against the shop's own house edge, pays a winner straight out of the till (never more than it holds), and rolls a rowdiness/cheating-accusation outcome on a loss. The one worker whose `ApplyEffect` moves silver *out* rather than in — see [the wager](services.md#wager). |
 
 An ingest worker's `Desirability` is `Lerp(2.5, 1, need%)`: a hungry customer is likelier to
 order, but the value is **floored above zero**, so a satisfied one still occasionally will.
@@ -173,7 +176,7 @@ Write a new `ServiceWorker` subclass only when the *effect* is genuinely new. Ov
 | `ConsumesStock` | Return true if the service eats an item off the shelf. Changes pricing, appeal accounting and whether the customer fetches anything. |
 | `CanUse(Thing)` | Required if `ConsumesStock` is true — which shelf items qualify. |
 | `Desirability(Pawn)` | If demand should vary by pawn state. **Floor it above zero** so a satisfied customer still occasionally buys. |
-| `ApplyEffect(Pawn, Thing)` | Always. The `Thing` is null for a stock-free service. |
+| `ApplyEffect(Pawn, Thing, int, out float)` | Always. The `Thing` is null for a stock-free service; the `int` is the price already charged, so a worker whose effect depends on the stake never has to recompute it; the `out float` is how much this round should nudge the customer's rowdiness — echo back `RowdinessPerUse` unless the outcome genuinely varies, the way `ServiceWorker_Wager` does. |
 
 > Do not start a new job from inside `ApplyEffect`. It runs inside the service job's own toil,
 > and starting a second job tears the current driver down mid-toil. Apply the effect directly, as

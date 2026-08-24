@@ -20,6 +20,14 @@ namespace OldWestTown.Shops
         public float defaultMarkup = 1.35f;
         public FloatRange markupRange = new FloatRange(0.5f, 3f);
 
+        /// <summary>Markup's twin dial for a business whose services include a wager
+        /// (ServiceWorker_Wager): the fraction of every silver wagered the house expects to
+        /// keep on average, and the range the player may set it in. Inert for every kind that
+        /// doesn't offer a wager — the same "unused for most kinds" precedent
+        /// defaultStockCategories and services already set.</summary>
+        public float defaultHouseEdge = 0.15f;
+        public FloatRange houseEdgeRange = new FloatRange(0f, 0.5f);
+
         /// <summary>
         /// How much a single open, stocked shop of this kind adds to town appeal.
         /// Appeal drives how often — and how rich — the customer incident is.

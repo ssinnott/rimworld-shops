@@ -8,8 +8,10 @@ by the [Frontier commerce](getting-started.md#before-anything-else) research.
 
 The shop counter, saloon bar, barber chair and hotel desk are the same piece of furniture
 underneath — same size, same cost, same way of being placed — and differ only in what business
-they run. The hotel bed and the main-street furniture below are their own shapes, built for their
-own jobs.
+they run. The [faro table](#faro-table) is built the same way, but keeps its own lighter stats
+and a silver cost on top, carried over from when it was pure street furniture — see below. The
+hotel bed and the main-street furniture further down are their own shapes, built for their own
+jobs.
 
 ## What the counters have in common
 
@@ -119,6 +121,33 @@ bed to have "something to offer" at all.
 Its inspect pane adds a **Rooms** line — how many beds on its floor are vacant out of how many
 total — right alongside the usual markup and till.
 
+## Faro table
+
+*"Green baize, a dealing box, and a case-keeper's abacus. The cards change hands for real money
+now. A colonist assigned to Shopkeeping will deal hands to anyone willing to sit down and bet.
+Stakes follow the price slider like anything else; the house edge decides how often the table
+wins. Winnings come out of the till — an empty one can't pay a debt it doesn't have, and a table
+that welches on a bet closes until you reopen it."*
+
+| | |
+| --- | --- |
+| Business kind | [Gambling hall](businesses.md#gambling-hall) |
+| Work to build | 900 |
+| Beauty | 7 |
+| Materials | Wood or stone — 70 units, plus **300 silver** |
+
+Unlike every other counter here, a faro table is lighter to build and doesn't share the common
+statistics above — it kept its own numbers from when it was purely decorative street furniture
+(see [the roadmap](roadmap.md)), and turning it into a real business doesn't make the physical
+object any heavier, just staffed. What's new is the **silver** in its cost: a fresh table needs a
+bankroll of its own before its first customer ever sits down, so part of what you pay to build one
+goes straight into its till rather than into lumber — see [the till as a
+bankroll](economy.md#the-till-as-a-bankroll).
+
+Sells one [service](services.md#wager): a hand of cards, priced and staffed exactly like any
+other counter, with one dial nobody else has — the table's own **Set house edge** button, right
+next to **Set prices**. See the [gambling hall](businesses.md#gambling-hall) for what it does.
+
 ## Hotel bed
 
 *"A simple bed for a paying guest. Travellers with nowhere else to sleep rent one by the night at
@@ -159,7 +188,8 @@ free colonist, the same idiom a throne room or a grave already uses for "this pa
 this pawn, owns this." That's a separate step from putting them to work — the assigned colonist
 also needs a priority on the **Sheriffing** work type in the Work tab before they actually patrol.
 See [sheriffing](shopkeeping.md#sheriffing) for how the two combine, and
-[trouble at the saloon](customers.md#trouble-at-the-saloon) for what the sheriff is actually
+[trouble at the saloon and the gambling
+hall](customers.md#trouble-at-the-saloon-and-the-gambling-hall) for what the sheriff is actually
 suppressing.
 
 Rotating the office places the **post** — the one tile the sheriff stands watch at — the same
@@ -169,9 +199,10 @@ duty)* / *(off duty)*), or *No sheriff assigned* if the post is vacant.
 
 ## Main street
 
-*Boardwalk terrain, and five pieces of street furniture — hitching post, gallows, faro table,
-batwing doors, and the false front that dresses up whatever it's bolted to.* All unlocked by the
-same Frontier commerce research, all under the Commerce build category.
+*Boardwalk terrain, and four pieces of street furniture — hitching post, gallows, batwing doors,
+and the false front that dresses up whatever it's bolted to.* All unlocked by the same Frontier
+commerce research, all under the Commerce build category. The faro table used to live here too;
+it's since been promoted into a real business — see [above](#faro-table).
 
 Only the false front does anything mechanical. Everything else earns its keep by existing: it
 adds (or, in one deliberate case, subtracts) Beauty like any other floor or furniture, the same
@@ -217,16 +248,6 @@ to — it just makes the street look like somewhere people actually stop."* Pure
 be — but it sits there anyway, and everyone who sees it knows what it's for."* The one
 deliberately ugly piece in the set: everything else here adds Beauty, the gallows subtracts it,
 so putting one in a nice room costs you something on purpose.
-
-### Faro table
-
-*"Green baize, a dealing box, and a case-keeper's abacus. Off-duty hands and passing strangers
-alike will drift over to it when there's nothing more pressing to do — though for now the cards
-never actually change hands for money. Yet."*
-
-Idle colonists gather at it the same way they gather at any piece of recreational furniture. The
-cards are honestly decorative: nobody wagers anything at it, and no colonist works it — that's
-the reserved territory of a future [gambling hall](roadmap.md#beyond-the-staged-plan--thematic-expansions).
 
 ### Batwing doors
 

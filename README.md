@@ -69,10 +69,18 @@ This mod is standalone. It does not require Hospitality, and is written to sit a
   before it's too late. A skilled shopkeeper behind the bar helps too — an unstaffed saloon gets
   no such discount, same as everywhere else in this mod.
 - **A main street that looks like one.** Boardwalk underfoot, false-front facades, a hitching
-  post, batwing doors, a faro table and a gallows — all under the same Commerce category and
-  Frontier commerce research. A false front is the one with teeth: it gives a shop a small,
-  capped edge in the customer AI's own scoring, so a dressed-up storefront pulls trade from an
-  undecorated rival at a similar price.
+  post, batwing doors and a gallows — all under the same Commerce category and Frontier commerce
+  research. A false front is the one with teeth: it gives a shop a small, capped edge in the
+  customer AI's own scoring, so a dressed-up storefront pulls trade from an undecorated rival at
+  a similar price.
+- **A gambling hall, and the first transaction you can win.** A **faro table** deals a hand for a
+  price like anything else, but the payout is a roll of the dice — a win doubles the stake back
+  out of the same till every sale fills, a loss makes that gambler a little rowdier (occasionally
+  with a Social-skill-gated cheating accusation thrown in), and the table's own **house edge**
+  slider, right next to the price one, sets exactly how much of every wager the house keeps on
+  average. Set it fair and a table stays busy all evening; set it greedy and it pays out richer
+  hands but burns through patience — and its own till — faster. A table that can't cover a win
+  in full closes its own doors until reopened by hand, the worst reputation hit in the mod.
 - **Regulars.** Reputation isn't one number any more. Alongside the town's own name, every
   faction you actually trade with keeps its own standing, moved by how its own customers were
   treated — served, walked out on, or evicted from a rented room. Favor one faction and they
@@ -112,12 +120,22 @@ They sleep until rested, so don't be surprised if some of a customer group is st
 past when the rest have gone home — the whole visit now waits for every rented room to empty out
 before anyone leaves.
 
-A saloon left to run itself eventually gets rowdy — build a **sheriff's office** and assign a
-colonist to it from the office's own gizmo to keep the peace. Unlike Shopkeeping, that colonist
-also needs a **Sheriffing** priority in the Work tab — being assigned is who holds the post,
-the work priority is whether they're currently out there doing it, same as any other job. While
-they're on duty, patrons town-wide get rowdy more slowly; if one starts "getting loud" anyway,
-the sheriff can break off and walk over to calm them down before it turns into a disturbance.
+A **faro table** runs a gambling hall: build one, staff it, and a gambler with money to spare
+will sit down for a hand. Set its **Set house edge** slider, right next to **Set prices**, to
+decide how greedy the house is — a low edge keeps a table fair and its gamblers coming back all
+evening, a high one wins more per hand but angers losers faster and burns through the till's own
+bankroll quicker. A win pays double the stake straight out of that till; if the till ever can't
+cover one, the table closes its own doors until you reopen it, so keep an eye on it the way you
+would any other counter's stock.
+
+A saloon or a gambling hall left to run itself eventually gets rowdy — build a **sheriff's
+office** and assign a colonist to it from the office's own gizmo to keep the peace. Unlike
+Shopkeeping, that colonist also needs a **Sheriffing** priority in the Work tab — being assigned
+is who holds the post, the work priority is whether they're currently out there doing it, same as
+any other job. While they're on duty, patrons town-wide get rowdy more slowly; if one starts
+"getting loud" anyway, the sheriff can break off and walk over to calm them down before it turns
+into a disturbance. A skilled dealer also draws fewer cheating accusations at the gambling hall,
+the same Social skill that trains behind any counter.
 
 ## Building from source
 

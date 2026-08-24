@@ -146,26 +146,39 @@ The alert stays quiet for a customer who could simply serve themselves while the
 setting is on — nobody is actually stuck. But a [haircut](services.md#haircut) never allows
 self-service, so a customer waiting in a barber's chair is genuinely stuck, and still raises it.
 
-## Trouble at the saloon
+## Trouble at the saloon and the gambling hall
 
 A saloon left entirely to itself is a peaceful place — it's every round of [drink](services.md#drink)
-it pours that isn't. Each one makes that one patron a little rowdier, carried as a mark on them
-personally rather than on the saloon, so it travels with them from counter to counter and fades
-on its own over the following hours if nobody tops it up.
+it pours that isn't. A gambling hall works the same way: every hand a [wager](services.md#wager)
+loses does the same thing a round of drink does. Either way it's carried as a mark on the customer
+themselves, not on the business, so it travels with them from counter to counter and fades on its
+own over the following hours if nobody tops it up.
 
 Left unchecked, it climbs through three stages: **feeling good**, **getting loud**, then
 **spoiling for a fight**. Cross that last line and it turns into a **disturbance**: a message
-naming the patron and the saloon, a reputation hit worse than an ordinary
+naming the patron and the business, a reputation hit worse than an ordinary
 [walkout](#walkouts) — **0.05** rather than 0.02 — and that patron stops buying anything for the
-rest of their visit. Meals don't contribute at all; it's specifically the drinking that does it.
+rest of their visit. A meal doesn't contribute at all, and neither does a winning hand — it's
+specifically the drinking, and the losing, that does it.
+
+**At the gambling hall**, an ordinary loss adds exactly what a round of drink does, but an unlucky
+one can add more: losing a hand sometimes draws a **cheating accusation** — a message naming the
+gambler and the table, on top of the usual rowdiness — and a skilled dealer draws noticeably fewer
+of them, the same Social skill that already slows rowdiness everywhere else cutting how often a
+loss turns into an accusation as well. Worse than either is the one outcome that isn't a loss at
+all: the table **winning** for a gambler and then not being able to pay them in full. See
+[the wager](services.md#wager) and [the till as a bankroll](economy.md#the-till-as-a-bankroll) for
+the numbers behind all three.
 
 Two things slow the climb, and they stack:
 
 - A **sheriff** actually on duty at a [sheriff's office](buildings.md#sheriffs-office) roughly
-  halves it, town-wide, for as long as they're standing the post.
-- A **skilled shopkeeper** behind the bar also slows it — the better their Social skill, the
-  closer to half. Leave the bar unstaffed and patrons get the full, undiscounted rate; self-serve
-  drinks buy you nothing here.
+  halves it, town-wide, for as long as they're standing the post — at any business, not just a
+  saloon.
+- A **skilled shopkeeper** working the counter — the bartender pouring drinks, or the dealer
+  running the table — also slows it, the better their Social skill, the closer to half. Leave the
+  counter unstaffed and patrons get the full, undiscounted rate; self-serve drinks buy you nothing
+  here, and a wager is never self-service to begin with.
 
 ### The alert
 

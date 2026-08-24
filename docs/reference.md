@@ -23,11 +23,11 @@ Everything this mod adds is prefixed `OWT_`.
 | `OWT_BarberChair` | barber chair | `OWT_Barber` | *same file* |
 | `OWT_HotelDesk` | hotel desk | `OWT_Hotel` | *same file* |
 | `OWT_HotelBed` | hotel bed | — (`CompRentableBed`, not a business) | *same file* |
+| `OWT_FaroTable` | faro table | `OWT_GamblingHall` | *same file* — promoted from `Buildings_MainStreet.xml`; see [changelog](changelog.md) |
 | `OWT_CounterBase` | *(abstract parent)* | — | *same file* |
 | `OWT_FalseFront` | false front | — | `Defs/ThingDefs_Buildings/Buildings_MainStreet.xml` |
 | `OWT_HitchingPost` | hitching post | — | *same file* |
 | `OWT_Gallows` | gallows | — | *same file* |
-| `OWT_FaroTable` | faro table | — | *same file* |
 | `OWT_BatwingDoor` | batwing doors | — (`ParentName="Door"`) | *same file* |
 | `OWT_StreetFurnitureBase` | *(abstract parent)* | — | *same file* |
 | `OWT_SheriffOffice` | sheriff's office | — (not a business; `CompRolePost`) | `Defs/ThingDefs_Buildings/Buildings_Roles.xml` |
@@ -52,6 +52,7 @@ Everything this mod adds is prefixed `OWT_`.
 | `OWT_Saloon` | saloon | 1.80 (0.5–4.0) | 1.4 | 1500 | Drink, Meal |
 | `OWT_Barber` | barber shop | 1.50 (0.5–3.0) | 1.1 | 2200 | Haircut |
 | `OWT_Hotel` | hotel | 1.60 (0.5–3.5) | 1.3 | 2800 | Lodging |
+| `OWT_GamblingHall` | gambling hall | 1.00 (0.5–3.0), house edge 0.15 (0.0–0.5) | 1.3 | 1800 | Wager |
 
 ### Services
 
@@ -61,6 +62,7 @@ Everything this mod adds is prefixed `OWT_`.
 | `OWT_Meal` | meal | `ServiceWorker_Ingest` (IsMeal / Food) | 150 | yes | yes |
 | `OWT_Haircut` | haircut | `ServiceWorker_Haircut` | 2200 | no | **never** |
 | `OWT_Lodging` | lodging | `ServiceWorker_Lodging` | 200 | no (claims a `CompRentableBed` instead) | **never** |
+| `OWT_Wager` | wager | `ServiceWorker_Wager` (Joy) | 200 | no | **never** |
 
 ### Jobs
 
@@ -72,6 +74,7 @@ Everything this mod adds is prefixed `OWT_`.
 | `OWT_ServeMeal` | `JobDriver_UseService` | getting a meal at TargetB. |
 | `OWT_ServeHaircut` | `JobDriver_UseService` | getting a haircut at TargetB. |
 | `OWT_ServeLodging` | `JobDriver_UseService` | checking in at TargetB. |
+| `OWT_ServeWager` | `JobDriver_UseService` | playing a hand at TargetB. |
 | `OWT_SleepInRentedBed` | `JobDriver_SleepInRentedBed` | sleeping at TargetA. |
 | `OWT_Patrol` | `JobDriver_Patrol` | patrolling TargetA. |
 | `OWT_CalmTrouble` | `JobDriver_CalmTrouble` | calming down TargetA. |
@@ -189,6 +192,24 @@ where it lives in C# it is a `const` in the named file.
 | `CalmTicks` (`JobDriver_CalmTrouble`) | 200 | How long the sheriff spends talking a patron down |
 | Social XP for a calm-down | 35 | Same as a shopkeeper's XP for a served sale |
 
+### Gambling — `Shops/ServiceWorker.cs`, `Shops/CompBusiness.cs`, `Shops/ShopKindDef.cs`, `Shops/TownEconomy.cs`
+
+| Name | Value | Meaning |
+| --- | --- | --- |
+| `defaultHouseEdge` / `houseEdgeRange` (`OWT_GamblingHall`) | 0.15 / 0.0–0.5 | House edge a fresh table starts at, and the band the slider may move within — Markup's twin dial |
+| Win-chance formula | `clamp01((1 - HouseEdge) / payoutMultiplier)` | House edge alone decides win probability; the player's expected return per silver staked is exactly `-HouseEdge` for any `payoutMultiplier` |
+| `payoutMultiplier` (`ServiceWorker_Wager`) | 2.0 | What a win pays, as a multiple of the stake. XML-tunable, never overridden in the shipped def |
+| `joyGainPerHand` (`ServiceWorker_Wager`) | 0.1 | Joy granted for playing a hand at all, win, lose or shortfall — so the Joy need `Desirability` scores a wager against is also the need a wager actually satisfies |
+| `lossRowdiness` (`ServiceWorker_Wager`) | 0.2 | Severity an ordinary loss adds to `OWT_Rowdy` — identical to `rowdinessPerServing` on `OWT_Drink` |
+| `accusationRowdinessBonus` (`ServiceWorker_Wager`) | 0.15 | Extra severity on top of `lossRowdiness` when a loss also draws a cheating accusation |
+| `shortPayRowdinessMultiplier` (`ServiceWorker_Wager`) | 2.0 | Multiplies `lossRowdiness` for a shortfall — the worst rowdiness outcome the mechanic has |
+| `baseAccusationChance` / `minAccusationChance` (`ServiceWorker_Wager`) | 0.25 / 0.02 | Chance an unlucky loss draws a cheating accusation, at dealer Social 0 and Social 20 respectively — `lerp`'d between by skill, mirroring `MaxShopkeeperSocialFactor`'s own shape |
+| `startingTillSilver` (`OWT_FaroTable`'s `CompProperties_Business`) | 300 | Silver seeded into the till once, on first spawn — without it, a fresh table's first-ever bet has close to a coin-flip chance of winning a payout the till can't cover |
+| `costList` Silver (`OWT_FaroTable`) | 300 | What the table costs to build, on top of its stuff cost — pays for the seed above |
+| `AccusationMessageCooldownTicks` (`CompBusiness`) | 400 | At most one cheating-accusation message per table in this window — shorter than the walkout-message throttle on purpose, so a skilled-vs-unskilled dealer's accusation frequency stays visible |
+| Shortfall reputation hit (`TownEconomy.RecordShortfall`) | −0.08 | The worst single-event reputation hit in the mod — worse than a disturbance's −0.05 |
+| `FactionStandingShortfallDelta` (`TownEconomy`) | −0.20 | The worst single-event standing hit in the mod — worse than a walkout's −0.10 |
+
 ## Mod settings
 
 `OldWestTownSettings`, saved in RimWorld's mod-settings file.
@@ -217,7 +238,8 @@ otherwise.
 | Rentable bed inspect panel and gizmo | `OWT_BedVacant`, `OWT_BedOccupiedBy`, `OWT_CmdEvictGuest`, `OWT_CmdEvictGuestDesc` |
 | False front | `OWT_FalseFrontAdvertising`, `OWT_FalseFrontIdle` |
 | Sheriff's office gizmo and inspect panel | `OWT_CmdAssignSheriff`, `OWT_CmdAssignSheriffDesc`, `OWT_PostAlreadyFilled`, `OWT_PostVacant`, `OWT_PostOnDuty`, `OWT_PostOffDuty` |
-| Saloon trouble | `OWT_SaloonTrouble`, `OWT_DisturbanceLine`, `OWT_AlertRowdyPatrons`, `OWT_AlertRowdyPatronsDesc` |
+| Trouble | `OWT_SaloonTrouble`, `OWT_DisturbanceLine`, `OWT_AlertRowdyPatrons`, `OWT_AlertRowdyPatronsDesc` |
+| Gambling hall | `OWT_CmdHouseEdge`, `OWT_CmdHouseEdgeDesc`, `OWT_HouseEdgeSlider`, `OWT_HouseEdgeLine`, `OWT_ShortfallLine`, `OWT_PayoutLine`, `OWT_CheatingAccusation`, `OWT_HouseCantCover`, `OWT_CmdCollectDescWager` |
 
 ## Saved state
 
@@ -226,8 +248,8 @@ What survives a save/load, and where it lives.
 | Data | Owner | Notes |
 | --- | --- | --- |
 | Till contents | `CompBusiness` | Deep-saved `ThingOwner`; dropped on destroy |
-| Stock filter, open flag, markup | `CompBusiness` | Per business |
-| Per-business ledger | `CompBusiness` | Daily figures rolled over at midnight |
+| Stock filter, open flag, markup, house edge | `CompBusiness` | Per business; house edge is inert for every kind but a gambling hall |
+| Per-business ledger, including shortfalls and payouts | `CompBusiness` | Daily figures rolled over at midnight |
 | Town reputation, daily + lifetime figures | `TownEconomy` | One per map |
 | Per-faction standing | `TownEconomy` | Sparse `Dictionary<Faction, float>`; a save with no `standings` node reads every faction as `Reputation`, exactly like the untracked case |
 | Per-customer records, including a checked-in guest's rented bed | `LordJob_ShopVisit` | Saves and dies with the visiting group |

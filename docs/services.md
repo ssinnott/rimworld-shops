@@ -1,16 +1,16 @@
 ---
 title: Services
-summary: Drink, meal, haircut and lodging — businesses that sell time rather than goods.
+summary: Drink, meal, haircut, lodging and the wager — businesses that sell time, or a bet, rather than goods.
 ---
 
 A **service** is something a business sells that isn't an item off a shelf. It is priced, queued
 for and paid for through exactly the same steps as a sale — there just isn't anything to carry
-home at the end of it, or, for a haircut, nothing physical involved at all.
+home at the end of it, or, for a haircut or a hand of cards, nothing physical involved at all.
 
 Each [business kind](businesses.md) lists the services it offers. A general store offers none; a
-saloon offers two; a barber shop and a hotel are each nothing but one.
+saloon offers two; a barber shop, a hotel and a gambling hall are each nothing but one.
 
-## The four that ship
+## The five that ship
 
 ### Drink
 
@@ -28,8 +28,9 @@ Patrons want a drink more when their recreation is low, but never so little that
 won't order.
 
 Every round poured also makes that one patron a little rowdier — see
-[trouble at the saloon](customers.md#trouble-at-the-saloon) for what that leads to, and how a
-sheriff or a skilled shopkeeper keeps it in check. A meal doesn't have this effect.
+[trouble at the saloon](customers.md#trouble-at-the-saloon-and-the-gambling-hall) for what that
+leads to, and how a sheriff or a skilled shopkeeper keeps it in check. A meal doesn't have this
+effect.
 
 ### Meal
 
@@ -102,6 +103,45 @@ the guest loses the room they already paid for — **no refund** — and it cost
 [reputation](economy.md#reputation) exactly like any other walkout. A whole customer group won't
 leave town while any of its members is still checked in, so an evicted guest is free to leave with
 the rest of the party rather than being stuck waiting on a room that no longer exists.
+
+### Wager
+
+A hand at the [gambling hall's](businesses.md#gambling-hall) faro table.
+
+| | |
+| --- | --- |
+| Serve time | a few seconds at normal speed |
+| Uses up stock | no — nothing but a dealer's time and a deck of cards |
+| Price | a flat **20 silver**, then the shop's markup and the town's reputation — this is the stake |
+| Self-service | **never** — an empty table can't deal a hand |
+| Effect | win double the stake back, lose it outright, or — rarely — draw a cheating accusation; relieves a little boredom either way |
+
+Wager is the odd one out among the five: every other service moves silver only one way, into the
+till. This one can send it back out again, doubled, straight into the gambler's own purse — the
+first business in the mod where the customer can come away richer than they sat down. What
+decides how often that happens is the table's own **house edge**, a second slider living right
+next to **Set prices** on the same gizmo row. See [the gambling
+hall](businesses.md#gambling-hall) and [the till as a bankroll](economy.md#the-till-as-a-bankroll)
+for exactly what it does and the numbers behind it.
+
+Like a round at the bar, a hand also scratches the same recreational itch that pulled the gambler
+to the table in the first place: a bored patron wants another hand more than a contented one
+does, and playing one relieves a little of that boredom regardless of how it comes out — win,
+lose, or shortfall.
+
+**Losing.** A losing hand makes that gambler a little rowdier, the same
+[trouble](customers.md#trouble-at-the-saloon-and-the-gambling-hall) a round of drink causes at a
+saloon. Every so often an unlucky loss goes further and draws a **cheating accusation** — a
+message naming the gambler and the dealer, and a sharper jump in rowdiness than an ordinary loss
+gives. A skilled dealer draws noticeably fewer of these; an unstaffed table never deals a hand at
+all, so self-service buys nothing here even if the setting is on.
+
+**Winning, and the house falling short.** A win is paid straight out of the same till every sale
+already fills — there's no separate pot to draw from. If the till doesn't hold enough to cover a
+win in full, the gambler gets whatever's actually there, the shortfall costs the town more
+reputation than anything else in the mod, and the table **closes its doors** until reopened by
+hand. A freshly built [faro table](buildings.md#faro-table) starts with a bankroll of its own for
+exactly this reason.
 
 ## Services that consume stock
 

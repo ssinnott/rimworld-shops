@@ -70,16 +70,27 @@
 
   <!-- Sheriff's office: assignment gizmo and inspect panel -->
   <OWT_CmdAssignSheriff>Assign sheriff</OWT_CmdAssignSheriff>
-  <OWT_CmdAssignSheriffDesc>Assign a colonist to hold this post as sheriff. While they're on duty here, saloon patrons town-wide get rowdy more slowly, and the sheriff can step in to calm a specific patron down before they cause a disturbance.</OWT_CmdAssignSheriffDesc>
+  <OWT_CmdAssignSheriffDesc>Assign a colonist to hold this post as sheriff. While they're on duty here, patrons town-wide get rowdy more slowly, and the sheriff can step in to calm a specific patron down before they cause a disturbance.</OWT_CmdAssignSheriffDesc>
   <OWT_PostAlreadyFilled>This post is already filled. Unassign its current holder first.</OWT_PostAlreadyFilled>
   <OWT_PostVacant>No sheriff assigned</OWT_PostVacant>
   <OWT_PostOnDuty>Sheriff: {0} (on duty)</OWT_PostOnDuty>
   <OWT_PostOffDuty>Sheriff: {0} (off duty)</OWT_PostOffDuty>
 
-  <!-- Saloon trouble -->
+  <!-- Trouble (saloon and gambling hall alike) -->
   <OWT_SaloonTrouble>{0} caused a scene at {1}. Word of the disturbance spreads, and they've had enough for one visit.</OWT_SaloonTrouble>
   <OWT_DisturbanceLine>Disturbances today: {0}</OWT_DisturbanceLine>
   <OWT_AlertRowdyPatrons>Rowdy patrons ({0})</OWT_AlertRowdyPatrons>
-  <OWT_AlertRowdyPatronsDesc>A patron is getting loud at a saloon. If nothing steps in, it will turn into a disturbance — losing you their custom for the rest of their visit and hurting the town's reputation. An assigned, on-duty sheriff can calm them down first.</OWT_AlertRowdyPatronsDesc>
+  <OWT_AlertRowdyPatronsDesc>A patron is getting loud. If nothing steps in, it will turn into a disturbance — losing you their custom for the rest of their visit and hurting the town's reputation. An assigned, on-duty sheriff can calm them down first.</OWT_AlertRowdyPatronsDesc>
+
+  <!-- Gambling hall -->
+  <OWT_CmdHouseEdge>Set house edge</OWT_CmdHouseEdge>
+  <OWT_CmdHouseEdgeDesc>Set how much of every wager the house expects to keep on average. A low edge keeps the table fair and patrons happy; a high one wins the house more per hand but pays out less often, and angers losers faster.</OWT_CmdHouseEdgeDesc>
+  <OWT_HouseEdgeSlider>House edge {0}</OWT_HouseEdgeSlider>
+  <OWT_HouseEdgeLine>House edge: {0}</OWT_HouseEdgeLine>
+  <OWT_ShortfallLine>Shortfalls today: {0}</OWT_ShortfallLine>
+  <OWT_PayoutLine>Payouts today: {0}</OWT_PayoutLine>
+  <OWT_CheatingAccusation>{0} accuses the dealer at {1} of cheating after a bad hand.</OWT_CheatingAccusation>
+  <OWT_HouseCantCover>{0} won big at {1}, but the house can only cover {2} of the {3} owed. The table closes its doors until someone reopens it.</OWT_HouseCantCover>
+  <OWT_CmdCollectDescWager>Empty the till onto the floor beside the counter. This till also backs every future payout — emptying it can leave the house unable to cover the next win.</OWT_CmdCollectDescWager>
 
 </LanguageData>

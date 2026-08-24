@@ -87,6 +87,7 @@ today's takings; **Collect takings** drops the silver on the floor for a hauler.
 | Goods in the room aren't listed as on sale | They're forbidden, reserved by a colonist's own job, worth nothing, on fire, or switched off in the Stock tab. |
 | A saloon serves drinks but never meals | A meal service needs an actual cooked meal on the shelves. Ingredients don't count. |
 | The barber chair is idle | A haircut never allows self-service. It needs a colonist standing at the chair's staff side, whatever the mod setting says. |
+| A gambling hall stopped taking bets | Its till couldn't cover a win in full, and it force-closed itself. Check [the till as a bankroll](economy.md#the-till-as-a-bankroll), then reopen it with the **Open for business** toggle when you're ready. |
 
 ## Mod settings
 
