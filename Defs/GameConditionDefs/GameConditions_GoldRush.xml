@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+
+  <!-- One instance ever exists per active rush. Boom for a quadrum, then bust until reputation
+       recovers or a generous hard duration cap (set on the firing IncidentDef,
+       OWT_GoldRushStrike) ends it regardless. See GameCondition_GoldRush.cs and
+       docs/DESIGN.md#gold-rush-one-condition-not-two-clocks. -->
+  <GameConditionDef>
+    <defName>OWT_GoldRushCondition</defName>
+    <label>gold rush</label>
+    <description>Prospectors are pouring into town, all chasing the same handful of things: tools, medicine, meals and a stiff drink. Stock the right shelves and it pays for itself many times over — but pushing prices up while it lasts costs you standing with every customer who notices.</description>
+    <conditionClass>OldWestTown.GoldRush.GameCondition_GoldRush</conditionClass>
+  </GameConditionDef>
+
+</Defs>

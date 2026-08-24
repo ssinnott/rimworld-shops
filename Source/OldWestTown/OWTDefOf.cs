@@ -19,6 +19,7 @@ namespace OldWestTown
 
         public static IncidentDef OWT_ShopCustomers;
         public static IncidentDef OWT_Stickup;
+        public static IncidentDef OWT_GoldRushStrike;
 
         public static RaidStrategyDef OWT_StickupStrategy;
 
@@ -33,6 +34,12 @@ namespace OldWestTown
         /// <summary>Looked up directly, the same way, by CoachTierUtility.HasDepot's own
         /// ListerThings scan — a depot keeps no registry either.</summary>
         public static ThingDef OWT_CoachDepot;
+
+        /// <summary>The one gold-rush condition ever created, looked up by name from
+        /// IncidentWorker_GoldRushStrike; read back live everywhere else via
+        /// GoldRushUtility/GameConditionManager.GetActiveCondition rather than a second
+        /// reference to this field.</summary>
+        public static GameConditionDef OWT_GoldRushCondition;
 
         static OWTDefOf()
         {

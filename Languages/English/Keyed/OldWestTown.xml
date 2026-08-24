@@ -131,4 +131,16 @@
   <OWT_DepotNoRoute>No scheduled route yet — needs {0} appeal to start one.</OWT_DepotNoRoute>
   <OWT_DepotNoTiers>No route tiers are defined.</OWT_DepotNoTiers>
 
+  <!-- Gold rush: a temporary map-wide boom, then bust -->
+  <OWT_LetterGoldRushLabel>Gold rush</OWT_LetterGoldRushLabel>
+  <OWT_LetterGoldRushText>Word of a strike nearby is spreading fast, and prospectors are already pouring into town. Expect roughly three times the usual custom for the next while, carrying fatter purses too — but nearly all of them are after the same handful of things: tools, medicine, meals, and a stiff drink.\n\nStock the right shelves and the boom pays for itself several times over. Push prices past what's reasonable while it lasts, though, and word travels just as fast — customers remember being gouged long after the vein runs dry.</OWT_LetterGoldRushText>
+  <OWT_GoldRushBustBegins>The vein is drying up. Prospectors are thinning out, and the ones still buying expect ordinary prices again.</OWT_GoldRushBustBegins>
+  <OWT_GoldRushBoomStatus>Prospectors are pouring in, chasing tools, medicine, meals and drink above everything else on the shelf. {0} days left before the vein starts to dry up.</OWT_GoldRushBoomStatus>
+  <OWT_GoldRushBustStatus>The rush has moved on, and custom has slowed to a trickle. It picks back up once the town's reputation climbs to {1} — it's {0} now.</OWT_GoldRushBustStatus>
+  <OWT_GoldRushGougeWarning>{0} is gouging the rush, and word is getting around. It's costing the town's good name.</OWT_GoldRushGougeWarning>
+  <OWT_LetterGoldRushRecoveredLabel>The rush is behind you</OWT_LetterGoldRushRecoveredLabel>
+  <OWT_LetterGoldRushRecoveredText>The town's name has recovered from the rush. Trade is back to its ordinary pace.</OWT_LetterGoldRushRecoveredText>
+  <OWT_SettingGoldRushEnabled>Gold rush events</OWT_SettingGoldRushEnabled>
+  <OWT_SettingGoldRushEnabledDesc>A nearby strike floods the town with prospectors for a season, then leaves trade quiet until the town's name recovers. Turn this off to remove the event entirely.</OWT_SettingGoldRushEnabledDesc>
+
 </LanguageData>

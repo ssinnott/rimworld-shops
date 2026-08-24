@@ -59,6 +59,17 @@ passenger* — but nothing else about them is different. They queue like anyone 
 out like anyone else if nobody serves them, and losing their custom costs the town exactly what
 losing anyone else's does. The extra silver only buys you a bigger sale if you actually earn it.
 
+### Gold rush prospectors
+
+A [gold rush](economy.md#gold-rush) is otherwise the same shape again, layered on top of
+everything above rather than replacing it: for as long as its boom lasts, every group that sets
+out is bigger and more frequent than the same appeal would ordinarily give you, and carries
+noticeably more silver on top of that. A scheduled coach group caught up in an active rush
+carries both bonuses at once.
+
+What actually sets a prospector apart isn't their purse, though — it's what they're willing to
+spend it on. See [the demand basket](#the-demand-basket) for what that means for your shelves.
+
 ## The visit
 
 The group arrives together, shops, and leaves together. Unlike vanilla visitors — who travel to a
@@ -104,6 +115,7 @@ same footing, with no preference for one over the other — and go to the single
    ×  1.5 if somebody is behind the counter
    ÷  how far away it is        (a shop 40 tiles off is worth half one on the doorstep)
    ×  for a service, how much this customer wants it right now
+   ×  during a gold rush, whether what's on offer is what prospectors actually want
 ```
 
 A customer skips a business entirely if they have no silver, if they've already given up on it
@@ -112,6 +124,22 @@ this visit, if they can't get to it, or if nothing there is within their means.
 Within a shop, they pick an item by what it's worth and how much of it there is, with a random
 nudge either way. That random tie-break matters: without it, a whole queue of customers would
 converge on the single most expensive thing on the shelf.
+
+### The demand basket
+
+During an active [gold rush](economy.md#gold-rush)'s boom, prospectors are all chasing the same
+handful of things — tools, medicine, meals and drink — and it shows in both halves of a
+purchase: which shop they walk into, and what they pick up once they're inside. An item in that
+basket is worth roughly **ten times** as much to a customer's scoring as the same-priced item
+sitting just outside it, so a shop stocked with what prospectors want pulls a disproportionate
+share of the rush's traffic, and one stocked with none of it barely benefits from the rush at
+all, whatever else it's charging. A service without a physical item behind it — a haircut, a
+room for the night — scores exactly as it always did; the basket only ever judges goods, and
+whatever a drink or a meal is actually poured from.
+
+Outside an active boom — no rush running at all, or one already past its boom and into its
+bust — this has no effect whatsoever: every customer scores every item exactly the way they
+always have.
 
 ## The purchase
 

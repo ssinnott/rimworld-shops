@@ -40,9 +40,8 @@ All under `Source/OldWestTown/`, namespace `OldWestTown`.
 | `CompRentableBed.cs` | `CompProperties_RentableBed`, `CompRentableBed` | A [hotel bed](buildings.md#hotel-bed) a guest has paid to sleep in for one night. Purely passive shared state, mirroring `CompBusiness`'s own staff flag on purpose — the guest's own sleep job is what notices it and acts on it, never a handshake with the desk that sold the stay. |
 | `CompFalseFront.cs` | `CompProperties_FalseFront`, `CompFalseFront` | A [false front](buildings.md#false-front)'s one mechanical hook: `CurbAppealBonus` folds a small, capped bonus for a nearby dressed-up storefront into `ShopPricing.ValueAppeal`. Walks `FalseFrontRegistry` rather than the map, since `ValueAppeal` is a customer-AI hot path. Nothing here is persisted. |
 | `FalseFrontRegistry.cs` | `FalseFrontRegistry` | `MapComponent`. Live roster of spawned `CompFalseFront`s, registered the same way `TownEconomy` registers shops — so curb-appeal scoring never has to scan every Thing on the map. |
-| `TownEconomy.cs` | `TownEconomy` | `MapComponent`: business register, daily ledger, reputation, [appeal](economy.md#appeal), arrival clock, and — per faction — a sparse [standing](economy.md#standing-with-a-faction) dictionary that biases which faction's customers arrive next. `RecordShortfall` is the worst single-event reputation and standing hit the mod has — a gambling hall unable to pay out a win. |
+| `TownEconomy.cs` | `TownEconomy` | `MapComponent`: business register, daily ledger, reputation, [appeal](economy.md#appeal), arrival clock, and — per faction — a sparse [standing](economy.md#standing-with-a-faction) dictionary that biases which faction's customers arrive next. `RecordShortfall` is the worst single-event reputation and standing hit the mod has — a gambling hall unable to pay out a win. Also owns the [stagecoach line](economy.md#the-stagecoach-line)'s guarantee clock — `RouteTier`, `TicksSinceLastArrival`, `GuaranteedArrivalDue`, `NotifyArrival` — an OR folded into the existing MTB roll below, not a second, independent clock. `TryAttractCustomers` folds a [gold rush](economy.md#gold-rush)'s own arrival multiplier into that same MTB roll (never the guarantee itself), and `RecordSale` applies its gouging penalty on top of the ordinary sale reputation delta. |
 | `StickupWatch.cs` | `StickupWatch` | `MapComponent`: sums every registered business's `TillSilver`, open or closed, into the [stickup](outlaws.md) clock — an MTB roll that shortens as uncollected silver climbs, halved in frequency by an on-duty sheriff, firing `OWT_Stickup` through the storyteller the same way `TownEconomy` fires its own arrival incident. Read-only against `TownEconomy`; carries no persisted state of its own. |
-| `TownEconomy.cs` | `TownEconomy` | `MapComponent`: business register, daily ledger, reputation, [appeal](economy.md#appeal), arrival clock, and — per faction — a sparse [standing](economy.md#standing-with-a-faction) dictionary that biases which faction's customers arrive next. `RecordShortfall` is the worst single-event reputation and standing hit the mod has — a gambling hall unable to pay out a win. Also owns the [stagecoach line](economy.md#the-stagecoach-line)'s guarantee clock — `RouteTier`, `TicksSinceLastArrival`, `GuaranteedArrivalDue`, `NotifyArrival` — an OR folded into the existing MTB roll below, not a second, independent clock. |
 
 ### `AI/` — the pawn loops
 
@@ -85,6 +84,13 @@ All under `Source/OldWestTown/`, namespace `OldWestTown`.
 | `CoachTierUtility.cs` | `CoachTierUtility` | Stateless reads off the map, nothing cached or registered: `HasDepot` (a `ListerThings` scan, mirroring `TroubleUtility.AnySheriffOnDuty`'s own "ask, don't track" shape), `CurrentTier`/`NextTier` (which rung is active and which is next), `CeilingTicks` (a tier's arrival ceiling in ticks, at the player's own Customer volume setting). |
 | `CompCoachDepot.cs` | `CompProperties_CoachDepot`, `CompCoachDepot` | The [coach depot](buildings.md#coach-depot)'s only behaviour: an inspect string reading the town's current tier, next tier and countdown live off `TownEconomy` and `CoachTierUtility`. A passive marker like `CompRolePost` and `CompFalseFront` — never staffed, never targeted by a job, nothing persisted on the comp itself. |
 
+### `GoldRush/` — the boom/bust event
+
+| File | Type | Job |
+| --- | --- | --- |
+| `GameCondition_GoldRush.cs` | `GameCondition_GoldRush` | `GameCondition`: one instance per active [rush](economy.md#gold-rush), self-phasing rather than two chained conditions — a fixed boom, then a bust that ends once town reputation clears its own recovery bar, or the firing incident's own generous duration cap forces things closed regardless. `recoveredByReputation` is what keeps the second path from sending a letter claiming the first one happened. |
+| `GoldRushUtility.cs` | `GoldRushUtility` | Stateless reads off the map's active `GameCondition_GoldRush`, the same "ask, don't track" shape `CoachTierUtility` already uses: whether a rush is active and which phase, the arrival-clock and purse multipliers that phase implies, and `DemandFactor`/`InDemandBasket` — the [demand basket](customers.md#the-demand-basket) test a specific `Thing` either passes or doesn't. Every read is a provable no-op (`1f`, or `false`) whenever no rush is active. |
+
 ### `Lords/`, `Incidents/`, `Alerts/`, `UI/`
 
 | File | Type | Job |
@@ -93,10 +99,10 @@ All under `Source/OldWestTown/`, namespace `OldWestTown`.
 | `Lords/LordToil_Shop.cs` | `LordToil_Shop` | Hands every group member the `OWT_Shop` duty. |
 | `Lords/LordJob_Stickup.cs` | `LordJob_Stickup` | A [stickup](outlaws.md) crew's own flat graph — near-twin of `LordJob_ShopVisit`'s shape, hostile instead of paying. Exits either on its own (the duration cap, sheriff-halved, or every till already emptied) or into `LordToil_PanicFlee` the instant anyone shoots back. `GuiltyOnDowned` is what makes capturing a downed raider ordinary vanilla prisoner mechanics rather than anything this mod builds. |
 | `Lords/LordToil_Stickup.cs` | `LordToil_Stickup` | Hands every crew member the `OWT_StickupDuty` duty. Byte-for-byte mirror of `LordToil_Shop`. |
-| `Incidents/IncidentWorker_ShopCustomers.cs` | `IncidentWorker_ShopCustomers` | Turns town appeal into [arrivals](customers.md#arrival), purses and group size, and — per faction standing — biases [which faction](customers.md#which-faction-turns-up) actually shows up. |
+| `Incidents/IncidentWorker_ShopCustomers.cs` | `IncidentWorker_ShopCustomers` | Turns town appeal into [arrivals](customers.md#arrival), purses and group size, and — per faction standing — biases [which faction](customers.md#which-faction-turns-up) actually shows up. When `TownEconomy.GuaranteedArrivalDue` is what triggered the firing, also applies the active route tier's purse multiplier and rolls a [VIP passenger](customers.md#scheduled-coach-arrivals) — the same firing, the same `LordJob_ShopVisit`, no second pawn loop. `GivePurse` also folds in a [gold rush](economy.md#gold-rush)'s own boom purse multiplier, stacked on top of whichever of the above already applied. |
 | `Incidents/IncidentWorker_Stickup.cs` | `IncidentWorker_Stickup` | Subclasses `IncidentWorker_RaidEnemy` rather than hand-rolling a raid: `base.TryExecuteWorker` (untouched) resolves the faction, generates pawns and gear, and sends the letter. Five overrides turn that into a [stickup](outlaws.md) — `ResolveRaidPoints` scales a small, capped band off silver at risk rather than colony wealth; `ResolveRaidStrategy`/`ResolveRaidArriveMode` force `OWT_StickupStrategy` and a walk-in arrival; `GetLetterLabel`/`GetLetterText` supply the arrival letter's own copy. |
 | `Incidents/RaidStrategyWorker_Stickup.cs` | `RaidStrategyWorker_Stickup` | The one hook a raid strategy has to supply: `MakeLordJob` builds a `LordJob_Stickup`, reading `TroubleUtility.AnySheriffOnDuty` once, at raid creation, to fix the raid's duration for its whole lifetime. `CanUseWith` returns false — a second, independent guard (alongside `IncidentWorker_Stickup` never consulting it for its own firing) against an unrelated ordinary raid ever picking this non-combat strategy. |
-| `Incidents/IncidentWorker_ShopCustomers.cs` | `IncidentWorker_ShopCustomers` | Turns town appeal into [arrivals](customers.md#arrival), purses and group size, and — per faction standing — biases [which faction](customers.md#which-faction-turns-up) actually shows up. When `TownEconomy.GuaranteedArrivalDue` is what triggered the firing, also applies the active route tier's purse multiplier and rolls a [VIP passenger](customers.md#scheduled-coach-arrivals) — the same firing, the same `LordJob_ShopVisit`, no second pawn loop. |
+| `Incidents/IncidentWorker_GoldRushStrike.cs` | `IncidentWorker_GoldRushStrike` | Fires `OWT_GoldRushCondition` onto the map — a [gold rush](economy.md#gold-rush)'s one-time setup. Subclasses `IncidentWorker_MakeGameCondition` but writes both `CanFireNowSub` and `TryExecuteWorker` explicitly rather than trusting the unread base implementation, the same precedent `IncidentWorker_ShopCustomers` and `IncidentWorker_Stickup` already set for this codebase. |
 | `Alerts/Alert_CustomersWaiting.cs` | `Alert_CustomersWaiting` | Raised while customers burn patience at an unattended business. |
 | `Alerts/Alert_RowdyPatrons.cs` | `Alert_RowdyPatrons` | Raised while a patron is "getting loud" and still calmable — the sheriff's real window before a disturbance fires unattended. Mirrors `Alert_CustomersWaiting`'s shape. |
 | `Alerts/Alert_StickupRisk.cs` | `Alert_StickupRisk` | Raised once a map's uncollected till total crosses a threshold below `StickupWatch.MinSilverAtRisk` itself — the [risk](outlaws.md#how-the-risk-builds) is visible climbing before the clock behind it is even live. |
@@ -398,3 +404,34 @@ anything changes hands.
   either is actually used.** Worth a first-play check that a route promotion letter genuinely
   renders, and that reloading a save genuinely doesn't re-announce a tier the player has already
   seen.
+- **The gold rush is the first place this codebase uses `GameCondition` itself**, rather than a
+  bespoke `MapComponent` timer — the vanilla idiom for "the whole map is in a temporary state"
+  fits this feature exactly, so nothing here reinvents a clock RimWorld already ships.
+  `GameCondition`, `GameConditionManager.RegisterCondition`/`GetActiveCondition<T>`,
+  `GameConditionMaker.MakeCondition`, `IncidentWorker_MakeGameCondition`, and every overridden
+  member (`GameConditionTick`, `End`, `Description`, `TicksPassed`, `Duration`, `SingleMap`, and
+  `Expired`, which a duration-capped condition's automatic end-of-life cleanup must read
+  somewhere) are all confirmed to exist and match this feature's call shapes via `refdump`. What
+  `refdump` can't confirm, because reference assemblies carry no IL: whether
+  `GameConditionManager`'s own tick loop genuinely calls `End()` directly once `Expired` goes
+  true, bypassing `GameConditionTick` entirely, the way `GameCondition_GoldRush.End()`'s
+  `recoveredByReputation` flag assumes in order to tell a genuine recovery apart from the hard
+  duration cap forcing things closed regardless. If that assumption is wrong, the realistic worst
+  case is cosmetic — the wrong one of two very similar "the rush is over" outcomes — not a crash,
+  since both paths still call the identical `base.End()` underneath either way.
+- **The gold rush's own numbers are first-pass guesses, untested in a live game** —
+  `BoomArrivalMtbDivisor` (3), `BustArrivalMtbMultiplier` (2.5), `BoomPurseMultiplier` (1.5), the
+  demand basket's `InBasketDemandFactor`/`OutOfBasketDemandFactor` (4 / 0.4),
+  `GougeReputationPenalty`/`GougeStandingDelta` (0.03 / −0.03) and `BustRecoveryReputation`
+  (0.45), in the same spirit as this file's other untested constants. The one sanity check worth
+  stating in numbers: gouging can only ever apply while a boom is active
+  (`GoldRushUtility.BoomActive`), so reputation can only be pushed down during the fixed 15-day
+  boom, never during the bust itself — and `TownEconomy.RollOverDay`'s existing 5%-of-gap daily
+  decay toward 0.5 then works *for* recovery unconditionally once the bust begins. Even from a
+  full crash to 0 reputation, decay alone clears the 0.45 recovery bar in about 45 days,
+  comfortably inside the ~55–65 days of bust `OWT_GoldRushStrike`'s own duration cap allows before
+  forcing the condition closed regardless (see [gold rush](economy.md#gold-rush) for the worked
+  numbers); a town that didn't gouge is typically already above the bar the moment the bust
+  begins. Also a guess, matching the general store's own flavor text rather than a confirmed
+  literal category this sandbox has no Core Defs XML to check against:
+  `GoldRushUtility.InDemandBasket` reads "tools" as `ThingCategoryDefOf.Manufactured`.

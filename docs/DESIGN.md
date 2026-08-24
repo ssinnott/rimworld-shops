@@ -602,6 +602,136 @@ ledger — is touched at all. [The one rule](#the-one-decision-everything-else-f
 just preserved here; it's structurally inapplicable, because this feature never creates a second
 loop for it to govern.
 
+### Gold rush: one condition, not two clocks
+
+The roadmap named a *strike nearby* event with a boom that triples arrivals and a bust that
+crashes them, a demand basket that makes stocking decisions matter again, and gouging that costs
+more than it usually would. All of it shipped; nothing here was cut for scope the way a mail
+contract or a wanted board were elsewhere in this file. The interesting design choices are how
+the boom and bust share one clock, how the demand basket stays a pure multiplier nothing has to
+special-case, and how a bust that must not become a trap is actually guaranteed not to be one.
+
+**A `GameCondition`, not a hand-rolled `MapComponent` timer.** RimWorld already has the vanilla
+idiom for "the whole map is in a temporary state for a while" — `GameCondition`, created by
+`GameConditionMaker.MakeCondition` and registered with `Map.gameConditionManager`, ticked by the
+engine, shown in the conditions bar with its own live `Description`, and torn down automatically
+once its `Duration` elapses. Every one of those members, plus `IncidentWorker_MakeGameCondition`
+(the base class that fires one) and the `Expired`/`TicksPassed`/`SingleMap` properties this
+feature reads, is confirmed to exist and match this feature's call shapes via `tools/refdump` —
+see [the code map's known risks](architecture.md#known-risks) for exactly what that check does
+and doesn't prove. A bespoke `MapComponent` timer would have reinvented all of that by hand for
+no benefit: no conditions-bar entry, no automatic teardown, and a second, parallel place a save
+has to persist a start tick and a duration that `GameCondition` already owns.
+
+**One condition, self-phasing, rather than two chained conditions or a second incident with its
+own clock.** The obvious shape for "a boom, then a bust" is two `GameConditionDef`s, the first
+handing off to the second when it ends — the same shape [the stagecoach
+line](#stagecoach-line-a-ceiling-not-a-second-clock) rejected for its own guarantee, and rejected
+here for the identical reason: a second condition's own lifecycle only ever answers to itself,
+so nothing stops it drifting out of step with the first, or with the incident that was supposed
+to own the whole event. `GameCondition_GoldRush` is one instance for the event's entire life —
+`bustStarted` is the only state that distinguishes its two phases, read by `GoldRushUtility` and
+by its own `Description` override, never a second `Def` or a second registration. The firing
+`IncidentDef`, `OWT_GoldRushStrike`, only ever runs once, at the very start, the same "one
+incident, one letter, done" shape `IncidentWorker_Stickup` and `IncidentWorker_ShopCustomers`
+both already have; everything after that is the condition ticking itself, not a second incident
+waking up on its own schedule.
+
+**The demand basket is a plain `float` multiplier, gated on the boom alone, wired into every
+place something is already scored.** `GoldRushUtility.DemandFactor(map, thing)` is `1f` — a
+provable no-op — whenever no rush's boom is active, or the `Thing` is `null` (a stock-free
+service, which this mechanic deliberately never touches: prospectors want a full pack mule, not
+a haircut). Otherwise it's `InBasketDemandFactor` (4) for tools, medicine, a meal or a drink, and
+`OutOfBasketDemandFactor` (0.4) for anything else — a 10× spread, chosen because that is also
+exactly the spread `TownEconomy`'s own gouging penalty below has to outweigh (see the next
+section). "Tools" has no confirmed literal category to check against from this sandbox, so
+`InDemandBasket` reads it loosely, the same way the general store's own flavor text already
+does, as `ThingCategoryDefOf.Manufactured` — a guess in the same spirit as `OWT_BatwingDoor`'s
+`ParentName="Door"` assumption elsewhere in this codebase, not a verified fact.
+
+Being a pure multiplier is what let this factor go everywhere a purchase or a service is already
+scored without any of those call sites needing to know a rush exists: `ShopStock.ChoosePurchase`
+and `ShopStock.ChooseService` fold it into the per-item score that decides what a customer picks
+up *inside* a shop, and `JobGiver_BuyFromShop`'s own scoring pass folds it into the score that
+decides *which shop* a customer walks into in the first place, multiplying the specific item (or
+service's consumable) that shop would sell them. Both matter: a demand basket that only steered
+item choice inside a shop a customer had already entered for other reasons wouldn't actually
+reward stocking for the rush the way the roadmap's own framing promises — a shop selling nothing
+prospectors want would still pull exactly as much foot traffic as one that does, and only lose
+out once someone was already standing in it. Folding the same factor into the shop-choice score
+too is what makes a general store that restocked for the rush genuinely outperform a saloon that
+didn't, not merely sell differently to whoever happened to wander in regardless.
+
+**Gouging is relative to a shop's own kind, not a flat number.** `ShopPricing.GougeSeverity`
+reads 0 at a shop's own kind's default markup and 1 at that kind's own configured ceiling — the
+same `Markup`/`markupRange` pair the price slider already clamps against, reused rather than a
+second, parallel "is this too expensive" threshold. That is a deliberate choice: a flat gouging
+threshold would either let an already-dear kind (a saloon, priced to sting a little on purpose)
+gouge for free right up to some arbitrary number, or punish a naturally cheap kind (a general
+store) for charging what a saloon charges every day without anyone calling it gouging. Relative
+severity means gouging is always and only "further above what's normal for *this* business than
+the player usually pushes it" — a judgment that holds regardless of which kind is doing it.
+
+`TownEconomy.RecordSale` applies the penalty — extra reputation and standing cost, scaled by
+severity — only while a boom is active, for a direct, load-bearing reason: the demand basket's
+10× spread structurally overpowers `ShopPricing.ValueAppeal`'s own price sensitivity (a roughly
+2× spread across a kind's normal markup range), so without an explicit extra brake, a rush would
+make price stop mattering to where it's sold at all. The penalty is that brake, sized to roughly
+match the spread it has to outweigh. It also answers the roadmap's own two-sided ask directly:
+gouging has to actually earn well in the short run (it does — the demand basket alone already
+guarantees that shop the traffic) and the cost has to be legible (a per-shop warning message, at
+most once a day, naming the counter, backed by the reputation and standing hit the town ledger
+already shows).
+
+**The bust must not be a trap, and the numbers were checked, not assumed.** Because gouging is
+gated on the boom (`GoldRushUtility.BoomActive`), it structurally cannot apply during the bust —
+whatever damage a boom's gouging did is the most the bust ever has to recover from, and nothing
+during the bust itself can add to it. `TownEconomy.RollOverDay`'s existing daily decay toward
+0.5 reputation (5% of the remaining gap, already shipped for every other feature) then works
+*for* recovery unconditionally once the bust starts, since `BustRecoveryReputation` (0.45) sits
+just under that same resting point. Worked out in days: even from a full crash to 0 reputation,
+`0.5 - 0.5 × 0.95ⁿ ≥ 0.45` first holds at `n ≈ 45` days — comfortably inside the ~55–65 days of
+bust the firing incident's own 70–80-day total duration cap allows before forcing the condition
+closed regardless, and that is the worst case: any ordinary staffed trade during the bust adds
+its own +0.01-per-sale on top of the passive decay, and a town that never gouged hard enough to
+push reputation below 0.45 in the first place clears the bar the very first tick-check after the
+bust begins, since there's nothing to recover from. The hard duration cap exists purely as a
+safety net for a scenario the math above says shouldn't occur in practice, never the intended
+exit — see `Defs/IncidentDefs/Incidents_GoldRush.xml`'s own comment.
+
+That hard cap forces `End()` through vanilla's own automatic expiry, bypassing
+`GameConditionTick` entirely — the same "reached from two places, only one of them earns the
+letter" shape this section's own bug fix exists to get right: `recoveredByReputation` is set only
+by `GameConditionTick`'s own reputation check, immediately before it calls `End()` itself, and
+`End()`'s "recovered" letter is gated on that flag rather than on `bustStarted` alone, which is
+true on both paths. The timeout path gets no letter — an honest silence rather than a claim that
+reputation recovered when the real reason the rush ended was the safety net running out.
+
+**The arrival and purse multipliers ride on top of the existing clocks, never inside the
+stagecoach guarantee's own ceiling.** `GoldRushUtility.ArrivalMtbMultiplier` multiplies straight
+into `TryAttractCustomers`'s own `mtbDays` — the same number the stagecoach guarantee's
+`CeilingTicks` is a ceiling *on top of*, not a value the ceiling itself is computed from. A rush
+speeding up or slowing down the organic roll changes how often the ceiling has anything to do
+(rarely, during a boom that's already faster than most tiers' ceilings; more often, during a
+bust slow enough that a depot's own promise becomes the practical floor under footfall) without
+the two ever multiplying against each other — exactly the "compose, don't multiply" shape the
+roadmap asked for. `GoldRushUtility.PurseMultiplier` is threaded into `GivePurse` itself rather
+than as a third caller-supplied parameter, so it stacks with a stagecoach tier's own purse boost
+or the flat VIP multiplier automatically, and reaches the Hospitality bridge's own reuse of
+`GivePurse` for free — a prospector's purse is a prospector's purse, whichever door they came in.
+
+**Brawls and claim disputes, the roadmap's own other headline, are folded into the trouble
+mechanic that already exists rather than built as a second one.** A rush intensifying trade at a
+saloon or a gambling hall already makes both busier, and both already have their own escalating
+trouble mechanic — `OWT_Rowdy`, the disturbance it fires, the sheriff's suppression — built for
+exactly this "a business getting busier makes it rowdier" shape. A parallel "claim dispute"
+mechanic would need its own building or service to attach to (there is no claims office, and
+inventing one only for this event contradicts "prefer XML to code" by adding a whole new
+business kind to make one event's flavor text literal) and would duplicate machinery that already
+does the job it would be built to do. Deliberately cut, the same way stage 4 named barkeep and
+banker as cut rather than silently dropped, and for the same kind of reason: there was nothing
+left for a second system to do that the first one doesn't already cover.
+
 ## The economy loop
 
 ```

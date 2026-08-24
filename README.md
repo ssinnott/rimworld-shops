@@ -113,6 +113,14 @@ This mod is standalone. It does not require Hospitality, and is written to sit a
   names the current tier and what the next one needs. Built as one extra way for the existing
   customer incident to fire, not a second, independent one, so it can never double up with, or
   land on top of, an ordinary arrival.
+- **A gold rush, and the hangover after it.** Word of a strike nearby floods the town with
+  prospectors for a quadrum: arrivals roughly triple and purses swell, but the crowd only really
+  wants tools, meals, booze and medicine — a general store stocked for ordinary custom is
+  suddenly stocked for the wrong people, and reading that is worth real silver. The boom is also
+  a standing invitation to gouge, and gouging is measured against what's normal for *that kind*
+  of business rather than a flat number, so a saloon isn't punished for being a saloon. Charge
+  what the traffic will bear and you'll make a fortune and spend the bust paying for it: when the
+  vein dries up, trade falls below its old baseline until the town's name recovers.
 
 ## Installing
 

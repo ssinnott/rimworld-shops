@@ -287,6 +287,69 @@ include one passenger carrying a great deal more than the rest of the party. See
 coach arrivals](customers.md#scheduled-coach-arrivals) for what that looks like from the
 customer's side of the counter.
 
+## Gold rush
+
+A **gold rush** is a map-wide event, not a building: a strike nearby floods the town with
+prospectors for a while, then leaves it quiet again. It runs in two phases, and the game always
+tells you which one you're in and roughly how much of it is left — a status line on the event
+itself, readable the same way you'd check the weather. A settings-menu switch (`Gold rush
+events`, on by default) turns the whole thing off if you'd rather not have it.
+
+### The boom
+
+For a quadrum (15 days) after the letter arrives:
+
+| | |
+| --- | --- |
+| Arrivals | roughly **three times** as often as [the arrival clock](#the-arrival-clock) would otherwise give the same appeal |
+| Purses | an extra **50%** on top of everything else that already scales a customer's silver |
+| What they want | tools, medicine, meals and drink, above everything else on the shelf — see [the demand basket](customers.md#the-demand-basket) |
+
+The boom doesn't replace the ordinary arrival clock or [the stagecoach guarantee](#the-stagecoach-line)
+— it speeds up the same clock the guarantee is already a ceiling on top of. A coach depot's own
+promise is completely unaffected either way: it's a floor, not something a rush multiplies
+against, so a scheduled route keeps the exact guarantee it always had, boom or bust.
+
+### Gouging the rush
+
+The demand basket above is strong enough to swing which shop a customer walks into by roughly
+ten to one, which is what makes stocking for the rush pay off — but it also means the ordinary
+"customers avoid pricey shops" pressure that [keeps prices honest](#how-price-wins-customers)
+gets badly outweighed: a shop selling what prospectors want can charge nearly anything and still
+have a line out the door. So there's a second brake, active only during the boom: sell above
+what's normal for *your kind* of business, and every sale at that counter costs you a little
+reputation and standing with that customer's own faction, on top of whatever else the sale
+already did — nothing extra at your kind's own usual markup, the most at your kind's own ceiling.
+A shop that keeps doing it draws a warning message naming it, at most once a day, so it never
+comes as a surprise.
+
+The temptation is genuine — gouging a well-stocked shop during a boom earns well in the short
+run, since almost nobody walks away over price while the rush is on. The reputation cost is what
+keeps that from being free money.
+
+### The bust
+
+Once the boom ends, the average gap between customer groups stretches to roughly **two and a
+half times** what [the arrival clock](#the-arrival-clock) would otherwise give the same
+appeal — a real dip below what your town's appeal alone would predict, not just a return to
+normal. That lasts until the town's reputation climbs back to a point just
+under its own resting level, or, failing that, a very long backstop (on the order of two months
+from the rush's very start) ends it regardless.
+
+That backstop is a safety net, not something meant to bite: gouging only ever happens during the
+boom above, never during the bust, so nothing during the slow period can keep pushing reputation
+back down. A town that didn't push its prices up during the boom is typically already past the
+recovery bar the moment the bust begins — there's nothing to recover from. A town that gouged
+hard enough to crash its reputation all the way to the floor still clears the bar in roughly a
+month and a half of ordinary daily drift alone, comfortably inside the backstop above, and
+sooner still with any ordinary staffed trade on top of that drift. Either way, the bust is a
+genuine slowdown, not a hole you can fall into and never climb back out of.
+
+When it ends, a message tells you so — a letter if reputation genuinely earned its way back, a
+quieter word if the backstop was what actually closed it out. Either way, arrivals return to
+whatever the ordinary arrival clock and any stagecoach guarantee already give the town on their
+own.
+
 ## The daily ledger
 
 At local midnight the town closes the books: every business's daily figures reset, the town's

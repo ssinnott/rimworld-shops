@@ -28,6 +28,11 @@ namespace OldWestTown
         /// Shops/StickupWatch.cs). On by default, like every other risk this mod ships with.</summary>
         public bool stickupsEnabled = true;
 
+        /// <summary>Master switch for the gold rush event (GoldRush/, Incidents/
+        /// IncidentWorker_GoldRushStrike.cs). On by default, like every other event this mod
+        /// ships with.</summary>
+        public bool goldRushEnabled = true;
+
         public override void ExposeData()
         {
             base.ExposeData();
@@ -37,6 +42,7 @@ namespace OldWestTown
             Scribe_Values.Look(ref hospitalityBridgeEnabled, "hospitalityBridgeEnabled", true);
             Scribe_Values.Look(ref hospitalityGuestsCarrySilver, "hospitalityGuestsCarrySilver", true);
             Scribe_Values.Look(ref stickupsEnabled, "stickupsEnabled", true);
+            Scribe_Values.Look(ref goldRushEnabled, "goldRushEnabled", true);
         }
     }
 
@@ -69,6 +75,9 @@ namespace OldWestTown
 
             list.CheckboxLabeled("OWT_SettingStickupsEnabled".Translate(), ref Settings.stickupsEnabled,
                 "OWT_SettingStickupsEnabledDesc".Translate());
+
+            list.CheckboxLabeled("OWT_SettingGoldRushEnabled".Translate(), ref Settings.goldRushEnabled,
+                "OWT_SettingGoldRushEnabledDesc".Translate());
 
             // Hospitality section: a status line always shown, so the player can tell the bridge
             // apart from a mod that's simply doing nothing; controls only once there's something

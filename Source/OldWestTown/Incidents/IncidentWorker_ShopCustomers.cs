@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using OldWestTown.GoldRush;
 using OldWestTown.Lords;
 using OldWestTown.Shops;
 using OldWestTown.Stagecoach;
@@ -213,9 +214,15 @@ namespace OldWestTown.Incidents
         {
             if (pawn?.inventory == null) return;
 
+            // GoldRushUtility.PurseMultiplier is 1f (a no-op) whenever no rush's boom is active
+            // on this pawn's own map, so this changes nothing for either existing caller outside
+            // a rush. It stacks with purseMultiplier rather than replacing it, so a scheduled
+            // coach group or a VIP arriving mid-boom carries both bonuses at once — a boom really
+            // does mean richer customers, tier or no tier.
             float scale = Mathf.Lerp(0.7f, 2.2f, Mathf.Clamp01(appeal / 4f))
                           * OldWestTownMod.Settings.customerWealth
-                          * purseMultiplier;
+                          * purseMultiplier
+                          * GoldRushUtility.PurseMultiplier(pawn.Map);
             int amount = Mathf.Max(20, Mathf.RoundToInt(BasePurse.RandomInRange * scale));
 
             // Top up rather than replace — generated pawns sometimes already carry silver.

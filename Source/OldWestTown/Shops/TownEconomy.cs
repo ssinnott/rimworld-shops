@@ -3,6 +3,7 @@ using System.Linq;
 using RimWorld;
 using UnityEngine;
 using Verse;
+using OldWestTown.GoldRush;
 using OldWestTown.Stagecoach;
 
 namespace OldWestTown.Shops
@@ -46,6 +47,15 @@ namespace OldWestTown.Shops
         /// the house winning a hand for a customer and then not paying it out is a sharper
         /// trust break than slow service ever is.</summary>
         private const float FactionStandingShortfallDelta = -0.20f;
+
+        /// <summary>Extra reputation/standing hit per sale, scaled by ShopPricing.GougeSeverity,
+        /// applied only while a gold rush's boom is active — the direct, necessary companion to
+        /// the demand basket. Demand swings the shop-choice score roughly 10x, structurally
+        /// overpowering ValueAppeal's own ~2x price sensitivity, so the existing "customers avoid
+        /// pricey shops" self-correction needs an explicit extra brake here while a rush makes
+        /// price barely matter. See docs/DESIGN.md.</summary>
+        private const float GougeReputationPenalty = 0.03f;
+        private const float GougeStandingDelta = -0.03f;
 
         private readonly List<CompBusiness> shops = new List<CompBusiness>();
 
@@ -186,7 +196,7 @@ namespace OldWestTown.Shops
             standings[customerFaction] = Mathf.Clamp01(StandingWith(customerFaction) + delta);
         }
 
-        public void RecordSale(int price, bool selfService = false, Faction customerFaction = null)
+        public void RecordSale(int price, bool selfService = false, Faction customerFaction = null, CompBusiness shop = null)
         {
             revenueToday += price;
             lifetimeRevenue += price;
@@ -197,6 +207,23 @@ namespace OldWestTown.Shops
             // Nobody chose to serve THIS customer at an honesty box — there's no relationship
             // to credit, only the town-wide "nobody minds the till" fact above.
             if (!selfService) NudgeStanding(customerFaction, FactionStandingSaleDelta);
+
+            // Selling above this shop's OWN kind's usual markup while a rush is on is the direct,
+            // necessary companion to the demand basket — see GougeReputationPenalty above.
+            if (shop != null && GoldRushUtility.BoomActive(map))
+            {
+                float severity = ShopPricing.GougeSeverity(shop);
+                if (severity > 0f)
+                {
+                    reputation = Mathf.Clamp01(reputation - GougeReputationPenalty * severity);
+                    NudgeStanding(customerFaction, GougeStandingDelta * severity);
+                    if (shop.TryClaimGougeMessage())
+                    {
+                        Messages.Message("OWT_GoldRushGougeWarning".Translate(shop.parent.Label),
+                            new LookTargets(shop.parent), MessageTypeDefOf.NegativeEvent);
+                    }
+                }
+            }
         }
 
         public void RecordWalkout(Faction customerFaction = null)
@@ -343,6 +370,13 @@ namespace OldWestTown.Shops
             float mtbDays = Mathf.Lerp(3.5f, 0.8f,
                 Mathf.Clamp01((appeal - MinAppealForCustomers) / 3.5f));
             mtbDays /= Mathf.Max(0.25f, OldWestTownMod.Settings.customerVolume);
+
+            // A gold rush's own boom/bust multiplier (1f, a no-op, whenever no rush is active)
+            // rides on top of the same MTB roll rather than touching GuaranteedArrivalDue below —
+            // the coach line's ceiling stays exactly what it always promises, so a rush can only
+            // ever speed up or slow down the organic clock the ceiling is a backstop for, never
+            // compound with it. See docs/DESIGN.md#gold-rush-one-condition-not-two-clocks.
+            mtbDays *= GoldRushUtility.ArrivalMtbMultiplier(map);
             if (!Rand.MTBEventOccurs(mtbDays, 60000f, ArrivalCheckInterval) && !GuaranteedArrivalDue) return;
 
             IncidentParms parms = StorytellerUtility.DefaultParmsNow(

@@ -1,3 +1,4 @@
+using OldWestTown.GoldRush;
 using OldWestTown.Lords;
 using OldWestTown.Shops;
 using RimWorld;
@@ -57,11 +58,16 @@ namespace OldWestTown.AI
                 float distanceFactor = 1f + pawn.Position.DistanceTo(shop.parent.Position) / 40f;
                 float staffBonus = shop.Staffed ? 1.5f : 1f;
 
-                // Goods candidate.
+                // Goods candidate. A gold rush's demand basket (a no-op outside an active boom)
+                // is folded in here too, not just into ShopStock.ChoosePurchase's own item pick —
+                // otherwise a shop stocked entirely with what prospectors want would never pull a
+                // customer through the door any harder than one stocked with none of it, even
+                // though picking an item within a shop already favours it once they're inside.
                 Thing goods = ShopStock.ChoosePurchase(shop, pawn, purse, out int count);
                 if (goods != null && count > 0)
                 {
-                    float score = ShopPricing.ValueAppeal(shop) * staffBonus / distanceFactor;
+                    float score = ShopPricing.ValueAppeal(shop) * staffBonus / distanceFactor
+                                  * GoldRushUtility.DemandFactor(pawn.Map, goods);
                     if (score > bestScore)
                     {
                         bestScore = score;
@@ -123,7 +129,11 @@ namespace OldWestTown.AI
                     }
                     if (price > purse) continue;
 
-                    float score = ShopPricing.ValueAppeal(shop) * service.worker.Desirability(pawn) * staffBonus / distanceFactor;
+                    // consumable is null for a stock-free service (Haircut, Lodging, Wager);
+                    // DemandFactor treats a null Thing as neutral by design, so this only ever
+                    // moves the score for a Drink or a Meal actually pouring an in-demand item.
+                    float score = ShopPricing.ValueAppeal(shop) * service.worker.Desirability(pawn) * staffBonus / distanceFactor
+                                  * GoldRushUtility.DemandFactor(pawn.Map, consumable);
                     if (score > bestScore)
                     {
                         bestScore = score;

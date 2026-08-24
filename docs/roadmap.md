@@ -4,8 +4,8 @@ summary: What is built, what is next, and the larger directions that build on to
 ---
 
 The plan is staged so each step is playable on its own. All seven stages are shipped, and so are
-the first three of the thematic expansions below — the gambling hall, outlaws and the law, and
-the stagecoach line.
+the first four of the thematic expansions below — the gambling hall, outlaws and the law, the
+stagecoach line, and the gold rush.
 
 For the reasoning behind the shipped stages, see the [design notes](DESIGN.md).
 
@@ -143,12 +143,28 @@ line](economy.md#the-stagecoach-line) for how it plays, and [the design
 notes](DESIGN.md#stagecoach-line-a-ceiling-not-a-second-clock) for the reasoning and the worked
 math behind the ceiling.
 
-**Gold rush.** A map-wide *strike nearby* event that floods the town with prospectors for a
-quadrum: arrivals triple and budgets rise, but they only want a specific demand basket (tools,
-meals, booze, medicine) and they bring brawls and claim disputes. Price-gouging during the
-boom decays reputation faster; when the vein dries up, arrivals crash below baseline until
-reputation recovers. Exercises the markup slider and the breadth-over-depth appeal math
-dramatically, and gives long saves a narrative arc.
+**Gold rush — done.** A map-wide *strike nearby* [event](economy.md#gold-rush) that floods the
+town with prospectors for a quadrum: arrivals roughly triple and every purse carries an extra
+50%, but they're all chasing the same [demand basket](customers.md#the-demand-basket) — tools,
+medicine, meals and drink — worth roughly ten times as much to a customer's own scoring as
+anything outside it, steering both which shop they enter and what they buy once they're inside.
+Gouging a shop's prices past what's normal for its own kind while the boom lasts costs extra
+reputation and standing on top of the ordinary sale delta — the demand basket alone already
+makes gouging genuinely profitable, so this is what keeps it from being free money, and it's
+gated to the boom specifically, never the bust that follows. When the vein dries up, arrivals
+crash to roughly 2.5× their ordinary gap until the town's reputation clears a bar just under its
+own resting point, or a very long safety net ends things regardless — sanity-checked so that
+even a reputation crashed all the way to zero by gouging clears that bar through ordinary daily
+decay alone, comfortably inside the safety net's own window, since gouging can't happen again
+during the bust to keep undoing the recovery. One condition self-phases through both halves
+rather than chaining two, or running a second incident on its own clock — the same "a ceiling,
+not a second clock" reasoning the stagecoach line above already used, applied to a single map-
+wide `GameCondition` instead. The roadmap's other named piece, **brawls and claim disputes**, is
+folded into the trouble mechanic the saloon and gambling hall already have rather than built as a
+parallel one — a rush making both businesses busier already makes both rowdier through the
+mechanic step 4 built for exactly that, and there's no claims office for a bespoke dispute system
+to attach to. See [the design notes](DESIGN.md#gold-rush-one-condition-not-two-clocks) for the
+full reasoning and the worked math.
 
 **Rival towns.** One or two NPC towns as world-map neighbours with their own abstract appeal
 score. Customer groups *choose* between towns — your share of regional traffic is your appeal

@@ -115,6 +115,8 @@ The [stagecoach line](economy.md#the-stagecoach-line)'s route ladder, `OldWestTo
 | `OWT_Stickup` | `IncidentDef` | ThreatBig, baseChance 2, minRefireDays 1.0; mainly fired by `StickupWatch`'s own clock, not this `baseChance` |
 | `OWT_FreshHaircut` | `ThoughtDef` | +5 mood, 1.5 days, stack limit 1 |
 | `OWT_SleptAtHotel` | `ThoughtDef` | 3 stages (room Impressiveness `< 20` / `< 60` / else), +2/+4/+7 mood, 1.5 days, stack limit 1, granted on waking |
+| `OWT_GoldRushCondition` | `GameConditionDef` | `OldWestTown.GoldRush.GameCondition_GoldRush`; see [gold rush](economy.md#gold-rush) |
+| `OWT_GoldRushStrike` | `IncidentDef` | Misc, baseChance 1, minRefireDays 45, durationDays 70~80 (an outer safety cap on the bust, not the intended exit — see [gold rush](economy.md#gold-rush)) |
 
 ## Tunable numbers
 
@@ -260,6 +262,23 @@ where it lives in C# it is a `const` in the named file.
 | `CeilingTicks` (`CoachTierUtility`) | `tier.arrivalCeilingDays * 60000 / max(0.25, customerVolume)` | A tier's arrival ceiling in ticks, at the player's own Customer volume setting — same clamp-floor and unit convention as the MTB clock's own `mtbDays` scaling |
 | `VipPurseMultiplier` (`IncidentWorker_ShopCustomers`) | 5.0 | Flat multiplier on a VIP passenger's purse, on top of the ordinary appeal-scaled amount — one number for every tier, not an escalating one |
 
+### Gold rush — `GoldRush/GameCondition_GoldRush.cs`, `GoldRush/GoldRushUtility.cs`, `Shops/TownEconomy.cs`, `Shops/ShopPricing.cs`, `Shops/CompBusiness.cs`, `Incidents/IncidentWorker_ShopCustomers.cs`
+
+| Name | Value | Meaning |
+| --- | --- | --- |
+| Boom duration | 1 quadrum (15 days) | Fixed; `GenDate.DaysPerQuadrum * 60000` ticks, checked every 600 ticks alongside every other clock in this file |
+| `BustRecoveryReputation` (`GameCondition_GoldRush`) | 0.45 | Reputation the bust needs to clear before it ends on its own — just under the 0.5 neutral point `RollOverDay` already decays every reputation toward |
+| Duration cap (`OWT_GoldRushStrike`) | 70~80 days total | An outer safety net if reputation never clears the bar above; `GameCondition_GoldRush.recoveredByReputation` is what keeps this path from sending a "recovered" letter that isn't true |
+| `BoomArrivalMtbDivisor` (`GoldRushUtility`) | 3.0 | Arrivals roughly triple during the boom — divides straight into `TownEconomy.TryAttractCustomers`'s own `mtbDays` |
+| `BustArrivalMtbMultiplier` (`GoldRushUtility`) | 2.5 | Arrivals slow, not stop, during the bust — multiplies the same `mtbDays` |
+| `ArrivalMtbMultiplier` (`GoldRushUtility`) | see above | 1f (a no-op) whenever no rush is active; folded into `mtbDays` alongside, never into, the stagecoach guarantee's own `CeilingTicks` |
+| `BoomPurseMultiplier` (`GoldRushUtility`) | 1.5 | Extra factor on every arriving customer's purse during the boom, stacked with any stagecoach tier or VIP multiplier already applying |
+| `InBasketDemandFactor` / `OutOfBasketDemandFactor` (`GoldRushUtility`) | 4.0 / 0.4 | The [demand basket](customers.md#the-demand-basket)'s score multiplier — a 10× spread between an item prospectors want and one they don't, during the boom only |
+| `InDemandBasket` (`GoldRushUtility`) | Manufactured, Medicine, a meal, or Liquor | Read loosely against the general store's own flavor text — no confirmed literal "Tools" category exists to check against from this sandbox, so Manufactured stands in for it |
+| `GougeSeverity` (`ShopPricing`) | `clamp01((Markup - Kind.defaultMarkup) / (Kind.markupRange.max - Kind.defaultMarkup))` | 0 at a shop's own kind's default markup, 1 at that kind's own ceiling — gouging is the player's choice to push a shop above what's normal for *its* kind, never a flat number that would penalize a saloon just for being a saloon |
+| `GougeReputationPenalty` / `GougeStandingDelta` (`TownEconomy`) | −0.03 / −0.03 | Extra reputation and standing cost per sale, scaled by `GougeSeverity`, while a boom is active — the brake on the demand basket swinging shop choice hard enough that price stops mattering on its own |
+| `GougeMessageCooldownTicks` (`CompBusiness`) | 60000 (1 day) | At most one gouging warning per shop per day — longer than `AccusationMessageCooldownTicks`/`RobberyMessageCooldownTicks` on purpose, since gouging is a standing choice, not a discrete burst of events |
+
 ## Mod settings
 
 `OldWestTownSettings`, saved in RimWorld's mod-settings file.
@@ -272,6 +291,7 @@ where it lives in C# it is a `const` in the named file.
 | `hospitalityBridgeEnabled` | true | on/off | Master switch for the [Hospitality bridge](customers.md#hospitality-guests). Only shown, and only consulted, while `HospitalityInterop.Present` is true |
 | `hospitalityGuestsCarrySilver` | true | on/off | Whether the bridge tops up a Hospitality guest's purse the way an arriving customer's is. Only shown while the bridge itself is enabled |
 | `stickupsEnabled` | true | on/off | Master switch for [the stickup incident](outlaws.md). Off removes the risk from an uncollected till entirely |
+| `goldRushEnabled` | true | on/off | Master switch for [the gold rush event](economy.md#gold-rush). Off removes the event from the storyteller entirely |
 
 ## Translation keys
 
@@ -299,6 +319,7 @@ otherwise.
 | Gambling hall | `OWT_CmdHouseEdge`, `OWT_CmdHouseEdgeDesc`, `OWT_HouseEdgeSlider`, `OWT_HouseEdgeLine`, `OWT_ShortfallLine`, `OWT_PayoutLine`, `OWT_CheatingAccusation`, `OWT_HouseCantCover`, `OWT_CmdCollectDescWager` |
 | Stagecoach line letters and route-tier announcements | `OWT_LetterCoachLabel`, `OWT_LetterCoachText`, `OWT_LetterCoachVIPLabel`, `OWT_LetterCoachVIPText`, `OWT_RouteTierUpLabel`, `OWT_RouteTierUpText`, `OWT_RouteTierDownMessage`, `OWT_RouteTierLostMessage` |
 | Coach depot inspect panel | `OWT_DepotTierLine`, `OWT_DepotNextArrivalLine`, `OWT_DepotNextTierLine`, `OWT_DepotMaxTierLine`, `OWT_DepotNoRoute`, `OWT_DepotNoTiers` |
+| Gold rush letters, status lines and setting | `OWT_LetterGoldRushLabel`, `OWT_LetterGoldRushText`, `OWT_GoldRushBustBegins`, `OWT_GoldRushBoomStatus`, `OWT_GoldRushBustStatus`, `OWT_GoldRushGougeWarning`, `OWT_LetterGoldRushRecoveredLabel`, `OWT_LetterGoldRushRecoveredText`, `OWT_SettingGoldRushEnabled`, `OWT_SettingGoldRushEnabledDesc` |
 
 ## Saved state
 
@@ -323,6 +344,7 @@ What survives a save/load, and where it lives.
 | Per-`(pawn, shop)` cooldown table | `HospitalityBridge` | Deliberately **not** persisted, same reasoning as `CompRolePost`'s on-duty flag above — a reload starts every guest's cooldown fresh, which can only make the bridge briefly more generous, never stuck |
 | Guarantee clock (`lastArrivalTick`) | `TownEconomy` | Absent on an old save, reads as `0` — `TicksSinceLastArrival` then reads as the entire elapsed game time, the same "safe, a little eager, never stranded" shape `LordJob_ShopVisit.groupArrivedTick` already ships with. The next arrival, organic or guaranteed, re-anchors it |
 | Last-announced route tier (`lastAnnouncedTier`) | `TownEconomy` | `Scribe_Defs.Look`. Absent on an old save, reads as `null` — indistinguishable from "no depot has ever changed tier," so a reload can never spuriously re-announce one |
+| Bust phase flag (`bustStarted`) | `GameCondition_GoldRush` | Only ever created going forward, like `LordJob_Stickup` — no old save can have one. `recoveredByReputation` is deliberately **not** persisted alongside it: it is only ever true for the instant between being set and the `End()` call two lines below it, in the same synchronous method, so no save can land on a tick where its value matters |
 | Mod settings | `OldWestTownSettings` | Global, not per save |
 
 `TownEconomy` rebuilds its business register in `FinalizeInit`, because comps register on spawn

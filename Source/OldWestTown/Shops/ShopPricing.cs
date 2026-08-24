@@ -55,5 +55,19 @@ namespace OldWestTown.Shops
             float unit = service.basePrice * shop.Markup * shop.ReputationPriceFactor;
             return Mathf.Max(MinPrice, Mathf.RoundToInt(unit));
         }
+
+        /// <summary>How far this shop's own markup sits between its kind's default and its kind's
+        /// own ceiling — 0 at default, 1 at the ceiling. Used by the gold rush's gouging penalty
+        /// (TownEconomy.RecordSale): what counts as gouging is the player's own choice to push a
+        /// shop's markup up beyond what's normal for ITS kind, never a flat number that would
+        /// penalize a saloon just for being a saloon.</summary>
+        public static float GougeSeverity(CompBusiness shop)
+        {
+            if (shop?.Kind == null) return 0f;
+            float baseline = shop.Kind.defaultMarkup;
+            float ceiling = shop.Kind.markupRange.max;
+            if (ceiling <= baseline) return 0f;
+            return Mathf.Clamp01((shop.Markup - baseline) / (ceiling - baseline));
+        }
     }
 }

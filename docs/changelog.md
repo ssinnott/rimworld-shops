@@ -137,6 +137,27 @@ change itself, and update the [wiki page](contributing.md#the-workflow) it affec
   RimWorld's quest system in a mod that has never run in a live game. See [the stagecoach
   line](economy.md#the-stagecoach-line), [scheduled coach
   arrivals](customers.md#scheduled-coach-arrivals) and [the coach depot](buildings.md#coach-depot).
+- **The gold rush** — a map-wide `GameCondition` (`OWT_GoldRushCondition`), fired once by a new
+  `OWT_GoldRushStrike` incident, that self-phases through a boom then a bust rather than chaining
+  two conditions or a second incident with its own clock. During the 15-day boom, arrivals run
+  roughly three times as often and every purse carries an extra 50%, but prospectors are all
+  chasing the same **demand basket** — tools, medicine, meals and drink — worth roughly ten times
+  as much to a customer's scoring as anything outside it; the same factor steers both which shop
+  a customer walks into (`JobGiver_BuyFromShop`) and what they pick up once they're inside
+  (`ShopStock.ChoosePurchase`/`ChooseService`), and reads as a flat `1f` no-op the instant no
+  boom is active. Selling above what's normal for a shop's own kind while the boom lasts —
+  `ShopPricing.GougeSeverity`, relative to that kind's own markup range, never a flat number —
+  costs extra reputation and standing on top of the ordinary sale delta, and draws a per-shop
+  warning message at most once a day; the temptation is real (the demand basket alone already
+  guarantees a well-stocked shop the traffic) and so is the cost. The bust that follows slows
+  arrivals to roughly 2.5× the ordinary gap until town reputation clears a bar just under its own
+  neutral resting point, or the firing incident's own 70–80-day total duration forces it closed
+  regardless — worked out in days, even a reputation crashed to zero by gouging clears that bar
+  through ordinary daily decay alone well inside that window, since gouging is structurally
+  incapable of applying during the bust itself. See [gold rush](economy.md#gold-rush), [the
+  demand basket](customers.md#the-demand-basket) and [the design
+  notes](DESIGN.md#gold-rush-one-condition-not-two-clocks) for the full reasoning and the worked
+  math. A new `goldRushEnabled` setting (default on) turns the whole event off.
 
 ### Changed
 
@@ -252,6 +273,12 @@ change itself, and update the [wiki page](contributing.md#the-workflow) it affec
   else needs migrating: depot existence and the active route tier are both computed live off
   `CoachTierUtility` on every read, never registered or cached. Safe to drop into a save in
   progress, with or without a coach depot already built.
+- **The gold rush is only ever created going forward**, the same zero-migration story
+  `LordJob_Stickup` already established — no old save can have an `OWT_GoldRushCondition`
+  running, so there is nothing to default or migrate for one. Its own `bustStarted` flag is a
+  plain `bool` on the condition itself; `recoveredByReputation` is deliberately never persisted
+  at all (see [reference](reference.md#saved-state)). The new `goldRushEnabled` setting defaults
+  to `true`, the same precedent `stickupsEnabled` and `hospitalityBridgeEnabled` already set.
 
 ---
 

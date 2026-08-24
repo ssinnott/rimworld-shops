@@ -69,6 +69,7 @@ namespace OldWestTown.Shops
         private int lastWalkoutMessageTick = -99999;
         private int lastAccusationMessageTick = -99999;
         private int lastRobberyMessageTick = -99999;
+        private int lastGougeMessageTick = -99999;
 
         /// <summary>A much shorter window than TryClaimWalkoutMessage's own patience-length
         /// one, deliberately: at a meaningful accusation chance and a wager's much shorter
@@ -81,6 +82,13 @@ namespace OldWestTown.Shops
         /// <summary>Same window as AccusationMessageCooldownTicks — collapses only a genuine
         /// same-tick multi-raider race on one till, not the signal itself.</summary>
         private const int RobberyMessageCooldownTicks = 400;
+
+        /// <summary>Unlike an accusation or a robbery, gouging isn't a discrete burst of events —
+        /// the same markup is still gouging on the next sale, and the one after that, for as long
+        /// as the player leaves the slider there. A day-long window keeps the warning a periodic
+        /// reminder for as long as it stays true, rather than repeating on every single sale in a
+        /// busy rush or, at the other extreme, ever firing only once.</summary>
+        private const int GougeMessageCooldownTicks = 60000;
 
         // Ledger. Daily figures are rolled over by the map's TownEconomy component.
         public int salesToday;
@@ -522,6 +530,17 @@ namespace OldWestTown.Shops
             int now = Find.TickManager.TicksGame;
             if (now - lastRobberyMessageTick < RobberyMessageCooldownTicks) return false;
             lastRobberyMessageTick = now;
+            return true;
+        }
+
+        /// <summary>At most one gouging warning per shop per GougeMessageCooldownTicks — see
+        /// that constant's own doc comment for why a full day, not the short burst-collapsing
+        /// window TryClaimAccusationMessage/TryClaimRobberyMessage use.</summary>
+        public bool TryClaimGougeMessage()
+        {
+            int now = Find.TickManager.TicksGame;
+            if (now - lastGougeMessageTick < GougeMessageCooldownTicks) return false;
+            lastGougeMessageTick = now;
             return true;
         }
 
