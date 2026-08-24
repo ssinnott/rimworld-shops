@@ -121,6 +121,15 @@ This mod is standalone. It does not require Hospitality, and is written to sit a
   of business rather than a flat number, so a saloon isn't punished for being a saloon. Charge
   what the traffic will bear and you'll make a fortune and spend the bust paying for it: when the
   vein dries up, trade falls below its old baseline until the town's name recovers.
+- **Rival towns, and an opponent for the arrival clock.** One or two NPC towns sit on the wider
+  map with an appeal of their own, priced the identical way your own shops are, and your share of
+  regional trade — your pull against theirs — now slows or leaves alone how often customers set
+  out for you. Worked out, not assumed: it can never stretch the gap by more than **60%**, and
+  never speeds it up, however many rivals exist or how far a *Rival strength* setting is dialed. A
+  rival occasionally undercuts prices for a several-day stretch, a named, messaged event; a
+  message also tells you the first time the regional lead actually changes hands. Any counter's
+  inspect pane shows your current share, and the Town ledger names every known rival by its own
+  appeal and posture. A coach depot's own arrival guarantee is completely immune to all of this.
 
 ## Installing
 

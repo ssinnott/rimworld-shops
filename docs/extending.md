@@ -221,6 +221,49 @@ would otherwise have stayed quiet past it — see [a ceiling, not a second
 clock](economy.md#a-ceiling-not-a-second-clock) for why that structurally can't double up with,
 or land on top of, an organic arrival, however aggressively a tier gets tuned.
 
+## Add a rival town
+
+A rival town is pure data too, the same shape as a [coach tier](#add-a-coach-tier). Add it to
+`Defs/RivalTownDefs/RivalTowns.xml`:
+
+```xml
+<OldWestTown.Rivals.RivalTownDef>
+  <defName>OWT_RivalTown_Redrock</defName>
+  <label>Redrock</label>
+  <description>A dusty crossroads town that's never quite decided what it wants to be.</description>
+  <baseAppeal>0.2</baseAppeal>
+  <maxAppeal>1.6</maxAppeal>
+  <growthPerDay>0.0025</growthPerDay>
+  <undercutMTBDays>12</undercutMTBDays>
+  <undercutDurationDays>4</undercutDurationDays>
+  <undercutPriceIndex>1.4</undercutPriceIndex>
+</OldWestTown.Rivals.RivalTownDef>
+```
+
+That's the whole addition — **no code change is needed**. `RivalTowns.EnsureRivalRoster` walks
+the full set of loaded `RivalTownDef`s every time it runs — on a fresh game and on the first load
+of an existing save alike — and seeds one live `RivalTown` for any it hasn't seen before, the same
+"read the full loaded set live" idiom `CoachTierUtility.CurrentTier` already uses for route tiers.
+
+**The fields.**
+
+| Field | Type | Default | What it does |
+| --- | --- | --- | --- |
+| `baseAppeal` | float | 0.2 | Starting value — and floor — for a freshly seeded rival's live appeal. |
+| `maxAppeal` | float | 2.0 | Ceiling the rival's live appeal grows toward and never exceeds. |
+| `growthPerDay` | float | 0.003 | How much the rival's live appeal advances toward `maxAppeal` per world-day. |
+| `undercutMTBDays` | float | 14 | Mean days between this rival entering an undercutting swing, while it isn't already in one. |
+| `undercutDurationDays` | float | 4 | How many days an undercutting swing lasts once triggered. |
+| `undercutPriceIndex` | float | 1.3 | This rival's price-competitiveness number while undercutting — see [regional competition](economy.md#regional-competition). Not-undercutting is a flat, hardcoded 1.0; there's no field for the honest case. |
+
+**Tuning notes.** A rival's own appeal never declines on its own — there is no decline mechanic,
+deliberately (see [the design notes](DESIGN.md#rival-towns-an-opponent-not-a-second-town)) — so
+`maxAppeal` is the real ceiling on how much regional pull this rival can ever contribute, and
+`growthPerDay` decides how quickly a fresh save's early game turns into a genuine rivalry. A
+higher `undercutPriceIndex` or a lower `undercutMTBDays` makes a rival's price wars sting harder
+or land more often; neither number does anything at all to a player who has turned the **Rival
+towns** setting off, or dialed **Rival strength** all the way down.
+
 ## Add a new kind of business entirely
 
 If the new business isn't "sell an item" or "sell a service" — a rentable bed, a gambling table,

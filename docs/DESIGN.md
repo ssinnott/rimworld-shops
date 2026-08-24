@@ -731,6 +731,127 @@ business kind to make one event's flavor text literal) and would duplicate machi
 does the job it would be built to do. Deliberately cut, the same way stage 4 named barkeep and
 banker as cut rather than silently dropped, and for the same kind of reason: there was nothing
 left for a second system to do that the first one doesn't already cover.
+### Rival towns: an opponent, not a second town
+
+The roadmap named five things for this expansion — relative appeal, price undercutting, staff
+poaching, saboteurs, and a ghost town you can eventually salvage. Two shipped: relative appeal
+(`RegionalShare`) as a bounded slowdown on the arrival clock, and undercutting, the one mechanic
+that gives a rival something to *do* rather than being a static number. The other three are cut,
+each for its own reason, below.
+
+**A rival is abstract world-state — never a `Faction`, a `Settlement`, a world-tile
+`WorldObject`, or a single pawn.** The same reasoning that cut mail contracts from the stagecoach
+expansion applies here with even more force: every mechanic this mod has ever shipped either is a
+pawn on this map, or a number a pawn on this map reads. A rival town with a real world-tile
+presence would need a faction, a settlement, and eventually caravan-arrival and loot machinery
+this mod has never touched, to answer a question — "does relative appeal change the arrival
+clock?" — that a plain float on a `WorldComponent` already answers completely. `RivalTown` is not
+a place the player can point a caravan at; it is a number that grows, and occasionally undercuts.
+
+**Relative appeal is the whole mechanism, and it lives inside `TownEconomy`, not a second file.**
+`TownEconomy.PriceIndex` is the unweighted mean of `ShopPricing.ValueAppeal` across every open,
+stocked shop on the map — the identical score `JobGiver_BuyFromShop` already computes per shop to
+let a customer pick between yours, now averaged into one town-wide number. That reuse is what
+makes price-sensitivity free rather than a second pricing model to maintain: nothing about a
+rival's own competitiveness, or the player's own, is invented for this feature — both read the
+same `ValueAppeal` convention (`>1` means "pricing under market rate") that has existed since the
+very first stage. `MarketPull` (`Appeal × PriceIndex`) is the player's own score in those units;
+`RivalTown.Pull` (`currentAppeal × PriceIndex`, its own `PriceIndex` a flat 1.0 except while
+undercutting) is a rival's. `RegionalShare` is `MarketPull / (MarketPull + CompetingPull)`,
+clamped to exactly `1f` — "as good as no competition exists" — whenever either side of that ratio
+is non-positive: rivals disabled, no rival has grown past zero yet, or the town itself has no
+appeal yet. That single guard clause is what keeps a brand-new colony untouched (see below) and
+what makes the number safe to show directly in the UI with no separate "is this meaningful yet"
+check anywhere else.
+
+**Price-sensitivity is load-bearing, not decorative — it is the concrete answer to the brief's
+own "makes pricing genuinely competitive rather than solitaire."** A version of this feature that
+compared only *appeal* (kind score × stock, ignoring markup) would be a second, independent
+solitaire game running next to the existing one: a player could out-appeal a rival by building
+more shops without ever having to think about price relative to anyone. Folding
+`ShopPricing.ValueAppeal` into both sides of the comparison is what makes undercutting *this
+mod's own shops* — not just building more of them — the lever that actually moves
+`RegionalShare`.
+
+**The arrival-clock slowdown is a structurally proven bound, not a tuned one.**
+`TryAttractCustomers` multiplies its existing `mtbDays` by `Mathf.Lerp(1f, MaxRegionalSlowdown,
+1f - RegionalShare)`, where `MaxRegionalSlowdown = 1.6f`. `Mathf.Lerp` clamps its own interpolant
+to `[0, 1]` regardless of the magnitude of its inputs, so this multiplier is bounded to `[1.0×,
+1.6×]` for *any* `RegionalShare` a rival configuration could ever produce — not a tuning promise
+checked against the shipped defaults, a consequence of the function itself. Combined with the
+untouched `Appeal < MinAppealForCustomers` early-return that still runs first, a brand-new colony
+is byte-for-byte unaffected by this feature regardless of how many rivals exist or how the
+player's own `rivalStrength` setting is dialed. The multiplier is also one-directional — it can
+only ever stretch `mtbDays`, never shrink it — so no rival configuration, including a broken or
+absent `WorldComponent`, can make arrivals *faster* than today's baseline either. And the
+[stagecoach line](#stagecoach-line-a-ceiling-not-a-second-clock)'s own guarantee is completely
+immune to all of this: `GuaranteedArrivalDue`'s ceiling check runs against
+`TicksSinceLastArrival` and a tier's own `arrivalCeilingDays`, neither of which this feature
+touches, so a coach depot remains exactly the slowdown-proof floor it always was.
+
+**Undercutting is a discrete, MTB-rolled event, deliberately not a continuous drift.** The
+alternative — a rival's price competitiveness randomly walking up and down a little every day —
+was rejected for the reason a wandering, invisible number is rejected everywhere else in this
+mod: it fails "legible... whether they are winning" outright. A player can't point at a smooth
+random walk and say what changed, or when. `RivalTown.Undercutting` is instead a hard on/off
+state with a start message and an end message, sized by `RivalTownDef.undercutMTBDays` and
+`undercutDurationDays` — a named, dated event a player can actually reason about, the same "a
+number becoming a milestone" shift the stagecoach route tiers already made for the arrival clock
+itself.
+
+**One shared `RivalTowns`, not one per colony.** Rivals are regional, not personal — the same two
+NPC towns compete against every player colony that happens to be loaded, which is also the only
+sane answer to "what happens when the player settles a second colony": both colonies read the
+identical rival roster, because a rival town has no reason to know or care how many places the
+player happens to be trading from. What *does* differ per colony is whether, and when, that
+colony's own town has taken the regional lead — and that tracking (`TownEconomy.lastRegionLead`,
+`regionLeadKnown`) deliberately lives on the per-map `TownEconomy`, not on the shared
+`RivalTowns`. A shared boolean there would let two simultaneously-loaded colonies stomp each
+other's lead state and fire spurious "you've fallen behind" messages for a change that happened
+on a map the player wasn't even looking at. Keeping it per-map mirrors `lastAnnouncedTier`'s own
+placement, for the identical reason: two colonies can each have their own opinion about their own
+route tier, and now their own opinion about their own regional standing, without either one able
+to corrupt the other's.
+
+**Four things are cut, each for its own reason.** **Staff poaching** needs per-pawn shopkeeping
+performance — this codebase has only ever recorded sales per-business, never per-colonist — the
+identical missing-state reason this file already used to cut the wanted board from outlaws and
+the law, above. A per-pawn sales or skill record would need to exist first, for its own reasons,
+before a rival's job-offer event could target a specific colonist meaningfully. **Saboteurs** need
+a hostile pawn group on the player's own map — a lord graph, a duty think tree, job drivers — the
+same category of new surface the stickup crew needed, now for a second, independent raid-adjacent
+mechanic layered on top of an already-ambitious world-map feature; out of scope for the smallest
+set of changes that makes competition real. **Literal ghost-town salvage** needs a real
+`Settlement` or world-tile site, plus loot and caravan-arrival machinery this mod has never
+touched — the identical unproven vanilla surface this codebase has consistently declined to take
+on for comparable payoff (mail contracts, the quest-giver VIP passenger). If salvage is ever
+wanted, the decision to keep rivals as pure abstract state — never a `Settlement` — is the thing
+to revisit first; salvage needs a real world-tile presence to salvage. And, beyond what either
+source design considered cutting, **rival decline or concession** is cut too: `RegionalShare`'s
+own ceiling already delivers "out-compete a rival" as a genuine, player-caused state — the
+multiplier bottoms out at exactly `1.0×`, zero rival penalty, the moment a town's own pull is at
+least as large as every rival's combined — without needing a third mechanic, a reactive "observed
+player appeal" tracked the other way, or a letter that could flip-flop against a rival whose own
+undercutting keeps it near parity. The brief asks for "one or two" mechanics beyond relative
+appeal, not three. A future pass could let sustained dominance bias a rival's own `growthPerDay`
+toward zero or negative — cheap to add on top of `RivalTown.currentAppeal` once it's actually
+wanted.
+
+**Nothing here adds a second pawn loop, and the rule is not just preserved but structurally
+inapplicable.** `Rivals/` creates no `Pawn`, no `Job`, no `JobDriver`, no `Lord`, no `Duty`.
+`IncidentWorker_ShopCustomers.cs`, `LordJob_ShopVisit.cs`, and every file under `AI/` are
+untouched. The one place player-visible behavior changes is a single multiplier inside
+`TownEconomy.TryAttractCustomers`, the exact chokepoint both existing pawn loops already treat as
+shared, read-only truth. `Shops/` gains one new, one-directional dependency on `Rivals/`
+(`TownEconomy` and `CompBusiness` read `RivalTowns`/`RivalTown`); `Rivals/` never references
+`Shops/`, `AI/`, or `Incidents/` at all. It does read one setting directly:
+`RivalTowns.WorldComponentTick` checks the rival towns master switch and freezes every rival's
+growth and undercut rolling while it's off, rather than letting disabled days silently pile up
+into a jump when the player re-enables it — the day counter itself still advances either way, so
+there is never a debt to catch up on. The *magnitude* of a rival's effect stays decided in
+exactly one place regardless: `TownEconomy.CompetingPull` is the only site that reads
+rivalStrength, so the world state's own meaning stays independent of any one map's settings, or
+even existence — only whether it's currently ticking at all is settings-dependent.
 
 ## The economy loop
 

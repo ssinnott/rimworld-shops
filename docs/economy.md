@@ -349,6 +349,63 @@ When it ends, a message tells you so — a letter if reputation genuinely earned
 quieter word if the backstop was what actually closed it out. Either way, arrivals return to
 whatever the ordinary arrival clock and any stagecoach guarantee already give the town on their
 own.
+## Regional competition
+
+You aren't the only trade in the region. One or two rival towns sit out on the wider map with an
+appeal of their own, and your share of who actually sets out for *your* street, rather than
+theirs, depends on how the two compare — not on your own numbers in isolation any more.
+
+```
+       your town's own appeal
+         ×  the average price-appeal score across every open, stocked shop you run
+                    =  your market pull
+
+       a rival's own appeal
+         ×  1.0, or higher while it's undercutting
+                    =  that rival's pull
+
+       your market pull  ÷  (your market pull + every rival's combined pull)
+                    =  your share of regional trade
+```
+
+The price half of your own pull is the identical score a customer already uses to [pick between
+your own shops](#how-price-wins-customers) — a shop pricing at market value scores 1.0, one
+pricing double scores about 0.5 — just averaged across every open shop you run instead of judged
+one at a time. Undercutting your own prices raises it, and your share along with it; let your
+markup drift up and a rival's flat, honest pricing starts to look better by comparison, even if
+its own appeal never changes at all.
+
+**Your share only ever slows your own arrival clock — it never speeds it up.** With no rival
+grown large enough to matter yet, or with the setting switched off, your share reads as a clean
+100% and nothing about arrivals changes. As it falls, the average gap between customer groups
+stretches — worked out, not assumed, this can never stretch things by more than **60%**, for any
+rival, any number of them, any strength setting a player dials in. A [coach depot's own
+guarantee](#the-stagecoach-line) is completely immune to it: the ceiling on how long a gap can run
+counts down exactly the way it always has, regional competition or none.
+
+### Undercutting
+
+A rival doesn't sit at one flat number forever. Every so often — on the order of a couple of
+weeks, though it varies rival to rival — one of them cuts prices hard for several days: a message
+names it when the price war starts, and another when it ends. While it's running, that rival
+pulls noticeably harder than its appeal alone would suggest — the same price-shopping logic a
+customer already applies to your own shops, just pointed outward at a competitor instead.
+
+### Who's ahead
+
+The first time your own appeal clears the threshold that lets customers set out for you at all,
+*and* a rival has grown large enough to actually compare against, the game starts watching who's
+ahead — your own market pull, or the combined pull of every rival. It stays quiet about that
+first comparison; from then on, a message tells you whenever the lead actually changes hands.
+
+Any counter's inspect pane shows your current share once there's a rival worth comparing against
+at all. The [Town ledger](#the-daily-ledger) goes further: open it, and it names every known
+rival by its own appeal and whether it's mid-price-war right now, even before your own town
+qualifies to compete — so you can see what you're up against early, not just once it's already
+costing you.
+
+Turn the whole mechanic off, or dial back how much a rival's own numbers count for, from
+**Options → Mod settings → Old West Town**.
 
 ## The daily ledger
 

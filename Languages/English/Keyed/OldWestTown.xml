@@ -142,5 +142,18 @@
   <OWT_LetterGoldRushRecoveredText>The town's name has recovered from the rush. Trade is back to its ordinary pace.</OWT_LetterGoldRushRecoveredText>
   <OWT_SettingGoldRushEnabled>Gold rush events</OWT_SettingGoldRushEnabled>
   <OWT_SettingGoldRushEnabledDesc>A nearby strike floods the town with prospectors for a season, then leaves trade quiet until the town's name recovers. Turn this off to remove the event entirely.</OWT_SettingGoldRushEnabledDesc>
+  <!-- Rival towns: regional competition -->
+  <OWT_RegionalShareLine>Regional trade: {0}</OWT_RegionalShareLine>
+  <OWT_LedgerRivalsHeader>Regional competition:</OWT_LedgerRivalsHeader>
+  <OWT_LedgerRivalLine>  {0} — appeal {1}</OWT_LedgerRivalLine>
+  <OWT_LedgerRivalLineUndercutting>  {0} — appeal {1} (undercutting prices right now)</OWT_LedgerRivalLineUndercutting>
+  <OWT_LedgerRegionalShareLine>Your share of regional trade: {0}</OWT_LedgerRegionalShareLine>
+  <OWT_RivalUndercutStartMessage>{0} has slashed its prices to pull trade your way.</OWT_RivalUndercutStartMessage>
+  <OWT_RivalUndercutEndMessage>{0}'s price war has ended; their prices are back to normal.</OWT_RivalUndercutEndMessage>
+  <OWT_RegionalLeadGainedMessage>Your town is now the region's biggest draw.</OWT_RegionalLeadGainedMessage>
+  <OWT_RegionalLeadLostMessage>A rival town has pulled ahead of you in regional trade.</OWT_RegionalLeadLostMessage>
+  <OWT_SettingRivalTownsEnabled>Rival towns</OWT_SettingRivalTownsEnabled>
+  <OWT_SettingRivalTownsEnabledDesc>One or two NPC towns compete for the same regional trade — your share of it slows your own arrival clock.</OWT_SettingRivalTownsEnabledDesc>
+  <OWT_SettingRivalStrength>Rival strength ({0})</OWT_SettingRivalStrength>
 
 </LanguageData>

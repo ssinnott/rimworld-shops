@@ -5,6 +5,7 @@ using RimWorld;
 using UnityEngine;
 using Verse;
 using Verse.AI;
+using OldWestTown.Rivals;
 
 namespace OldWestTown.Shops
 {
@@ -688,6 +689,17 @@ namespace OldWestTown.Shops
             if (econ != null)
             {
                 sb.Append("OWT_TownLine".Translate(econ.Appeal.ToString("0.0"), econ.Reputation.ToStringPercent()));
+                // RegionalShare only collapses to exactly 1f once MarketPull is non-positive --
+                // Appeal literally zero, not merely under the threshold that gates arrivals at
+                // all -- so it can't carry "does this town qualify to compete yet" on its own.
+                // Gate on that threshold explicitly, mirroring CheckRegionalLeadChange's own
+                // guard, so a brand-new shop stays silent about regional trade the way the
+                // ledger's comment below already promises the inspect line does.
+                if (econ.Appeal >= TownEconomy.MinAppealForCustomers && econ.RegionalShare < 1f)
+                {
+                    sb.AppendLine();
+                    sb.Append("OWT_RegionalShareLine".Translate(econ.RegionalShare.ToStringPercent()));
+                }
             }
             return sb.ToString().TrimEndNewlines();
         }
@@ -799,6 +811,35 @@ namespace OldWestTown.Shops
                 if (econ.Reputation - worst.Value > LedgerStandingDivergenceThreshold)
                 {
                     sb.AppendLine("OWT_LedgerColdLine".Translate(worst.Key.Name, worst.Value.ToStringPercent()));
+                }
+            }
+
+            // Gated on the setting alone, deliberately not also on econ.Appeal -- the ledger is
+            // the opt-in "show me everything" tier, so a player who opens it can usefully see
+            // what they're up against before their own town even qualifies to compete. The
+            // always-visible inspect line and every push message stay silent until it does.
+            if (OldWestTownMod.Settings.rivalTownsEnabled)
+            {
+                RivalTowns rivalsComp = Find.World?.GetComponent<RivalTowns>();
+                if (rivalsComp != null && rivalsComp.Rivals.Count > 0)
+                {
+                    sb.AppendLine();
+                    sb.AppendLine("OWT_LedgerRivalsHeader".Translate());
+                    foreach (RivalTown rival in rivalsComp.Rivals)
+                    {
+                        if (rival.def == null) continue;   // orphaned instance from a since-removed def; nothing to show
+                        if (rival.Undercutting)
+                        {
+                            sb.AppendLine("OWT_LedgerRivalLineUndercutting".Translate(
+                                rival.def.LabelCap, rival.currentAppeal.ToString("0.0")));
+                        }
+                        else
+                        {
+                            sb.AppendLine("OWT_LedgerRivalLine".Translate(
+                                rival.def.LabelCap, rival.currentAppeal.ToString("0.0")));
+                        }
+                    }
+                    sb.AppendLine("OWT_LedgerRegionalShareLine".Translate(econ.RegionalShare.ToStringPercent()));
                 }
             }
 

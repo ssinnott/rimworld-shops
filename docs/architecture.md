@@ -43,6 +43,8 @@ All under `Source/OldWestTown/`, namespace `OldWestTown`.
 | `TownEconomy.cs` | `TownEconomy` | `MapComponent`: business register, daily ledger, reputation, [appeal](economy.md#appeal), arrival clock, and — per faction — a sparse [standing](economy.md#standing-with-a-faction) dictionary that biases which faction's customers arrive next. `RecordShortfall` is the worst single-event reputation and standing hit the mod has — a gambling hall unable to pay out a win. Also owns the [stagecoach line](economy.md#the-stagecoach-line)'s guarantee clock — `RouteTier`, `TicksSinceLastArrival`, `GuaranteedArrivalDue`, `NotifyArrival` — an OR folded into the existing MTB roll below, not a second, independent clock. `TryAttractCustomers` folds a [gold rush](economy.md#gold-rush)'s own arrival multiplier into that same MTB roll (never the guarantee itself), and `RecordSale` applies its gouging penalty on top of the ordinary sale reputation delta. |
 | `StickupWatch.cs` | `StickupWatch` | `MapComponent`: sums every registered business's `TillSilver`, open or closed, into the [stickup](outlaws.md) clock — an MTB roll that shortens as uncollected silver climbs, halved in frequency by an on-duty sheriff, firing `OWT_Stickup` through the storyteller the same way `TownEconomy` fires its own arrival incident. Read-only against `TownEconomy`; carries no persisted state of its own. |
 
+| `TownEconomy.cs` | `TownEconomy` | `MapComponent`: business register, daily ledger, reputation, [appeal](economy.md#appeal), arrival clock, and — per faction — a sparse [standing](economy.md#standing-with-a-faction) dictionary that biases which faction's customers arrive next. `RecordShortfall` is the worst single-event reputation and standing hit the mod has — a gambling hall unable to pay out a win. Also owns the [stagecoach line](economy.md#the-stagecoach-line)'s guarantee clock — `RouteTier`, `TicksSinceLastArrival`, `GuaranteedArrivalDue`, `NotifyArrival` — an OR folded into the existing MTB roll below, not a second, independent clock. And [regional competition](economy.md#regional-competition) — `PriceIndex`, `MarketPull`, `CompetingPull`, `RegionalShare` — reads `Rivals/RivalTowns.cs` to stretch the same arrival clock by a provably-bounded 1.0–1.6×, never suppressing or speeding it up. |
+
 ### `AI/` — the pawn loops
 
 | File | Type | Job |
@@ -90,6 +92,12 @@ All under `Source/OldWestTown/`, namespace `OldWestTown`.
 | --- | --- | --- |
 | `GameCondition_GoldRush.cs` | `GameCondition_GoldRush` | `GameCondition`: one instance per active [rush](economy.md#gold-rush), self-phasing rather than two chained conditions — a fixed boom, then a bust that ends once town reputation clears its own recovery bar, or the firing incident's own generous duration cap forces things closed regardless. `recoveredByReputation` is what keeps the second path from sending a letter claiming the first one happened. |
 | `GoldRushUtility.cs` | `GoldRushUtility` | Stateless reads off the map's active `GameCondition_GoldRush`, the same "ask, don't track" shape `CoachTierUtility` already uses: whether a rush is active and which phase, the arrival-clock and purse multipliers that phase implies, and `DemandFactor`/`InDemandBasket` — the [demand basket](customers.md#the-demand-basket) test a specific `Thing` either passes or doesn't. Every read is a provable no-op (`1f`, or `false`) whenever no rush is active. |
+### `Rivals/` — regional competition
+
+| File | Type | Job |
+| --- | --- | --- |
+| `RivalTownDef.cs` | `RivalTownDef` | Data-driven rival archetype: starting and ceiling appeal, daily growth rate, and the MTB days, duration and price index behind an [undercutting swing](economy.md#undercutting). Same "kind is a stanza, not a class" idiom `ShopKindDef` and `CoachTierDef` already use. |
+| `RivalTowns.cs` | `RivalTown`, `RivalTowns` | `RivalTowns` is this mod's first `WorldComponent` — a world-scoped roster of `RivalTown` instances, one per loaded `RivalTownDef`, shared by every loaded map rather than owned by any one of them. `WorldComponentTick` grows each rival's appeal toward its own ceiling once per elapsed world-day and rolls its own MTB clock for an undercutting swing, messaging on each transition — gated on the rival towns master switch, which freezes growth and rolling while off without letting the missed days pile up into a jump on re-enable. `TotalRivalPull` is the sum `TownEconomy.CompetingPull` reads; that getter itself never reads `OldWestTownMod.Settings`, so a given sum means the same thing regardless of any one map's settings — the `rivalStrength` scaling happens exactly once, on the `TownEconomy` side. |
 
 ### `Lords/`, `Incidents/`, `Alerts/`, `UI/`
 
@@ -112,7 +120,7 @@ All under `Source/OldWestTown/`, namespace `OldWestTown`.
 
 | File | Type | Job |
 | --- | --- | --- |
-| `OldWestTownMod.cs` | `OldWestTownSettings`, `OldWestTownMod` | The three [mod settings](reference.md#mod-settings) and their window. |
+| `OldWestTownMod.cs` | `OldWestTownSettings`, `OldWestTownMod` | The [mod settings](reference.md#mod-settings) and their window. |
 | `OWTDefOf.cs` | `OWTDefOf` | Static def references. |
 | `AssemblyInfo.cs` | — | Assembly metadata. |
 
@@ -435,3 +443,28 @@ anything changes hands.
   begins. Also a guess, matching the general store's own flavor text rather than a confirmed
   literal category this sandbox has no Core Defs XML to check against:
   `GoldRushUtility.InDemandBasket` reads "tools" as `ThingCategoryDefOf.Manufactured`.
+- **`Rivals/RivalTowns.cs` is this mod's first `WorldComponent`, and the confirmed-vs-inferred
+  picture is worth stating plainly.** `refdump` confirms `WorldComponent` itself exists with
+  `ExposeData()`, `FinalizeInit(bool fromLoad)` (note the `bool` — unlike this mod's own
+  parameterless `MapComponent.FinalizeInit()` overrides), `WorldComponentTick()` and a `world`
+  field, and that `World.GetComponent<T>()`, `World.components`, `World.FillComponents()` and
+  `GenTypes.AllSubclassesNonAbstract` all exist. What it *can't* confirm, because reference
+  assemblies carry no IL: whether `World.FillComponents()` genuinely auto-discovers `RivalTowns`
+  the same zero-registration way this mod's four existing `MapComponent`s already rely on — that
+  part is inferred from the `MapComponent` precedent, not confirmed by decompiling anything.
+  `RivalTowns(World world) : base(world)` compiling clean at least resolves the one construction
+  question `refdump` can't answer at all, the same way it did for `LordToil_PanicFlee`'s
+  parameterless constructor above.
+- **`WorldComponentTick`'s real firing cadence is unobserved** — with zero maps loaded (the main
+  menu, or between colonies), with exactly one, and with two or more loaded at once.
+  `RivalTowns.ProcessDay`'s catch-up math (`daysPassed = today - lastProcessedDay`) is designed to
+  stay correct however sparsely or densely this actually fires in a live game, but that design has
+  never been checked against how often vanilla genuinely calls it.
+- **Every rival tunable is a first-pass guess, untested in a live game** — `baseAppeal`,
+  `maxAppeal`, `growthPerDay`, `undercutMTBDays`, `undercutDurationDays` and `undercutPriceIndex`
+  for both shipped `RivalTownDef`s, and `MaxRegionalSlowdown` (1.6×) on the `TownEconomy` side, in
+  the same spirit as this file's other untested constants. The bound itself — never more than 60%
+  slower, never faster — is proven by construction (see [regional
+  competition](economy.md#regional-competition)); whether that 60% actually *feels* like
+  meaningful competition, rather than a barely-noticeable tax or an overbearing one, is exactly
+  what a playtest would tell that the math alone can't.
