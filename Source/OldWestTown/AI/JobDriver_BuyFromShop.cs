@@ -20,16 +20,20 @@ namespace OldWestTown.AI
         private const TargetIndex GoodsInd = TargetIndex.A;
 
         private const int BrowseTicks = 240;
-        private const int ServeTicks = 180;
 
-        protected override int ServeTicksRequired => ServeTicks;
+        /// <summary>Internal because the customer's think tick has to price a queue at a counter it has
+        /// not walked to yet, and the length of a goods serve is what that estimate is made of. One
+        /// home for the number.</summary>
+        internal const int GoodsServeTicks = 180;
+
+        protected override int ServeTicksRequired => GoodsServeTicks;
 
         private Thing Goods => job.GetTarget(GoodsInd).Thing;
 
         protected override IEnumerable<Toil> MakeNewToils()
         {
             SetupCommonFailConditions();
-            DropCarriedOnFinish();
+            AddCommonFinishActions();
 
             // 1. Go and look at the item on the shelf.
             yield return Toils_Goto.GotoThing(GoodsInd, PathEndMode.ClosestTouch)

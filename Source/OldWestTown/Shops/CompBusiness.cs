@@ -52,6 +52,11 @@ namespace OldWestTown.Shops
     {
         private const int StaffPresenceGraceTicks = 60;
 
+        /// <summary>How often a counter may say out loud that it is turning trade away. A quarter day,
+        /// far longer than a walkout's window on purpose: a walkout is something to fix this minute, a
+        /// queue is something to invest against, and the counter's own pane carries the live version.</summary>
+        private const int BusyMessageIntervalTicks = 15000;
+
         private ThingOwner<Thing> till;
         private ThingFilter stockFilter;
         private bool open = true;
@@ -60,6 +65,22 @@ namespace OldWestTown.Shops
         private int lastStaffedTick = -99999;
         private Pawn lastShopkeeper;
         private int lastWalkoutMessageTick = -99999;
+        private int lastBusyMessageTick = -99999;
+
+        /// <summary>Everyone standing at this counter, in the order they got here. Index 0 is being
+        /// served; the rest are waiting their turn.
+        ///
+        /// Written only by the patrons themselves, from their own wait toil. An entry is valid exactly
+        /// as long as that pawn's OWN job says they are standing at this counter — which is why a
+        /// patron who is drafted, downed, killed, re-tasked or simply finished leaves the line on the
+        /// next read rather than holding a place the counter would have to time out. There is no lease
+        /// and no timestamp because there is nothing to lease: the condition is the claim. Nothing the
+        /// shopkeeper does touches this list, and nothing in it is a claim on the shopkeeper.
+        ///
+        /// Not saved. It rebuilds within a tick of loading as each patron ticks, and the one thing a
+        /// rebuild could get wrong — bumping somebody out of the chair mid-serve — is what the
+        /// mid-transaction rule in TakePlaceInLine exists to prevent.</summary>
+        private List<Pawn> line = new List<Pawn>();
 
         // Ledger. Daily figures are rolled over by the map's TownEconomy component.
         public int salesToday;
@@ -342,6 +363,118 @@ namespace OldWestTown.Shops
             lastStaffedTick = Find.TickManager.TicksGame;
         }
 
+        // ---------------------------------------------------------------- the line
+
+        /// <summary>Who this counter is attending and how many are behind them, for the inspect pane.
+        ///
+        /// Reads without pruning, deliberately. Drawing a pane must not change the game — the same
+        /// rule that took the shelf scan off the render path — and while a stale entry here would
+        /// only ever be one the next patron tick removes anyway, "only ever" is the kind of claim
+        /// that stops being true later. So it skips the dead entries instead of deleting them, and
+        /// leaves the pruning to the patrons whose ticks own this list.</summary>
+        public int LineLength(out Pawn head)
+        {
+            head = null;
+            int n = 0;
+            for (int i = 0; i < line.Count; i++)
+            {
+                if (!IsPatronOfThisCounter(line[i])) continue;
+                if (head == null) head = line[i];
+                n++;
+            }
+            return n;
+        }
+
+        /// <summary>Everybody who has set out for this counter — walking, browsing, queueing or being
+        /// served. What somebody deciding whether to join has to count: the walk from a shelf to the
+        /// till is long enough that counting only the bodies already standing here would send a whole
+        /// group to the same chair before the first of them arrived.
+        ///
+        /// A map walk rather than a second list, because "committed to this counter" is already written
+        /// down in the patron's own job and a list would be a copy of it that could disagree. Called
+        /// once per shop per customer decision, and once per right-click on the order menu. NEVER from
+        /// drawing code — that is what <see cref="LineLength"/> is for.</summary>
+        public int PatronsHeadedHere
+        {
+            get
+            {
+                Map map = parent.Map;
+                if (map == null) return 0;
+                int n = 0;
+                IReadOnlyList<Pawn> pawns = map.mapPawns.AllPawnsSpawned;
+                for (int i = 0; i < pawns.Count; i++) { if (IsPatronOfThisCounter(pawns[i])) n++; }
+                return n;
+            }
+        }
+
+        /// <summary>Takes, or keeps, this patron's place and returns it: 0 means the counter is theirs
+        /// this tick, anything else means they are waiting. Called every tick by a patron standing at
+        /// the counter. Places go by arrival — the first to stand here is the first served — which is
+        /// the only ordering rule a player can check by looking.
+        ///
+        /// One exception, and it is the same exception twice: a patron whose transaction is ALREADY
+        /// running goes to the front. A line rebuilt after a load must not bump somebody 2000 ticks
+        /// into a haircut out of the chair, and a shopkeeper arriving at an honesty-box counter must
+        /// not send the customer already mid-sale to the back. The line never interrupts a transaction
+        /// already running.</summary>
+        public int TakePlaceInLine(Pawn patron)
+        {
+            PruneLine();
+            int place = line.IndexOf(patron);
+            if (place >= 0) return place;
+            if (patron.jobs?.curDriver is IBusinessPatron p && p.BeingServed)
+            {
+                // After the others already mid-transaction, not in front of them. Inserting at the
+                // head demotes whoever was there, and a demoted patron's serve restarts from zero
+                // on its next tick — so three patrons self-serving at a counter somebody then
+                // starts working would have taken turns wrecking each other's progress.
+                place = 0;
+                while (place < line.Count
+                    && (line[place].jobs?.curDriver as IBusinessPatron)?.BeingServed == true) place++;
+                line.Insert(place, patron);
+                return place;
+            }
+            line.Add(patron);
+            return line.Count - 1;
+        }
+
+        /// <summary>Gives up a place, from the patron's own finish action. The prune would catch them on
+        /// the next read anyway; doing it here means the next customer is served on the tick the last
+        /// one finishes rather than the tick after somebody notices.</summary>
+        public void LeaveLine(Pawn patron)
+        {
+            line.Remove(patron);
+        }
+
+        private void PruneLine()
+        {
+            for (int i = line.Count - 1; i >= 0; i--)
+            {
+                if (!IsPatronOfThisCounter(line[i])) line.RemoveAt(i);
+            }
+        }
+
+        /// <summary>The mod's one test for "this pawn is patronizing THIS counter", which the customer
+        /// scan, the queue spacing and the order menu each already spell out for themselves: an
+        /// IBusinessPatron driver whose job names this building at TargetIndex.B.</summary>
+        private bool IsPatronOfThisCounter(Pawn p)
+        {
+            return p != null && !p.Dead && p.Spawned
+                && p.jobs?.curDriver is IBusinessPatron
+                && p.CurJob?.GetTarget(TargetIndex.B).Thing == parent;
+        }
+
+        /// <summary>At most one "this counter is turning trade away" message per counter per quarter
+        /// day. Separate from the walkout throttle, and deliberately: they are different news on
+        /// different cadences, and one must not silence the other.</summary>
+        public bool TryClaimBusyMessage()
+        {
+            int now = Find.TickManager.TicksGame;
+            if (now - lastBusyMessageTick < BusyMessageIntervalTicks) return false;
+            lastBusyMessageTick = now;
+            return true;
+        }
+
         // ---------------------------------------------------------------- till
 
         public void AddToTill(Thing silver)
@@ -460,6 +593,16 @@ namespace OldWestTown.Shops
             sb.Append(open ? "OWT_StatusOpen".Translate() : "OWT_StatusClosed".Translate());
             if (open && !Staffed) sb.Append(" (" + "OWT_Unattended".Translate() + ")");
             sb.AppendLine();
+
+            // The bottleneck, where the player looks when a shop feels slow. "At the counter" rather
+            // than "serving", because an unattended counter has a head too and the line above already
+            // says so.
+            int atCounter = LineLength(out Pawn head);
+            if (head != null)
+            {
+                sb.AppendLine("OWT_AtCounterLine".Translate(head.LabelShort));
+                if (atCounter > 1) sb.AppendLine("OWT_QueueLine".Translate(atCounter - 1));
+            }
 
             List<Thing> stock = StockOnDisplay;
             sb.AppendLine("OWT_StockLine".Translate(stock.Count, ((float)StockValue).ToStringMoney()));
@@ -595,6 +738,12 @@ namespace OldWestTown.Shops
             Pawn waiting = ColonistWaitingHere(selPawn);
             if (waiting != null) return "OWT_ReasonReserved".Translate(waiting.LabelShort);
 
+            // A colonist will stand behind one stranger, not two. Their whole give-up bound is one
+            // patience window plus two serves — 6600 ticks at the barber — and two ahead of them
+            // spends 6600 of it standing up. Refused here, at the moment the player decides, next to
+            // the other bounds on this order.
+            if (PatronsHeadedHere >= 2) return "OWT_ReasonBusy".Translate();
+
             if (!selPawn.CanReach(stand, PathEndMode.OnCell, Danger.Deadly)) return "OWT_ReasonUnreachable".Translate();
             return null;
         }
@@ -607,8 +756,8 @@ namespace OldWestTown.Shops
             for (int i = 0; i < colonists.Count; i++)
             {
                 Pawn p = colonists[i];
-                if (p == asking || !(p.jobs?.curDriver is IBusinessPatron)) continue;
-                if (p.CurJob?.GetTarget(TargetIndex.B).Thing == parent) return p;
+                if (p == asking || !IsPatronOfThisCounter(p)) continue;
+                return p;
             }
             return null;
         }

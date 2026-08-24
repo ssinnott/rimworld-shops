@@ -31,6 +31,8 @@ Instead, the two loops only ever touch shared state on the counter:
       NotifyStaffedBy(pawn) ──→ lastStaffedTick                        ├─ walk to shelf (goods/
                                      │                                 │  a stock-consuming service)
                                      └──────── Staffed ───────────────→├─ wait to be served
+                                the line (arrival order) ←─────────────┤   TakePlaceInLine(pawn)
+                                                                       │   one counter, one customer
                                                                        └─ ShopTransaction.TrySell /
                                                                           TryServe
                                                                               ↓
@@ -66,7 +68,7 @@ hotel clerk, a bank teller, a gambling dealer) should use the same shape.
 | Piece | File | Job |
 | --- | --- | --- |
 | `ShopKindDef` | `Shops/ShopKindDef.cs` | Data-driven business type: default stock, price band, appeal, patience, and which services it offers. Adding a business kind is XML, not code. |
-| `CompBusiness` | `Shops/CompBusiness.cs` | Makes a building a business — goods, services, or both. Owns the till, filter, markup, ledger, staff flag, and the staff/customer cell pair. |
+| `CompBusiness` | `Shops/CompBusiness.cs` | Makes a building a business — goods, services, or both. Owns the till, filter, markup, ledger, staff flag, the line at the counter, and the staff/customer cell pair. |
 | `ServiceDef` / `ServiceWorker` | `Shops/ServiceDef.cs`, `Shops/ServiceWorker.cs` | A thing a business sells that isn't a shelf item — a drink, a meal, a haircut. The embedded worker supplies the type-specific behaviour: what it can act on, how much a customer wants it, what effect it applies once paid for. |
 | `ShopStock` | `Shops/ShopStock.cs` | What's on the shelves, what a given customer would buy, which service a shop can currently perform, and whether a service has anything to work with, asked without a roll. |
 | `ShopPricing` | `Shops/ShopPricing.cs` | The only place a price is decided — for goods or a service — so the inspect pane, AI and transaction can't disagree. `MaxAffordable` settles a purse against `PriceFor` itself, so the order the AI sizes is always one the counter can charge for. |
@@ -117,9 +119,12 @@ already pointing at. That is also why the grace has a floor under it. A spared c
 a job that never completes on its own and does not yield to a duty, so a shopkeeper who walked away
 would drop them back into the wait branch to run their patience down to exactly that walkout. Their
 own end condition — the group has been called home and nobody is serving me — is what prevents it,
-and it is what bounds the whole exemption. What it bounds is per customer, not per town: a serve
-advances for everyone whose transaction is running at that counter, so a bar with three at it
-spares all three. And "being served" means the same thing at closing as it does at noon — with the
+and it is what bounds the whole exemption. What it bounds is per counter, not per town: a counter
+serves one customer at a time, so each one spares exactly the head it is working and sends the rest
+of its queue home with everybody else. A queued customer loses nothing by that — they were not
+being served, and at a counter somebody was working they had not spent a tick of patience — one at
+an unattended counter has been burning it like everybody else standing there — and closing writes
+nothing down either way. And "being served" means the same thing at closing as it does at noon — with the
 honesty-box setting on, a counter with nobody behind it counts, so such a sale runs itself out in
 its own 180 ticks and lands as the self-served half-mark it would have been at any other hour.
 Each spared customer is bounded by one serve, and a keeper who walks away ends theirs inside the
@@ -272,6 +277,76 @@ vanilla's own recreation and food jobs already send colonists to *under the play
 routing it through here would either override that policy or reimplement it, and would destroy a
 saleable item with nobody to answer for it. The stock-free service is the only one vanilla cannot
 already do for a colonist, and it is the one that ships.
+
+### One counter, one customer
+
+`Staffed` was a property of the shop, so every patron's wait toil read it and advanced its own serve
+independently: one colonist behind the barber's chair cut five heads in the time of one haircut. The
+fan-out `CustomerCellFor` builds — spacing patrons around the counter so they do not stack on one
+tile — was decoration over a queue that did not exist, and a second till bought a second sales floor
+and nothing else. A counter now serves the head of its line.
+
+The line is the patrons standing at that counter in the order they arrived, and it is deliberately
+not a claim, a lease or a pairing. Nobody picks anybody. The shopkeeper's side needed no change at
+all — neither `JobDriver_ManShop` nor `WorkGiver_ManShop` knows the line exists — which is again
+the sign the seam is in the right place. An entry is valid exactly as long as that pawn's own job
+says they are standing here, so there is nothing to expire and no timeout to get wrong: the condition IS
+the claim. A patron drafted, downed, killed, re-tasked or simply finished gives up their place, and
+the giving up is done by the pawn that holds it rather than by anything noticing they are gone. The
+counter cannot hold a reference to somebody who no longer exists, because the only thing it holds is
+a list it re-validates against those pawns' own jobs on every read.
+
+Nothing is saved, and the line survives a load anyway — it rebuilds within a tick as each patron
+ticks. The one thing a rebuild could get wrong is bumping somebody two thousand ticks into a haircut
+out of the chair, and one rule prevents it: a patron whose transaction is already running goes to
+the front. That rule earns its keep twice, because it is also what stops a shopkeeper arriving at an
+honesty-box counter from sending the customer already mid-sale to the back. The line never
+interrupts a transaction already running.
+
+Queueing behind a moving head costs nothing at all: no clock, no memory, no message, no reputation.
+Patience is a promise about being *ignored*, and a counter busy with somebody else is not ignoring
+anyone. Spending patience on a queue would halve a verdict, slide the town's name and raise an alarm
+whose one fix — a colonist behind the counter — the player has already applied, for the crime of
+being popular. It would also repeat: a walkout's refusal lifts the moment the counter is staffed, so
+under a serialisation that charged for waiting the same customers would march back and walk out
+again every window for the rest of their visit. The only counterplay to that is to attract fewer
+customers, which is no counterplay at all.
+
+A queued customer needs no give-up clock either, and the reason is structural rather than bought.
+The head is never queued, so it always runs one of the two clocks that end — the serve, or its
+patience at a counter nobody is working — and a place is released by the pawn that holds it. Neither
+of those two clocks is monotone on its own: being served zeroes the patience one and being ignored
+zeroes the serve one, so a shopkeeper who takes the post and loses it over and over, faster than
+either window, would advance neither. That is what the driver's absolute backstop is for — a single
+forward-only clock, long enough to outlast any queue the door lets a customer join, ending in the
+walkout that being messed about for hours actually deserves. With it, someone at place *k* reaches
+the head within *k* terminating waits, waiting on a list index and never on a pawn. That is worth more than the same bound bought with a scribed
+per-visit queue budget, which is why there is no new saved state here at all.
+
+The decision that matters is made at the door rather than in the line. A customer counts everyone
+already committed to a counter — walking, browsing, queueing or being served — and will not join a
+wait of 6000 ticks or more; below that, a crowd shades that counter's *staffing bonus* and nothing
+else. The "nothing else" is load-bearing. A crowd that discounted the whole shop would score a busy
+staffed counter below an unworked one, and the rule meant to spread custom between tills would
+become a rule that pushes people onto counters nobody is standing at — manufacturing the exact
+walkouts it exists to prevent.
+
+What a bottleneck costs is the sale, and only the sale. Somebody who never joins never stands at a
+counter, so there is no walkout, no row in the day's patron table and no weight in the nightly
+verdict; popularity cannot cost the town its name. The player's moves run cheapest first. Do
+nothing, and the fourth customer buys dry goods instead — a real option, which is what makes the
+mechanic fair rather than a tax. Raise the barber's markup, so fewer customers chase the same
+capacity and each one pays more; that costs no code, because `ShopPricing.ValueAppeal` was already
+the first term in the score. Build a second till and staff it: the shaded staffing bonus is what
+sends the second customer to the free counter rather than the busy one, so the second till earns
+from the second customer instead of the fourth, and the claim in "Why the sales floor is a room" —
+that what a second counter buys is serving two customers at once — stops being aspirational here.
+Appeal is still right to pay it nothing: capacity is not a reason to come to town.
+
+Where this bites today is a tuning fact, not an architectural one. Depth is `serveTicks`, in XML
+that already exists: a counter holds `ceil(6000 / serveTicks)`, which is 34 at a 180-tick goods
+counter and 40 at a 150-tick saloon bar — lines nobody will ever see — and exactly 3 at the barber's
+2200-tick chair. The haircut is the one trade this mod ships where a counter is genuinely scarce.
 
 ## The economy loop
 
@@ -506,10 +581,11 @@ competitive rather than solitaire.
   (whether a customer visibly gets `AlcoholHigh`, whether a hair change reliably repaints a
   transient visitor) hasn't been confirmed in a live game.
 - Closing lets every customer whose transaction is already running outlive the group's "heading
-  home" line while they are served out — a whole queue at one counter, and up to a haircut's 2200
-  ticks each — so the lord and its per-customer records live that much longer than the message
-  suggests. Each one is bounded by its own serve and by the counter staying staffed (or, with the
-  honesty box on, by the 180 ticks a self-served sale takes), but it has not been watched in a
+  home" line while they are served out — now one customer per counter rather than a whole queue at
+  one counter, and up to a haircut's 2200 ticks — so the lord and its per-customer records live that
+  much longer than the message suggests. Each one is bounded by its own serve and by the counter
+  staying staffed (or, with the honesty box on, by the 180 ticks a self-served sale takes, which is
+  the one case where a counter can still spare several at once), but it has not been watched in a
   live game.
 - A colonist waiting for a service reserves the counter, so the building cannot be deconstructed,
   repaired or uninstalled while it lasts. Bounded by one patience window plus one serve, and the
@@ -526,3 +602,47 @@ competitive rather than solitaire.
   run in a live game, like everything else here.
 - The give-up message has no rate limit, unlike a walkout's. A player who re-orders a haircut into
   an unstaffed shop gets a message each time, which is right: they caused each one.
+- Only the barber forms a line anybody will ever see. Goods (180-tick serve) and saloon service
+  (150) allow depths of 34 and 41, which no group this mod produces reaches, so the visible surface
+  of "one counter, one customer" in shipped content is one building. That is correct — a bartender
+  pouring five drinks in 750 ticks is not implausible — but the mechanic is under-exercised until a
+  business with a long serve ships.
+- The wait a customer estimates before joining charges *their own* serve time for everyone ahead of
+  them. Exact for every shipped kind, since each counter runs one trade, but a counter mixing a
+  150-tick drink with a 2200-tick haircut would misjudge it badly in whichever direction the mix
+  ran. There is no shipped instance, so it is named rather than defended against.
+- The line is not saved, so a load rebuilds it in pawn-tick order: the order among patrons who are
+  merely *waiting* can change across a save. Invisible but real. The one case that would cost
+  progress — somebody mid-serve losing the chair — is prevented by the rule that a running
+  transaction goes to the front, which is also the least-exercised branch in the mechanic.
+- That same front-insert fires in normal play with the honesty box on: a shopkeeper arriving at a
+  counter where three patrons are serving themselves puts all three at the head in arbitrary order,
+  one keeps serving and two restart. Bounded at 180 ticks, in a setting that is off by default — but
+  it is a fairness rule that quietly stops being first-come in that one configuration.
+- The dispatch cap applies to an unworked counter as well as a worked one, because it counts who is
+  headed there and not who is being served. The wait side of an unattended counter is unchanged —
+  everyone standing at it, head and queue alike, burns patience and walks out at the window — but at
+  the barber at most three now pile on rather than a whole group, so the alert counts three at a
+  time. It staggers the damage rather than reducing it: once those three walk out they refuse the
+  shop, the two who balked see an empty line, join, and walk out in their turn, so the day's ledger
+  still records five. At the 180- and 150-tick counters the cap is far above
+  any real group and the pile-on is exactly as it was. This is the one path that still costs
+  reputation, and it is deliberately the one path the line does not soften.
+- A colonist ordered to a counter can still end up two deep, because places go by arrival and the
+  order menu checks at order time: a stranger dispatched after them can arrive first. They then
+  spend up to 6600 ticks and give up with the message. Bounded, player-caused, and the message names
+  the fix.
+- With the honesty box on, a self-serving patron leaves the line but still counts as headed for that
+  counter, so they slightly discourage others from choosing it. At a 180-tick serve that is a
+  twentieth of the queue budget; not worth a second scan to fix.
+- Counting who is headed for a counter walks every spawned pawn, once per shop per customer think
+  tick and once per right-click on the order menu. It rolls no dice, so the rule that looking at a
+  shop must not change the game still holds, but it is a new steady cost, linear in counters — the
+  same shape as the town survey's known cost, and the same place to revisit it.
+- The staffing draw now decays with the crowd (1.50, 1.25, 1.17), so custom spreads between shops
+  and between tills more than it did. Which shop gets a given sale in a multi-shop town has changed,
+  and that has not been measured.
+- A customer turned away with nowhere else worth going gets no job and wanders, re-deciding on every
+  think tick. Cheap, and the message is throttled to a quarter day, but in a one-business town it
+  means visitors doing nothing visible — the same shape as the spent-out customer already in this
+  list.

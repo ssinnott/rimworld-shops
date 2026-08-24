@@ -81,7 +81,7 @@ namespace OldWestTown.AI
         {
             this.FailOnDespawnedOrNull(CounterInd);
             this.FailOn(() => Shop == null || !Shop.Open || Service?.worker == null);
-            AddFinishAction(condition => WaitingForService = false);
+            AddFinishAction(condition => { WaitingForService = false; Shop?.LeaveLine(pawn); });
 
             yield return Toils_Goto.GotoCell(StandInd, PathEndMode.OnCell);
             yield return WaitToBeServed();
@@ -112,21 +112,29 @@ namespace OldWestTown.AI
                 // neither of them to its threshold, and the colonist stands there for the rest of
                 // the day holding the chair. JobDriver's own startTick is the one clock here that
                 // only goes forwards, and the base already saves it, so this costs no new state.
-                if (startTick > 0
-                    && Find.TickManager.TicksGame - startTick > PatienceTicks + 2 * ServeTicksRequired)
+                //
+                // Never while they are actually in the chair — a running serve is the one state that
+                // is not flicker — and generous enough to outlast any queue the door lets them join,
+                // or it would fire on a colonist who was simply waiting their turn.
+                if (startTick > 0 && !BeingServed
+                    && Find.TickManager.TicksGame - startTick
+                        > PatienceTicks + JobGiver_BuyFromShop.MaxQueueWaitTicks + 2 * ServeTicksRequired)
                 {
                     GiveUp(shop, service);
                     return;
                 }
 
-                // Somebody ELSE has to be behind the counter — there is no self-service branch here
-                // and no reading of allowsSelfService. The honesty box is a bargain priced in
-                // reputation, and a colonist leaves no reputation to pay it with, so for the
-                // colony's own it would simply be free and no counter would ever be staffed for
-                // them again. The keeper-is-not-the-patron test is not paranoia either: Staffed
-                // forgives a 60-tick gap on purpose, and 60 ticks is comfortably long enough for a
-                // colonist to stop minding this counter, walk three tiles and cut their own hair.
-                if (shop.Staffed && shop.Shopkeeper != pawn)
+                int place = shop.TakePlaceInLine(pawn);
+
+                // Somebody ELSE has to be behind the counter, and the chair has to be free: it serves
+                // one at a time and a colonist queues behind paying customers like anybody else. There
+                // is no self-service branch here and no reading of allowsSelfService. The honesty box
+                // is a bargain priced in reputation, and a colonist leaves no reputation to pay it
+                // with, so for the colony's own it would simply be free and no counter would ever be
+                // staffed for them again. The keeper-is-not-the-patron test is not paranoia either:
+                // Staffed forgives a 60-tick gap on purpose, and 60 ticks is comfortably long enough
+                // for a colonist to stop minding this counter, walk three tiles and cut their own hair.
+                if (shop.Staffed && shop.Shopkeeper != pawn && place == 0)
                 {
                     WaitingForService = false;
                     waitedTicks = 0;
@@ -136,8 +144,19 @@ namespace OldWestTown.AI
                     return;
                 }
 
-                WaitingForService = true;
                 servedTicks = 0;
+
+                if (shop.Staffed && shop.Shopkeeper != pawn)
+                {
+                    // Behind a stranger, and treated as one: the give-up clock is about a counter
+                    // nobody is working, and this counter is being worked. What bounds this instead is
+                    // the absolute clock above, the only one here that goes only forwards.
+                    WaitingForService = false;
+                    waitedTicks = 0;
+                    return;
+                }
+
+                WaitingForService = true;
                 if (++waitedTicks < PatienceTicks) return;
                 GiveUp(shop, service);
             };
@@ -155,8 +174,13 @@ namespace OldWestTown.AI
         /// one by ordering it.</summary>
         private void GiveUp(CompBusiness shop, ServiceDef service)
         {
+            // Two different pieces of news, and the fix is different for each: an empty counter
+            // wants somebody standing at it, while a counter that never got round to them wants a
+            // second one. Telling a player to check the work tab when a colonist was already at
+            // work behind that counter sends them looking for a problem that isn't there.
+            string key = shop.Staffed ? "OWT_ColonistNotReached" : "OWT_ColonistGaveUp";
             Messages.Message(
-                "OWT_ColonistGaveUp".Translate(pawn.LabelShort, service.label, shop.parent.Label),
+                key.Translate(pawn.LabelShort, service.label, shop.parent.Label),
                 new LookTargets(shop.parent), MessageTypeDefOf.NeutralEvent);
             EndJobWith(JobCondition.Incompletable);
         }

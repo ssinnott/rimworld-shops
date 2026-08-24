@@ -38,7 +38,7 @@ namespace OldWestTown.AI
         {
             SetupCommonFailConditions();
             this.FailOn(() => ResolvedService == null);
-            DropCarriedOnFinish();
+            AddCommonFinishActions();
 
             // Guard the dereference, not just the FailOn: FailOn only ends the job on the next
             // tick check, and a null ResolvedService here would otherwise throw before that
