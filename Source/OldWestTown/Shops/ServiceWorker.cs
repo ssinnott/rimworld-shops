@@ -24,8 +24,17 @@ namespace OldWestTown.Shops
 
         /// <summary>How much one round of this service riles up a rowdy customer (see
         /// TroubleUtility.Notify_ServiceRound), before the sheriff/shopkeeper mitigation factors
-        /// apply. Zero for every service but Drink.</summary>
+        /// apply. Zero for every service but Drink; Wager's own rowdiness is outcome-dependent
+        /// and does not go through this at all — see CanCauseTrouble.</summary>
         public virtual float RowdinessPerUse => 0f;
+
+        /// <summary>True for a service whose ApplyEffect can ever hand back positive rowdiness.
+        /// The default just reads RowdinessPerUse, which is enough for every service through
+        /// Lodging; Wager overrides this outright, since a win/loss/accusation outcome can't be
+        /// read off one constant the way "0.2 per drink" can. WorkGiver_Patrol and the
+        /// disturbance-line UI gate on this rather than RowdinessPerUse directly, so a
+        /// gambling-only town still has something for a sheriff to patrol for.</summary>
+        public virtual bool CanCauseTrouble => RowdinessPerUse > 0f;
 
         /// <summary>For a stock-consuming service: does this Thing qualify? Never called
         /// otherwise.</summary>
@@ -48,12 +57,38 @@ namespace OldWestTown.Shops
 
         /// <summary>Applies the effect once payment has cleared. <paramref name="consumed"/>
         /// is the Thing handed over for a stock-consuming service (already moved into the
-        /// customer's inventory by ShopTransaction.TryServe), or null otherwise. Returns a
-        /// Thing this service claimed for longer than the transaction itself — Lodging hands
-        /// back the bed it just booked, so the caller can hand that to whatever tracks a stay
+        /// customer's inventory by ShopTransaction.TryServe), or null otherwise. <paramref
+        /// name="pricePaid"/> is the exact amount TryServe already charged the customer two
+        /// lines above this call — a worker whose effect depends on the stake (Wager's payout)
+        /// gets it passed in rather than recomputing it, so "what was charged" and "what the
+        /// effect pays out against" are the same value by construction. Returns a Thing this
+        /// service claimed for longer than the transaction itself — Lodging hands back the bed
+        /// it just booked, so the caller can hand that to whatever tracks a stay
         /// (CustomerRecord.rentedBed) — or null for a service whose effect is complete the
-        /// instant this returns.</summary>
-        public abstract Thing ApplyEffect(CompBusiness shop, ServiceDef service, Pawn customer, Thing consumed);
+        /// instant this returns. <paramref name="roundRowdiness"/> is how much this one round
+        /// should nudge the customer's own OWT_Rowdy severity (see
+        /// TroubleUtility.Notify_ServiceRound) — every worker before Wager just echoes back its
+        /// own RowdinessPerUse; Wager is the first whose value depends on what actually
+        /// happened this round.</summary>
+        public abstract Thing ApplyEffect(CompBusiness shop, ServiceDef service, Pawn customer, Thing consumed, int pricePaid, out float roundRowdiness);
+
+        /// <summary>Shared "floored, not gated" desirability curve against a Food or Joy need: a
+        /// hungry or bored customer is likelier to want it, but never so unlikely that a
+        /// satisfied one won't occasionally indulge anyway. See IncidentWorker_ShopCustomers'
+        /// relaxed arrival topup, which exists so Meal has genuinely hungry customers to sell
+        /// to. Shared by Ingest and Wager, whose demand curves are the same shape against
+        /// different needs.</summary>
+        protected static float NeedDesirability(Pawn customer, ServiceNeedHook hook)
+        {
+            Need need = hook switch
+            {
+                ServiceNeedHook.Food => customer?.needs?.food,
+                ServiceNeedHook.Joy => customer?.needs?.joy,
+                _ => null
+            };
+            if (need == null) return 1f;
+            return Mathf.Lerp(2.5f, 1f, need.CurLevelPercentage);
+        }
     }
 
     /// <summary>Drink and Meal: consumes one matching item already on the counter's display,
@@ -87,23 +122,11 @@ namespace OldWestTown.Shops
             return true;
         }
 
-        public override float Desirability(Pawn customer)
-        {
-            Need need = needHook switch
-            {
-                ServiceNeedHook.Food => customer?.needs?.food,
-                ServiceNeedHook.Joy => customer?.needs?.joy,
-                _ => null
-            };
-            if (need == null) return 1f;
-            // Floored, not gated: a hungry customer is likelier to order, but a satisfied one
-            // still occasionally will. See IncidentWorker_ShopCustomers' relaxed arrival
-            // topup, changed alongside this so Meal has genuinely hungry customers to sell to.
-            return Mathf.Lerp(2.5f, 1f, need.CurLevelPercentage);
-        }
+        public override float Desirability(Pawn customer) => NeedDesirability(customer, needHook);
 
-        public override Thing ApplyEffect(CompBusiness shop, ServiceDef service, Pawn customer, Thing consumed)
+        public override Thing ApplyEffect(CompBusiness shop, ServiceDef service, Pawn customer, Thing consumed, int pricePaid, out float roundRowdiness)
         {
+            roundRowdiness = RowdinessPerUse;
             if (customer == null || consumed == null) return null;
 
             // Resolve the ingestion here rather than handing off to FoodUtility.IngestFromInventoryNow,
@@ -127,8 +150,9 @@ namespace OldWestTown.Shops
     {
         public ThoughtDef thoughtDef;
 
-        public override Thing ApplyEffect(CompBusiness shop, ServiceDef service, Pawn customer, Thing consumed)
+        public override Thing ApplyEffect(CompBusiness shop, ServiceDef service, Pawn customer, Thing consumed, int pricePaid, out float roundRowdiness)
         {
+            roundRowdiness = 0f;
             if (thoughtDef == null) return null;
             customer.needs?.mood?.thoughts?.memories?.TryGainMemory(thoughtDef);
             return null;
@@ -140,9 +164,9 @@ namespace OldWestTown.Shops
     /// styling uses for age/gender-appropriate selection.</summary>
     public class ServiceWorker_Haircut : ServiceWorker_Thought
     {
-        public override Thing ApplyEffect(CompBusiness shop, ServiceDef service, Pawn customer, Thing consumed)
+        public override Thing ApplyEffect(CompBusiness shop, ServiceDef service, Pawn customer, Thing consumed, int pricePaid, out float roundRowdiness)
         {
-            base.ApplyEffect(shop, service, customer, consumed);
+            base.ApplyEffect(shop, service, customer, consumed, pricePaid, out roundRowdiness);
 
             // Best-effort cosmetic flourish. Guarded defensively: a generated visitor's style
             // tracker population is not something this mod has run in-game.
@@ -190,8 +214,9 @@ namespace OldWestTown.Shops
             return Mathf.Lerp(2.5f, 0.5f, rest.CurLevelPercentage);
         }
 
-        public override Thing ApplyEffect(CompBusiness shop, ServiceDef service, Pawn customer, Thing consumed)
+        public override Thing ApplyEffect(CompBusiness shop, ServiceDef service, Pawn customer, Thing consumed, int pricePaid, out float roundRowdiness)
         {
+            roundRowdiness = 0f;
             Thing bed = ShopStock.ChooseVacantBed(shop, customer);
             // An extremely narrow same-tick race — another customer's ApplyEffect claimed the
             // last vacant bed between this job's IsAvailable check and now. No refund: payment
@@ -200,6 +225,135 @@ namespace OldWestTown.Shops
             if (bed == null) return null;
             bed.TryGetComp<CompRentableBed>()?.Claim(customer, shop);
             return bed;
+        }
+    }
+
+    /// <summary>A hand of faro: the first business where the "sale" is a wager rather than a
+    /// purchase. Payment already happened in TryServe — the ante, priced exactly like a
+    /// haircut, through the same Markup/ReputationPriceFactor formula every other price in the
+    /// mod uses. Everything here decides whether that stake comes back doubled, doesn't come
+    /// back at all, or — on the one outcome worse than either — costs the house more than it
+    /// can pay.
+    ///
+    /// The maths: win chance is (1 - HouseEdge) / payoutMultiplier, so a win pays
+    /// pricePaid * payoutMultiplier and the customer's expected return per silver staked is
+    /// exactly -HouseEdge, for any payoutMultiplier — HouseEdge alone is, by construction, the
+    /// fraction of every wager the house keeps on average. See docs/economy.md for the numbers
+    /// this lands on at the shipped defaults.</summary>
+    public class ServiceWorker_Wager : ServiceWorker
+    {
+        /// <summary>Which need this feeds, for Desirability scoring — Joy, the same hook Drink
+        /// uses: a hand of cards is recreation exactly like a round at the bar.</summary>
+        public ServiceNeedHook needHook = ServiceNeedHook.None;
+
+        /// <summary>What a win pays, as a multiple of the stake. HouseEdge alone decides win
+        /// probability against this value (see the class doc), so the player's expected return
+        /// per silver wagered never depends on it — it's XML-tunable rather than hardcoded only
+        /// so a future higher-multiplier/lower-probability table variant needs no new worker
+        /// class. The shipped def never overrides it; HouseEdge stays the only player-facing dial.</summary>
+        public float payoutMultiplier = 2f;
+
+        /// <summary>Severity OWT_Rowdy gains on an ordinary loss.</summary>
+        public float lossRowdiness = 0.2f;
+
+        /// <summary>Extra severity on top of lossRowdiness when a loss also draws a cheating
+        /// accusation.</summary>
+        public float accusationRowdinessBonus = 0.15f;
+
+        /// <summary>Multiplies lossRowdiness for the worst outcome the mechanic has: the house
+        /// wins the hand for the customer, then can't fully pay it out.</summary>
+        public float shortPayRowdinessMultiplier = 2f;
+
+        /// <summary>Chance an unlucky loss draws a cheating accusation, at dealer Social 0.
+        /// Mirrors TroubleUtility.ShopkeeperSocialFactor's own Lerp-by-skill shape, but as a
+        /// probability rather than a rowdiness multiplier — a skilled dealer doesn't just calm
+        /// patrons faster once they're rowdy, they get accused of cheating less often to begin
+        /// with, which is the observable, round-to-round signal the brief asks for.</summary>
+        public float baseAccusationChance = 0.25f;
+
+        /// <summary>Floor on the accusation chance at max Social — never truly zero, since even
+        /// a smooth dealer loses a hand ugly sometimes.</summary>
+        public float minAccusationChance = 0.02f;
+
+        /// <summary>Joy granted for playing a hand at all, win, lose or shortfall — the same
+        /// unconditional shape ServiceWorker_Ingest uses for nutrition. needHook above scores
+        /// Desirability against Joy, so something here has to actually move it, or a bored
+        /// customer's pull toward the table would never taper off with play the way it does for
+        /// every other need-scored service. A flat constant rather than something read off a
+        /// consumed Thing, since a wager has no Thing to read one from.</summary>
+        public float joyGainPerHand = 0.1f;
+
+        // ConsumesStock, CanUse and IsAvailable all stay at ServiceWorker's own defaults
+        // (false / false / true): a wager consumes nothing off a shelf and needs nothing beyond
+        // a staffed table to be on offer.
+
+        public override bool CanCauseTrouble => true;
+
+        public override float Desirability(Pawn customer) => NeedDesirability(customer, needHook);
+
+        public override Thing ApplyEffect(CompBusiness shop, ServiceDef service, Pawn customer, Thing consumed, int pricePaid, out float roundRowdiness)
+        {
+            roundRowdiness = 0f;
+
+            // Playing a hand is the recreation, independent of how it comes out — same reasoning
+            // as paying for the ante itself being unconditional. Without this, Desirability's own
+            // Joy scoring above never responds to the thing it's supposedly satisfying.
+            if (!customer.Dead && customer.needs?.joy != null)
+            {
+                customer.needs.joy.CurLevel += joyGainPerHand;
+            }
+
+            // Guards a modder setting payoutMultiplier to zero in XML; the shipped default is
+            // 2 and nothing here ever changes it.
+            float winChance = Mathf.Clamp01((1f - shop.HouseEdge) / Mathf.Max(0.01f, payoutMultiplier));
+
+            if (Rand.Chance(winChance))
+            {
+                int owed = Mathf.RoundToInt(pricePaid * payoutMultiplier);
+                int paid = ShopTransaction.PayOutFromTill(shop, customer, owed);
+                if (paid < owed)
+                {
+                    // The one outcome worse than a loss: the house won the hand for the customer
+                    // and then couldn't make good on it. Closing the table is the same legible
+                    // failure every other business already has for running out of something to
+                    // sell — a bare shelf just never comes with a debt attached to it.
+                    shop.RecordShortfall();
+                    shop.parent.Map?.GetComponent<TownEconomy>()?.RecordShortfall(customer.Faction);
+                    shop.Open = false;
+                    roundRowdiness = lossRowdiness * shortPayRowdinessMultiplier;
+                    Messages.Message(
+                        "OWT_HouseCantCover".Translate(customer.LabelShort, shop.parent.Label,
+                            ((float)paid).ToStringMoney(), ((float)owed).ToStringMoney()),
+                        new LookTargets(shop.parent), MessageTypeDefOf.NegativeEvent);
+                }
+                return null;
+            }
+
+            roundRowdiness = lossRowdiness;
+
+            // shop.Shopkeeper is guaranteed non-null here — OWT_Wager.allowsSelfService is
+            // false, so TryServe already refused an unattended round before ApplyEffect ever
+            // ran. The ?. is defensive anyway, mirroring the same guard on the same read in
+            // TroubleUtility.ShopkeeperSocialFactor.
+            int dealerSocial = shop.Shopkeeper?.skills?.GetSkill(SkillDefOf.Social)?.Level ?? 0;
+            float accusationChance = Mathf.Clamp01(Mathf.Lerp(
+                baseAccusationChance, minAccusationChance, (float)dealerSocial / SkillRecord.MaxLevel));
+
+            if (Rand.Chance(accusationChance))
+            {
+                // The rowdiness bump always lands; the message is throttled separately —
+                // mirrors JobDriver_PatronizeBusiness.WalkOut's own split between "the
+                // consequence always applies" and "the message is rate-limited so a burst of
+                // them reads as one event in the log."
+                roundRowdiness += accusationRowdinessBonus;
+                if (shop.TryClaimAccusationMessage())
+                {
+                    Messages.Message(
+                        "OWT_CheatingAccusation".Translate(customer.LabelShort, shop.parent.Label),
+                        new LookTargets(shop.parent), MessageTypeDefOf.NegativeEvent);
+                }
+            }
+            return null;
         }
     }
 }

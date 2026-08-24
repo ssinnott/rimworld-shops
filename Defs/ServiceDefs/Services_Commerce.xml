@@ -59,4 +59,21 @@
     <worker Class="OldWestTown.Shops.ServiceWorker_Lodging" />
   </OldWestTown.Shops.ServiceDef>
 
+  <!-- A hand at the faro table. Consumes nothing off a shelf — the stake is priced exactly
+       like Haircut (basePrice x Markup x reputation), and everything past payment is a win,
+       loss or shortfall roll; see ServiceWorker_Wager. allowsSelfService is false: an empty
+       table can't deal a hand, and a dealer's Social skill is the one thing that makes an
+       unlucky loss less likely to turn into a cheating accusation. -->
+  <OldWestTown.Shops.ServiceDef>
+    <defName>OWT_Wager</defName>
+    <label>wager</label>
+    <jobDef>OWT_ServeWager</jobDef>
+    <serveTicks>200</serveTicks>
+    <basePrice>20</basePrice>
+    <allowsSelfService>false</allowsSelfService>
+    <worker Class="OldWestTown.Shops.ServiceWorker_Wager">
+      <needHook>Joy</needHook>
+    </worker>
+  </OldWestTown.Shops.ServiceDef>
+
 </Defs>

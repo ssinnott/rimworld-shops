@@ -33,14 +33,14 @@ All under `Source/OldWestTown/`, namespace `OldWestTown`.
 | `ShopKindDef.cs` | `ShopKindDef` | Data-driven [business type](businesses.md): default stock, price band, appeal, patience, services. Adding a kind is XML, not code. |
 | `CompBusiness.cs` | `CompProperties_Business`, `IBusinessPatron`, `CompBusiness` | Makes a building a business. Owns the till, filter, markup, ledger, staff flag, and the staff/customer cell pair. The largest file in the mod, and the hub the two pawn loops meet at. |
 | `ServiceDef.cs` | `ServiceDef` | A [thing a business sells](services.md) that isn't a shelf item. Validates its own required fields at load. |
-| `ServiceWorker.cs` | `ServiceNeedHook`, `ServiceWorker`, `ServiceWorker_Ingest`, `ServiceWorker_Thought`, `ServiceWorker_Haircut`, `ServiceWorker_Lodging` | The pluggable behaviour behind a service: what it can act on, how much a customer wants it, what it does once paid for. `ServiceWorker_Lodging` is the first to widen `ApplyEffect`'s return into a `Thing` a service claims for longer than the sale itself — the [hotel bed](buildings.md#hotel-bed) it just booked. |
+| `ServiceWorker.cs` | `ServiceNeedHook`, `ServiceWorker`, `ServiceWorker_Ingest`, `ServiceWorker_Thought`, `ServiceWorker_Haircut`, `ServiceWorker_Lodging`, `ServiceWorker_Wager` | The pluggable behaviour behind a service: what it can act on, how much a customer wants it, what it does once paid for. `ServiceWorker_Lodging` is the first to widen `ApplyEffect`'s return into a `Thing` a service claims for longer than the sale itself — the [hotel bed](buildings.md#hotel-bed) it just booked. `ServiceWorker_Wager` is the first whose "sale" is a bet: `ApplyEffect` now also takes the price already paid and hands back an outcome-dependent rowdiness, both threaded through the widened `ShopTransaction.TryServe`. |
 | `ShopStock.cs` | `ShopStock` | [What's on the shelves](economy.md#what-counts-as-stock), what a given customer would buy, and which item a service can currently consume. |
 | `ShopPricing.cs` | `ShopPricing` | The only place a [price](economy.md#pricing) is decided, so UI, AI and transaction can't disagree. |
-| `ShopTransaction.cs` | `ShopTransaction` | The single point where silver, goods and service effects move. Re-validates everything. |
+| `ShopTransaction.cs` | `ShopTransaction` | The single point where silver, goods and service effects move. Re-validates everything. `PayOutFromTill` is the one place money leaves a till instead of entering it — a wager's payout, built on `CompBusiness.TakeFromTill`, which structurally can never hand back more than the till holds. |
 | `CompRentableBed.cs` | `CompProperties_RentableBed`, `CompRentableBed` | A [hotel bed](buildings.md#hotel-bed) a guest has paid to sleep in for one night. Purely passive shared state, mirroring `CompBusiness`'s own staff flag on purpose — the guest's own sleep job is what notices it and acts on it, never a handshake with the desk that sold the stay. |
 | `CompFalseFront.cs` | `CompProperties_FalseFront`, `CompFalseFront` | A [false front](buildings.md#false-front)'s one mechanical hook: `CurbAppealBonus` folds a small, capped bonus for a nearby dressed-up storefront into `ShopPricing.ValueAppeal`. Walks `FalseFrontRegistry` rather than the map, since `ValueAppeal` is a customer-AI hot path. Nothing here is persisted. |
 | `FalseFrontRegistry.cs` | `FalseFrontRegistry` | `MapComponent`. Live roster of spawned `CompFalseFront`s, registered the same way `TownEconomy` registers shops — so curb-appeal scoring never has to scan every Thing on the map. |
-| `TownEconomy.cs` | `TownEconomy` | `MapComponent`: business register, daily ledger, reputation, [appeal](economy.md#appeal), arrival clock, and — per faction — a sparse [standing](economy.md#standing-with-a-faction) dictionary that biases which faction's customers arrive next. |
+| `TownEconomy.cs` | `TownEconomy` | `MapComponent`: business register, daily ledger, reputation, [appeal](economy.md#appeal), arrival clock, and — per faction — a sparse [standing](economy.md#standing-with-a-faction) dictionary that biases which faction's customers arrive next. `RecordShortfall` is the worst single-event reputation and standing hit the mod has — a gambling hall unable to pay out a win. |
 
 ### `AI/` — the pawn loops
 
@@ -54,9 +54,9 @@ All under `Source/OldWestTown/`, namespace `OldWestTown`.
 | `JobDriver_ManShop.cs` | `JobDriver_ManShop` | Stands at the staff cell and pings `NotifyStaffedBy` every tick. |
 | `JobGiver_SleepInRentedBed.cs` | `JobGiver_SleepInRentedBed` | A checked-in [guest](services.md#lodging)'s other job: sends them to the bed they paid for once they're actually tired. Runs ahead of `JobGiver_BuyFromShop` in the same `OWT_Shop` duty. |
 | `JobDriver_SleepInRentedBed.cs` | `JobDriver_SleepInRentedBed` | Sleeps a guest until rested, or a hard tick cap. Never references the desk or colonist that sold the stay — only `CompRentableBed` and the guest's own `CustomerRecord`. |
-| `WorkGiver_Patrol.cs` | `WorkGiver_Patrol` | Sends the assigned [sheriff](shopkeeping.md#sheriffing) to stand watch at their own office — the ambient half of suppression. Skips entirely if the town has no rowdiness-capable saloon to patrol for. |
+| `WorkGiver_Patrol.cs` | `WorkGiver_Patrol` | Sends the assigned [sheriff](shopkeeping.md#sheriffing) to stand watch at their own office — the ambient half of suppression. Skips entirely if the town has no rowdiness-capable business to patrol for — a saloon or a gambling hall, gated on `ServiceWorker.CanCauseTrouble` rather than a fixed `RowdinessPerUse`, since a wager's rowdiness is outcome-dependent and can't be read off one constant. |
 | `JobDriver_Patrol.cs` | `JobDriver_Patrol` | Stands the post and pings `CompRolePost.NotifyOnDuty` every tick, mirroring `JobDriver_ManShop`. Also polls `TroubleUtility.AnyoneWorthCalming` and breaks the patrol off early when there's someone to calm. |
-| `WorkGiver_CalmTrouble.cs` | `WorkGiver_CalmTrouble` | The reactive half: sends the assigned sheriff to one specific [rowdy patron](customers.md#trouble-at-the-saloon) rather than a building. |
+| `WorkGiver_CalmTrouble.cs` | `WorkGiver_CalmTrouble` | The reactive half: sends the assigned sheriff to one specific [rowdy patron](customers.md#trouble-at-the-saloon-and-the-gambling-hall) rather than a building. |
 | `JobDriver_CalmTrouble.cs` | `JobDriver_CalmTrouble` | Walks to the target and unilaterally zeroes their rowdiness. A no-op, not a false success, if the target's walked off mid-wait. |
 
 ### `Roles/` — town roles
@@ -64,7 +64,7 @@ All under `Source/OldWestTown/`, namespace `OldWestTown`.
 | File | Type | Job |
 | --- | --- | --- |
 | `CompRolePost.cs` | `CompProperties_RolePost`, `CompRolePost` | A named post one specific colonist holds — the [sheriff's office](buildings.md#sheriffs-office)'s assignment, on `CompRolePost.OnDuty` other code reads. Built on vanilla's own `CompAssignableToPawn`, the same idiom a throne or a grave already uses. |
-| `TroubleUtility.cs` | `TroubleUtility` | The saloon's one hook into town roles: bumps a customer's `OWT_Rowdy` hediff per drink served, applies the sheriff/shopkeeper suppression factors, and fires the scripted [disturbance](customers.md#trouble-at-the-saloon) when it tops out. |
+| `TroubleUtility.cs` | `TroubleUtility` | The one hook a rowdiness-capable business has into town roles: bumps a customer's `OWT_Rowdy` hediff by whatever `ServiceWorker.ApplyEffect` hands back (a fixed amount for a saloon's drink, an outcome-dependent one for a gambling hall's wager), applies the sheriff/shopkeeper suppression factors, and fires the scripted [disturbance](customers.md#trouble-at-the-saloon-and-the-gambling-hall) when it tops out. |
 
 ### `Compat/` — soft dependencies
 
@@ -263,3 +263,38 @@ anything changes hands.
   there would be invisible to `IsHospitalityGuest` even though `Present` correctly detects
   Hospitality itself. Undiscoverable from this sandbox either way, and stated plainly rather than
   papered over.
+
+- **A gambling hall's `WaitForService` toil gates on the shared `Staffed` flag, not a per-customer
+  lock** — the same architecture every business already has, confirmed by reading it: every
+  queued gambler accrues served ticks in parallel as long as the table is staffed at all. Several
+  patrons can therefore resolve a winning hand in the same tick window, each independently
+  drawing on the till before it's replenished — `startingTillSilver`'s sizing implicitly assumes
+  roughly sequential play. This is **not a race condition** — RimWorld ticks pawns sequentially,
+  and `CompBusiness.TakeFromTill` re-reads the till fresh on every call, so no draw can ever
+  overdraw it — just a reason a busy table can burn through its bankroll and self-close sooner
+  than a sequential-play estimate would suggest. The hard per-round till cap is what keeps that
+  graceful rather than catastrophic: worst case under heavy concurrent play is the hall shutting
+  itself down sooner and more visibly, never a negative till. Solving it for real would mean
+  adding an exclusivity lock to the shared-`Staffed`-flag architecture the whole mod's
+  non-synchronising-loops guarantee rests on — out of scope for a step-2 `ServiceWorker`.
+- **A save from before the gambling hall existed, with a `OWT_FaroTable` already placed, loads as
+  an unseeded business.** The def reshape (decorative → `CompProperties_Business`) means vanilla
+  simply instantiates whatever comps the new def declares on load, and every `CompBusiness` field
+  on a comp that never existed on that Thing before takes its declared default correctly and
+  safely — `HouseEdge`/`Markup` both lazy-init from the kind's defaults on first read. The one
+  gap: `PostSpawnSetup`'s till-seeding is guarded by `!respawningAfterLoad`, and loading a save
+  *is* a respawn, so a pre-existing table gets no seed silver (and was never charged for it
+  either, since it was built under the old, cheaper def). It behaves exactly like a freshly built
+  table with an empty bankroll — the same "first winner might be shorted" situation seed capital
+  exists to avoid, but only for tables placed before this update. Given the mod has no players yet
+  (see Known Context in `CLAUDE.md`), this is accepted as a documented, pre-release-only risk
+  rather than something worth bespoke migration code.
+- **The gambling hall's own numbers are first-pass guesses, untested in a live game** — the
+  25%→2% cheating-accusation curve across dealer Social 0–20, the win/loss/shortfall rowdiness
+  ordering, `defaultHouseEdge` (0.15), `startingTillSilver` (300) and `joyGainPerHand` (0.1)
+  specifically. The thing most worth playtesting: whether the accusation-frequency swing between
+  an unskilled and a max-Social dealer is actually noticeable over a normal evening — that visible
+  swing is the entire point of the Social-skill hook the brief asked for. `joyGainPerHand` wants
+  its own playtest too: it's a round number chosen in the same spirit as this file's other
+  constants, not measured against how fast a real customer's Joy need actually decays while
+  sitting at a table.

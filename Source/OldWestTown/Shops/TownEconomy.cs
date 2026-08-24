@@ -41,6 +41,11 @@ namespace OldWestTown.Shops
         /// <summary>Mirrors the global formula's own 2:1 walkout:sale ratio, at standing's sharper scale.</summary>
         private const float FactionStandingWalkoutDelta = -0.10f;
 
+        /// <summary>The worst standing hit in the mod, deliberately worse than a walkout's —
+        /// the house winning a hand for a customer and then not paying it out is a sharper
+        /// trust break than slow service ever is.</summary>
+        private const float FactionStandingShortfallDelta = -0.20f;
+
         private readonly List<CompBusiness> shops = new List<CompBusiness>();
 
         private int lastDayRolled = -1;
@@ -198,6 +203,16 @@ namespace OldWestTown.Shops
         public void RecordDisturbance()
         {
             reputation = Mathf.Clamp01(reputation - 0.05f);
+        }
+
+        /// <summary>The house winning a wager for a customer and then not being able to pay it
+        /// out — the worst single-event reputation and standing hit the mod has, on purpose:
+        /// reneging on a paid bet is a sharper trust break than slow service, a walkout, or even
+        /// a saloon disturbance.</summary>
+        public void RecordShortfall(Faction customerFaction = null)
+        {
+            reputation = Mathf.Clamp01(reputation - 0.08f);
+            NudgeStanding(customerFaction, FactionStandingShortfallDelta);
         }
 
         public override void MapComponentTick()

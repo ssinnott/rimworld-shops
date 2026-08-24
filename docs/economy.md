@@ -58,14 +58,18 @@ and have something to offer — stock on the shelf, or an available service.
 | A staffed sale or service | **+0.01** |
 | A self-service sale | **−0.005** |
 | A customer walks out | **−0.02** |
-| A saloon disturbance | **−0.05** |
+| A saloon or gambling-hall disturbance | **−0.05** |
+| A gambling-hall shortfall | **−0.08** |
 | Every day | drifts 5% back toward 0.5 |
 
 A walkout costs twice what a sale earns, so a counter you leave unattended during a busy visit
-loses ground fast. A [disturbance](customers.md#trouble-at-the-saloon) costs more than double a
-walkout again — an unpoliced saloon is the single fastest way to burn through a town's good name.
-And because reputation decays toward neutral every day, a town has to keep earning its name — a
-burst of good trade a quadrum ago doesn't hold the number up.
+loses ground fast. A [disturbance](customers.md#trouble-at-the-saloon-and-the-gambling-hall) costs
+more than double a walkout again — an unpoliced saloon or gambling hall is one of the fastest ways
+to burn through a town's good name. Worse still is a [gambling-hall
+shortfall](#the-till-as-a-bankroll) — the table winning a bet for a customer and then not being
+able to pay it — the single worst reputation hit the mod has. And because reputation decays toward
+neutral every day, a town has to keep earning its name — a burst of good trade a quadrum ago
+doesn't hold the number up.
 
 Reputation feeds two things:
 
@@ -85,6 +89,7 @@ sitting quietly alongside the town-wide number.
 | --- | --- |
 | A staffed sale or service | rises **sharply** |
 | A customer walks out, or a hotel guest is evicted | falls **sharply** |
+| A gambling-hall shortfall | falls **hardest of all** — twice as hard as a walkout |
 | A self-service sale | no effect — nobody chose to serve *this* customer in particular |
 | Every day | drifts back toward the town's own reputation |
 
@@ -146,6 +151,54 @@ unit, so it gets no such trimming — a customer either affords the drink or doe
 
 A single shopper also can't strip a shelf: purchases are capped at a quarter of the item's stack
 limit, or one unit for anything that doesn't stack.
+
+## The till as a bankroll
+
+Every business's till only ever fills up — a customer's silver goes in, and nothing but the
+player's own **Collect takings** button ever takes it back out. A
+[gambling hall](businesses.md#gambling-hall) is the one exception: a win pays straight out of that
+same till, so for the first time in the mod, money leaves a till because a customer earned it, not
+because the player collected it.
+
+**The stake.** A hand's ante is priced exactly like a haircut — a flat base price, then the
+table's own markup and the town's reputation — and recorded as a sale the moment it's paid, win or
+lose. What happens to it afterward is a separate roll.
+
+**The odds.** [House edge](businesses.md#gambling-hall) is exactly the fraction of every silver
+wagered the house keeps on average — not an approximation; the maths behind it comes out exact
+however big a win pays. At the table's default settings, a hand is close to even odds, tipped just
+enough toward the house to give it its edge. Wind the slider up toward its greedy end and wins get
+rarer while the house's average take per hand climbs sharply — genuinely tempting, and genuinely
+self-defeating, since the same angrier losers who fund that take are also the ones who stop
+sticking around to lose more. Wind it down toward zero and the table is genuinely fair: no expected
+profit for the house at all, just variance — which means even a perfectly fair table can run cold
+and empty its own till over a long enough losing streak, not just an unfair one.
+
+**The throughput.** A hand only takes a few seconds, so a table that's never sitting idle can run
+one gambler through a dozen or so hands in a single hour. At the table's default settings that
+adds up to an expected house profit on the order of 35–40 silver an hour from that one gambler alone
+— a rate no ordinary shop can match, since nothing about a shelf sale repeats: a customer's whole
+stake for the visit is spent once, split across however many counters they visit, never handed
+over twice for the same thing. That's exactly what makes a greedy table tempting. It's also what
+makes it self-defeating: those same odds mean more hands lose than win, and a short losing streak
+is enough to tip a gambler into a
+[disturbance](customers.md#trouble-at-the-saloon-and-the-gambling-hall) well before the table
+could ever actually work through a typical gambler's whole purse — so in practice, anger closes a
+greedy table's account long before its own till does.
+
+**The payout.** A win is hard-capped at whatever silver the till actually holds: it can never go
+negative, and it can never conjure silver that was never there. If the till comes up short, the
+gambler gets whatever's actually in it, the shortfall that follows is the single worst reputation
+and standing hit anywhere in the mod — worse than a [saloon
+disturbance](customers.md#trouble-at-the-saloon-and-the-gambling-hall) — and the table **closes its
+doors** until reopened by hand, the same legible "something's wrong here" signal a business already
+gives for running out of stock to sell.
+
+**Starting capital.** A freshly built [faro table](buildings.md#faro-table) is seeded with its own
+bankroll rather than opening with an empty till, paid for once, up front, as part of what the table
+costs to build. Without it, the very first bet ever placed at a brand-new table would have a real
+chance of winning a payout the till has no way to cover — not a rare accident, close to a coin flip,
+on transaction one.
 
 ## What counts as stock
 

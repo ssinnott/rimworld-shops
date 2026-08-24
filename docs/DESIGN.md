@@ -371,6 +371,75 @@ zero-`Log.Message` history — a Dev Mode diagnostic that dumps every pawn's det
 `Lord`/`LordJob` type and full comp list, for whoever eventually corrects the guesses above
 against a real Hospitality install.
 
+### Gambling hall: a till that pays out
+
+Every transaction before this one moves silver exactly one way: into a till. A wager is the first
+that can send it back out, which meant re-examining an assumption `ShopTransaction` had never had
+to question — that money only ever enters — rather than routing around it. The answer is a mirror
+primitive next to the existing one: `CompBusiness.TakeFromTill` walks the till's own silver stacks
+the same way `ShopTransaction`'s private `TakeSilver` already walks a customer's purse, and
+`ShopTransaction.PayOutFromTill` hands the result to the winner the same way `TrySell`/`TryServe`
+already hand goods to a buyer. Neither can return more than the till physically holds — the loop
+bound *is* the till's own contents — which is what makes "the house can't pay" a reachable, legible
+outcome rather than a bug to guard against separately. A shortfall closes the table and costs more
+reputation and standing than anything else in the mod, on purpose: reneging on a paid bet is a
+sharper trust break than slow service, a walkout, or even a saloon disturbance.
+
+**House edge** is `Markup`'s structural twin — same lazy-init-from-kind-default, same
+clamp-to-kind-range setter, same slider gizmo — because it answers the identical question a price
+does: how much of this transaction does the house keep. The maths is deliberately simple enough to
+state exactly: win chance is `(1 - HouseEdge) / payoutMultiplier`, so a player's expected return
+per silver wagered comes out to exactly `-HouseEdge`, for any payout multiple. That's not tuned to
+be *approximately* the edge; it falls out of the algebra, which is what makes the slider mean what
+its label says.
+
+A wager also has to answer to `Desirability` the same way `Drink` does: `NeedDesirability` scores
+it against the customer's own Joy need, floored the same 2.5×→1× way a round of drinks is, so a
+bored gambler wants another hand more than a satisfied one does. That scoring only means anything
+if playing a hand actually moves Joy, though — `ApplyEffect` grants a flat `joyGainPerHand`
+regardless of win, loss or shortfall, the same unconditional shape `ServiceWorker_Ingest` already
+uses for nutrition. Without it, a wager would be the one service in the mod whose Desirability
+input never responds to the need it's supposedly satisfying, and nothing would ever taper a bored
+customer back off the table on its own.
+
+The per-hand algebra above is only half the check a wager needs — the other half is throughput,
+since a customer can be dealt back-to-back for as long as the table stays their best option,
+unlike a one-shot purchase. A hand takes `serveTicks` (200) once a dealer's working the table, so
+one continuously-played customer can run at most 12.5 hands an hour (2,500 ticks to the hour). At
+the shipped defaults — 20 silver ante, 15% edge — that's an expected 3 silver a hand, or about
+37.5 silver an hour in house profit from that one customer alone, before the till or their own
+purse runs dry. No shop counter can match that: a customer's whole purse for the visit starts at
+only 120–450 silver (`BasePurse`, see economy.md), spent once across however many shelves they
+visit — a shop has no mechanic that lets it sell to the same customer twice for the same item.
+That asymmetry is the tempting half by design. It's also the self-defeating half: the same odds
+mean more hands lose than win, and a loss is what feeds `OWT_Rowdy` — an unsupervised, unskilled
+dealer's table pushes one unlucky customer from calm to a disturbance in five losses, roughly 40
+minutes of continuous play, well before that table would drain even an average purse (~340 silver
+at the gambling hall's own 1.3 appeal weight, or ~9 hours at 37.5 silver an hour). Anger closes a
+greedy table's account long before money does.
+
+Fitting a wager into `ServiceWorker` rather than inventing a new business primitive meant widening
+`ApplyEffect` twice: it now receives the price `TryServe` already charged (so a payout is
+computed against the same number that was actually taken, not a value recomputed a moment later
+and trusted to agree), and it now returns the round's rowdiness instead of `TryServe` reading a
+fixed `RowdinessPerUse` — because a wager's rowdiness is outcome-dependent (a win adds none; a
+loss, or worse, a shortfall, adds more) in a way no single constant can express. Every worker from
+before this stage simply echoes its own `RowdinessPerUse` back through the new parameter, so
+nothing about Drink, Meal, Haircut or Lodging's behavior changed.
+
+None of this touches the non-synchronising-loops rule. The dealer is read exactly once, for their
+Social skill, by a call that cannot block or fail — if the table is unattended, `TryServe` has
+already refused the round before `ApplyEffect` ever runs, so there is no path where a wager's
+payout waits on a specific pawn. A shortfall force-closing the table is the same shape a shop
+running out of stock already has: a plain flag another pawn's own `FailOn` notices on its own next
+tick, never a message sent to anyone.
+
+The building itself is the stage-6 faro table, promoted rather than duplicated: same defName, same
+art, a `CompProperties_Business` where a `CompGatherSpot` used to be, and a one-time silver cost
+that seeds the till a wager's first customer needs to exist at all — an empty till and a coin-flip
+win chance would otherwise make the very first bet ever placed at a fresh table the likeliest one
+to be shorted.
+
 ## The economy loop
 
 ```

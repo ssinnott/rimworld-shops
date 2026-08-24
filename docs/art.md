@@ -144,8 +144,11 @@ the rifle rack.
 
 ## Main street
 
-Five decorative pieces, plus one — the false front — with a small mechanical effect. See
-[buildings](buildings.md#main-street) for what each one actually does.
+Four decorative pieces, plus the false front's own small mechanical effect. See
+[buildings](buildings.md#main-street) for what each one actually does. The **faro table** shares
+this palette and these texture files — it was drawn here in stage 6, before it was a business —
+but it's since been promoted into a real gambling hall; see [buildings](buildings.md#faro-table)
+for what it does now.
 
 ### False front
 
@@ -312,12 +315,12 @@ For completeness, the visible surface that isn't a picture file:
 | Research tab entry | The game's default |
 | **Open for business** button | The game's own "unforbid" icon |
 | **Set prices** button | The game's own power-management icon |
+| **Set house edge** button | The same power-management icon as **Set prices** — it's the same slider idiom, so it wears the same icon |
 | **Collect takings** button | The silver icon |
 | **Town ledger** button | The game's own info icon |
 | Stock tab | The stockpile filter list, unmodified |
 | Fresh-haircut mood, slept-at-the-hotel mood | No icon; the game draws mood thoughts from text |
 | **Evict guest** button | The game's own "forbid" icon |
-| Faro table's idle-gathering pull | Vanilla's own gather-spot behaviour, unmodified |
 
 Reusing the game's own button icons is a choice, not a shortcut: you already know what the
 unforbid icon means, and a bespoke icon for "open for business" would be one more thing to learn

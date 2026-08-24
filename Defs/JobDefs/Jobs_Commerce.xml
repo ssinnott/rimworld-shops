@@ -44,6 +44,13 @@
   </JobDef>
 
   <JobDef>
+    <defName>OWT_ServeWager</defName>
+    <driverClass>OldWestTown.AI.JobDriver_UseService</driverClass>
+    <reportString>playing a hand at TargetB.</reportString>
+    <casualInterruptible>false</casualInterruptible>
+  </JobDef>
+
+  <JobDef>
     <defName>OWT_SleepInRentedBed</defName>
     <driverClass>OldWestTown.AI.JobDriver_SleepInRentedBed</driverClass>
     <reportString>sleeping at TargetA.</reportString>

@@ -23,6 +23,12 @@ staffed.
 Serving a customer — goods or a service alike — grants **35 Social XP**, so a dedicated
 shopkeeper trains the skill their job runs on.
 
+The same priority staffs a [gambling hall](businesses.md#gambling-hall)'s faro table with zero new
+mechanics — a dealer is a shopkeeper like any other. Social skill does double duty there: it
+already slows how fast every business's patrons get rowdy, and for a dealer specifically it also
+cuts how often an unlucky loss turns into a [cheating
+accusation](customers.md#trouble-at-the-saloon-and-the-gambling-hall).
+
 ## Sheriffing
 
 Shopkeeping is a *priority* — any colonist who has it can staff any counter. **Sheriffing** is a
@@ -49,7 +55,7 @@ Getting a sheriff on duty is two separate steps:
 | Needs | working hands and the ability to talk |
 
 With both in place, the sheriff patrols their office and steps in to calm down
-[rowdy patrons](customers.md#trouble-at-the-saloon) before they cause a disturbance — walking
+[rowdy patrons](customers.md#trouble-at-the-saloon-and-the-gambling-hall) before they cause a disturbance — walking
 someone down grants **35 Social XP**, the same training a shopkeeper earns for a sale. Reassign
 the post, or take away their Sheriffing priority, and they simply stop — there's no notice to
 give and nothing to undo.

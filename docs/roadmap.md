@@ -3,7 +3,8 @@ title: Roadmap
 summary: What is built, what is next, and the larger directions that build on top of it.
 ---
 
-The plan is staged so each step is playable on its own. All seven stages are shipped.
+The plan is staged so each step is playable on its own. All seven stages are shipped, and so is
+the first of the thematic expansions below — the gambling hall.
 
 For the reasoning behind the shipped stages, see the [design notes](DESIGN.md).
 
@@ -58,8 +59,8 @@ batwing doors, a faro table and a gallows — mostly content rather than code, d
 that steps 1–5 already made *function*. The one exception is the **false front**: standing near a
 shop, it gives that shop's prices a small, capped edge in how appealing they look to a passing
 customer — enough to win a close call between two similarly-priced rivals, never enough to sell a
-shop that's genuinely overpriced. The faro table deliberately does *not* gamble; a real wager
-waits for the gambling hall below.
+shop that's genuinely overpriced. The faro table shipped purely decorative in this stage; the
+gambling hall below is what promotes it into a real business.
 
 **7. Hospitality bridge — done.** Hospitality is not installed anywhere this mod has ever been
 built or tested, so this stage is narrower than "guests shop too" might suggest, and honest about
@@ -82,13 +83,24 @@ what is, and isn't, verified here.
 Larger directions that build on the finished stages rather than slotting between them. Each is
 listed with what it reuses, roughly cheapest first.
 
-**Gambling hall.** A faro/poker table as the first business where the "transaction" is a wager
-rather than a purchase: patrons buy in, and a player-set house edge (the markup slider's twin)
-determines the expected take. Set it greedy and patrons lose fast, get angry, and reputation
-drops; set it fair and they stay all evening buying drinks. Colonist dealers work it through the
-Shopkeeping work type, with Social skill reducing cheating accusations. Mechanically it is a
-step-2 service plus a payout roll — it reuses the queueing and the till wholesale, and adds the
-first income that isn't driven by stock.
+**Gambling hall — done.** The first business where the "sale" is a wager rather than a
+purchase: a patron buys in at the [faro table](buildings.md#faro-table), and everything past that
+is a win, loss or shortfall roll, resolved entirely inside the same service seam every other
+business already uses — no new queueing, no new till primitive beyond a payout. **House edge**, a
+second slider living right next to markup, is exactly the fraction of every silver wagered the
+house keeps on average, whatever the payout or the odds behind it: set it low and a table pays out
+almost as often as it takes, keeping gamblers around all evening; set it high and it pays rarely
+but keeps far more per hand — genuinely tempting, and genuinely self-defeating, since the same
+angrier losers who fund that richer take are also the ones who stop sticking around. Losing a hand
+feeds the same rowdiness the saloon's drink already does, and an unlucky loss can additionally draw
+a Social-skill-gated cheating accusation against the dealer — the one place in the mod a dealer's
+skill visibly changes something round to round, not just a background rate. The one genuinely new
+piece of plumbing is the payout itself: a win pays straight out of the same till every sale already
+fills, hard-capped at whatever silver it actually holds, and a table that can't cover a win closes
+its doors until reopened by hand — the worst reputation and standing hit anywhere in the mod, and
+the reason a freshly built table is seeded with a bankroll of its own rather than opening with an
+empty till. The stage-6 faro table is promoted into this, not duplicated alongside it: there is
+exactly one faro table in the build menu, not two confusingly similar ones.
 
 **Outlaws and the law.** A rich town becomes a target: the more silver sitting in tills
 (already tracked per counter), the higher the chance of a *stickup* — a small raider band that
@@ -115,7 +127,7 @@ dramatically, and gives long saves a narrative arc.
 score. Customer groups *choose* between towns — your share of regional traffic is your appeal
 relative to theirs, so the arrival clock has an opponent. Rivals undercut prices, poach your
 best shopkeeper with a job-offer event, or send saboteurs; out-compete one long enough and it
-becomes a ghost town you can salvage. The most ambitious of the five, since it adds state to the world map,
+becomes a ghost town you can salvage. The most ambitious of the four, since it adds state to the world map,
 but the one that most directly deepens the pricing-and-appeal loop — it gives your town's appeal
 something to be measured against, and makes pricing genuinely competitive rather than
 solitaire.
