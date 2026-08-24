@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+
+  <!-- A badge, not a fifth shop kind: no CompProperties_Business, so this never registers with
+       TownEconomy and is invisible to Appeal/OpenShops(). Built by hand from BuildingBase, the
+       same way OWT_CounterBase itself was, minus everything a counter needs and this doesn't
+       (a till, a stock filter, ITab_ShopStock). -->
+  <ThingDef ParentName="BuildingBase">
+    <defName>OWT_SheriffOffice</defName>
+    <label>sheriff's office</label>
+    <description>A desk, a rifle rack, and a cell nobody's used yet. Doesn't sell anything — assign a colonist to it from the building's own gizmo, the same way you'd assign an owner to a throne or a grave. They also need a Sheriffing priority in the Work tab, same as any other job.\n\nWhile the sheriff is on duty here, a rowdy saloon patron gets rowdier more slowly, town-wide. The sheriff can also walk over and calm a specific patron down before they tip all the way into a disturbance.</description>
+    <thingClass>Building</thingClass>
+    <category>Building</category>
+    <altitudeLayer>Building</altitudeLayer>
+    <passability>Impassable</passability>
+    <blockWind>false</blockWind>
+    <fillPercent>0.5</fillPercent>
+    <pathCost>50</pathCost>
+    <castEdgeShadows>false</castEdgeShadows>
+    <rotatable>true</rotatable>
+    <hasInteractionCell>true</hasInteractionCell>
+    <!-- The post the sheriff stands. Same "rotate the building to place the post" idiom as
+         OWT_CounterBase's staff side. -->
+    <interactionCellOffset>(0,0,-1)</interactionCellOffset>
+    <size>(2,1)</size>
+    <designationCategory>OWT_Commerce</designationCategory>
+    <stuffCategories>
+      <li>Woody</li>
+      <li>Metallic</li>
+      <li>Stony</li>
+    </stuffCategories>
+    <costStuffCount>75</costStuffCount>
+    <statBases>
+      <MaxHitPoints>180</MaxHitPoints>
+      <WorkToBuild>1400</WorkToBuild>
+      <Flammability>1.0</Flammability>
+      <Beauty>4</Beauty>
+    </statBases>
+    <building>
+      <ai_chillDestination>false</ai_chillDestination>
+    </building>
+    <researchPrerequisites>
+      <li>OWT_FrontierCommerce</li>
+    </researchPrerequisites>
+    <constructEffect>ConstructWood</constructEffect>
+    <graphicData>
+      <texPath>Things/Building/Roles/SheriffOffice</texPath>
+      <graphicClass>Graphic_Multi</graphicClass>
+      <drawSize>(2,1)</drawSize>
+      <damageData>
+        <rect>(0,0.05,2,0.9)</rect>
+      </damageData>
+    </graphicData>
+    <uiIconPath>Things/Building/Roles/SheriffOffice_north</uiIconPath>
+    <comps>
+      <li Class="OldWestTown.Roles.CompProperties_RolePost">
+        <maxAssignedPawnsCount>1</maxAssignedPawnsCount>
+      </li>
+    </comps>
+  </ThingDef>
+
+</Defs>

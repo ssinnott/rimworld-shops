@@ -13,7 +13,7 @@ behind one project.
 | **Research** | Frontier commerce |
 | **Cost** | 500 |
 | **Tech level** | Medieval |
-| **Unlocks** | The whole **Commerce** build category — shop counter, saloon bar, barber chair |
+| **Unlocks** | The whole **Commerce** build category — every counter, the [sheriff's office](buildings.md#sheriffs-office), the hotel bed, boardwalk and the rest of [main street](buildings.md#main-street) |
 
 There are no prerequisites, so it is available from the first day of a colony if you want it.
 

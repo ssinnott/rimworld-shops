@@ -114,6 +114,127 @@ service's value is already counted once, as stock — `ServiceValue` only adds t
 no `Thing` behind them at all, so a saloon's beer isn't counted twice for being sellable two
 ways.
 
+### Lodging: a service whose effect outlives the transaction
+
+Renting a room (`OWT_Lodging`, worked by `ServiceWorker_Lodging`) is a service for exactly the
+same reason a haircut is — no `Thing` changes hands, a colonist's time behind the desk is what's
+being sold, and check-in reuses `JobDriver_UseService` / `ShopTransaction.TryServe` completely
+unmodified. What makes it different from every service before it is that paying for it isn't the
+whole experience: paying for a haircut *is* the haircut, but paying for a room is just the
+booking — the stay happens later, unattended, quite possibly after the shopkeeper who sold it
+has gone home for the night.
+
+That gap is bridged by widening `ServiceWorker.ApplyEffect` to return a `Thing` a service has
+claimed for longer than the sale itself. Every worker from before this stage returns `null`;
+`ServiceWorker_Lodging` is the first to return something — the bed it just booked, found by
+`ShopStock.ChooseVacantBed`, which generalizes the same room-or-radius traversal `ScanFor`
+already used for sellable goods into "everything on this floor," filtered by type instead of by
+stock rules. `JobDriver_UseService.CompleteService` is the one place a Shops-layer output
+crosses into Lords-layer state: whatever got claimed, if it's a bed, goes straight onto the
+guest's own `CustomerRecord.rentedBed`. Nothing else in the mod needs to know a stay is a
+two-part transaction.
+
+`CompRentableBed` is the passive comp that remembers the claim — it mirrors `CompBusiness`'s own
+`lastShopkeeper` / `lastStaffedTick` pair on purpose: a plain fact for other code to read, never
+a job, never a reservation. `JobGiver_SleepInRentedBed` and `JobDriver_SleepInRentedBed` are the
+active side: a guest goes to bed once tired, and the driver re-checks every tick that the claim
+is still theirs, using the bed's live occupancy (`Building_Bed.CurOccupants`) rather than
+vanilla bed ownership — deliberately, so a colonist who simply climbs into the same bed is
+caught with no assignment mechanism involved at all. No handshake exists anywhere in this: a bed
+that's destroyed, a bed a colonist takes, and a guest harmed in a raid all end the sleep job the
+same one way — the claim releases, a reputation cost lands if the stay was cut short, and the
+group's own exit trigger notices the claim is gone. A claim that goes stale *before* the guest
+ever starts sleeping (the bed destroyed while they're still out shopping) is cleared by
+`JobGiver_SleepInRentedBed` itself rather than handed to the driver — creating a job whose very
+first toil reads a despawned bed's position is a crash risk, not just a stale-claim one.
+
+A stay is exactly one paid night per transaction. There is no multi-night booking and no
+unstaffed nightly billing: a guest who wants another night simply queues and pays again once
+awake, through the same purchase-repeat machinery every other service already gets for free.
+That also means there is no "can't afford night two" failure mode to design around — it isn't
+reachable.
+
+### Settled in town: the day boundary without a second lord state
+
+An overnight guest needs the group's visit to survive past its base duration, which is the one
+genuinely load-bearing change: `LordJob_ShopVisit` needed a "settled in town" state distinct
+from shopping. It turns out not to need a second `LordToil` — staffing, duties and the harmed
+transition are all identical whether anyone's asleep or not, so a second toil would do nothing a
+`Trigger` couldn't already decide by itself. Instead, the single existing toil is untouched; only
+its exit condition changed. `Trigger_VisitComplete` replaces the flat `Trigger_TicksPassed` and
+additionally requires every currently-owned pawn's `CustomerRecord.rentedBed` to be null. For a
+group with nobody lodging — still the overwhelming majority of visits — this is bit-for-bit the
+same trigger it replaces, since that condition is vacuously true from the first tick. New check-
+ins are cut off once the group's base visit duration has elapsed (`PastCheckInCutoff`), and each
+sleep job carries its own hard tick cap independent of `Need_Rest` ever reporting rested — between
+the two, the trigger is always reachable in finite time. A departed or dead guest's own stale
+claim is excluded from the check entirely (records are never removed from the lord, so a pawn
+who died holding one would otherwise hold the whole group hostage), and `ServiceWorker_Lodging`
+refuses to sell a room to a non-humanlike pawn at all, since nothing would ever make it tired
+enough to check out.
+
+This is also the first time a customer group has members doing genuinely different things at
+once — one pawn asleep in a bed while another is still haggling over the price of a shirt.
+Nothing about that needs the duty think tree to know: `JobGiver_SleepInRentedBed` simply runs
+ahead of `JobGiver_BuyFromShop` in the same `OWT_Shop` duty every pawn in the group already
+carries, and a pawn who isn't tired, or hasn't rented anywhere, falls through to the existing
+logic completely unchanged.
+
+### Town roles: a badge, not a work type
+
+Shopkeeping already answers "who works this counter" for any counter — it's a priority, not an
+identity, and any colonist who has it can staff any business. A *role* has to answer a different
+question: which colonist, specifically. `CompRolePost` answers it by being a thin subclass of
+vanilla's own `CompAssignableToPawn` — the same base class a throne room, a grave or a meditation
+spot already build "this pawn, and only this pawn, owns this" on, rather than a bespoke
+assignment system invented for this mod. It needs almost no code of its own: reflection against
+the real 1.6 assemblies confirms `CompAssignableToPawn` isn't abstract, and only two members are
+worth overriding — `AssigningCandidates` (narrowed here to free colonists) and `CanAssignTo`.
+The latter isn't optional: `MaxAssignedPawnsCount` is a plain, non-virtual property, set with an
+XML field (`<maxAssignedPawnsCount>`) rather than an override because it genuinely can't be
+overridden, but the base class only *reads* that count — it never checks it against
+`AssignedPawnsForReading` itself, unlike the bed/grave comps this stage's design cites, which
+enforce their own capacity by delegating to a pawn-side ownership tracker. `CanAssignTo` rejects
+once the post is full, which is the one thing standing between the XML field and a second
+"Assign" click quietly making two pawns the sheriff.
+
+Two of the three roles the roadmap once named didn't survive being asked "does this add
+something beyond a work priority?" **Barkeep** folds into the existing Shopkeeping loop as a
+Social-skill factor on the saloon's own trouble math (see below) rather than a second badge —
+there was nothing left for a separate post to do. **Banker** is cut outright: there's no bank yet
+to be a banker of. **Sheriff** is the one role that clears the bar, because the roadmap gave it an
+actual mechanic — suppressing trouble a saloon generates — and that trouble didn't exist before
+this stage either, so it had to be built alongside the badge, not after.
+
+`OWT_Rowdy` is a bespoke hediff, deliberately not vanilla's own `AlcoholHigh` (a system this mod
+doesn't own, and can't cleanly reach into to calm someone down) and deliberately not a real
+`MentalState_SocialFighting` (whose opponent-selection and harmed-transition timing this mod
+doesn't control either — if it resolves near-instantly, the sheriff's whole suppression window
+collapses to nothing). A drink service bumps it (`ServiceWorker.RowdinessPerUse`, read by
+`TroubleUtility.Notify_ServiceRound` from inside `JobDriver_UseService.CompleteService` — the one
+place a shop and its customer are already local variables in scope, so no periodic scan or
+tracked reference is needed); vanilla's own `HediffCompProperties_SeverityPerDay` decays it back
+down on its own, with no custom `HediffComp` anywhere in this. Crossing the top stage fires a
+scripted disturbance — a message, a reputation hit, a per-shop counter, and the offender stops
+buying for the rest of their visit — and resets severity to zero in the very same call. That's
+also why the top stage is never the sheriff's target: nothing outside `Notify_ServiceRound` can
+ever observe it before it's gone. The stage below it ("getting loud") is the real, designed
+window, and `TroubleUtility.IsWorthCalming` is what the sheriff's reactive job scans for.
+
+Suppression is two read-only checks, both gated on `TroubleUtility.IsAssignedSheriff` — the
+specific badge-holder, never "anyone with a Sheriffing priority" — and neither is a handshake.
+Ambient: `JobDriver_Patrol` calls `CompRolePost.NotifyOnDuty` every tick it stands the post, the
+same shape `CompBusiness.NotifyStaffedBy` already established, and while any office reads
+`OnDuty` the accrual rate is halved map-wide. Reactive: `JobDriver_CalmTrouble` walks up to one
+specific rowdy pawn and unilaterally zeroes their severity. The patron's own job never
+references a sheriff and has no idea one exists; if the sheriff is drafted, downed, or
+reassigned mid-walk, that patron's rowdiness simply keeps accruing or decaying on its own passive
+schedule — the same failure shape an unattended counter already has for a customer waiting on a
+shopkeeper who wandered off. The disturbance itself never involves a second pawn either: no
+fight, no mental break, just a scripted event resolved entirely through the same shared
+comp/economy state (`CompBusiness`, `TownEconomy`, `CustomerRecord`) every other transaction in
+this mod already reads and writes.
+
 ## The economy loop
 
 ```

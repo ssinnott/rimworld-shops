@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+
+  <!-- Standalone: nothing existing to inherit a floor from. -->
+  <TerrainDef>
+    <defName>OWT_Boardwalk</defName>
+    <label>boardwalk</label>
+    <description>Raised planking along the street, kept dry above the mud. Doesn't slow anyone down, doesn't grow anything, and looks like the town intends to stay.</description>
+    <texturePath>Terrain/Surfaces/OWT_Boardwalk</texturePath>
+    <renderPrecedence>400</renderPrecedence>
+    <passability>Standable</passability>
+    <!-- 0, not a token 1 — matching vanilla's own constructed-floor convention that a built
+         surface reads as no movement penalty, which is what the description promises. -->
+    <pathCost>0</pathCost>
+    <fertility>0</fertility>
+    <!-- Constructed planking reads as a crisp, human-made edge against the ground around it,
+         not the soft blend natural terrain uses. -->
+    <edgeType>Hard</edgeType>
+    <!-- What it grants a builder — a boardwalk goes down on ordinary ground like any floor,
+         so terrainAffordanceNeeded is left unset. -->
+    <affordances>
+      <li>Light</li>
+      <li>Medium</li>
+      <li>Heavy</li>
+    </affordances>
+    <statBases>
+      <WorkToBuild>60</WorkToBuild>
+      <Beauty>2</Beauty>
+      <Flammability>0.6</Flammability>
+    </statBases>
+    <costList>
+      <WoodLog>2</WoodLog>
+    </costList>
+    <researchPrerequisites>
+      <li>OWT_FrontierCommerce</li>
+    </researchPrerequisites>
+    <designationCategory>OWT_Commerce</designationCategory>
+    <constructEffect>ConstructWood</constructEffect>
+  </TerrainDef>
+
+</Defs>

@@ -3,8 +3,8 @@ title: Roadmap
 summary: What is built, what is next, and the larger directions that build on top of it.
 ---
 
-The plan is staged so each step is playable on its own. Stages 1 and 2 are shipped; everything
-below them is designed, not built.
+The plan is staged so each step is playable on its own. Stages 1 through 6 are shipped; stage 7
+is designed, not built, and is the only staged item left.
 
 For the reasoning behind the shipped stages, see the [design notes](DESIGN.md).
 
@@ -22,19 +22,45 @@ without being counted twice — and the **barber shop**, which sells nothing but
 and hands back a mood boost and a new hairstyle. A bath house and a doctor's office are already
 possible without new code, and wait only on the buildings to put them in.
 
-**3. Lodging.** Rentable beds: customers with no bed of their own pay per night and stay past
-midnight. Needs visits that can run longer than a day, and travellers who count as settled in
-town rather than passing through.
+**3. Lodging — done.** Rentable beds, sold by a new **hotel desk** business. A guest pays for the
+night up front at the desk, keeps shopping, and only heads for whichever bed is free once they're
+genuinely tired — there's no specific room nailed down at booking, just any vacant bed in the
+same room as the desk. They sleep until rested and wake with a mood boost that scales with how
+nice the room is. The rest of the group won't head home until every rented room is empty, which is
+what lets a visit run past its usual length without a second lord state to manage it. Losing a
+room early — the bed taken apart, or given to someone else by hand — costs the same reputation a
+walkout does, with no refund. Deliberately left for later: booking several nights in advance,
+unstaffed nightly billing, and a private suite tied to one specific desk.
 
-**4. Town roles.** Sheriff, barkeep, banker as posts you assign a colonist to, each with its own
-work and its own controls on the building. A sheriff suppresses the drunk/brawl events a saloon starts generating.
+**4. Town roles — done.** The saloon generated no trouble at all before this stage, so trouble
+had to exist before anyone could be posted to suppress it. Now every round of drinks makes that
+one patron rowdier; left alone, it eventually boils over into a **disturbance** — a message, a
+reputation hit worse than a walkout, and that patron stops spending for the rest of their visit.
+The **sheriff** is the role that made it into this stage: assign a colonist to the new
+[sheriff's office](buildings.md#sheriffs-office) the same way you'd assign an owner to a bed,
+give them a Sheriffing priority, and they'll patrol the office — slowing how fast the whole town
+gets rowdy — and step in to calm a specific patron down before it turns. Of the two other roles
+this stage once named, **barkeep** turned out not to need a separate post: a skilled shopkeeper
+behind the bar already gets its own discount on rowdiness, no badge required. **Banker** is cut
+outright — there's no bank yet for one to run.
 
-**5. Reputation with depth.** Split the town's single reputation into standing with each faction,
-so particular factions become regulars — and arrive more often than the rest.
+**5. Reputation with depth — done.** The town's one reputation number is unchanged, and still the
+honest answer to "should anyone bother setting out for this town at all." Alongside it, each
+faction now keeps its own **standing** with the town — untouched until that faction's own
+customers are actually served or turned away. Treat one faction's customers well often enough and
+they become **regulars**, showing up more than everybody else; mistreat them and they taper off,
+without punishing anyone you haven't dealt with. The town ledger names your best and worst
+relationship once either has genuinely pulled away from the town's own name. A faction you've
+never dealt with specifically just reads as the town's reputation, so an existing save needs
+nothing seeded for this to make sense on the very first load.
 
-**6. Old west content pass.** Boardwalk terrain, false-front facades, hitching posts, batwing
-doors, faro tables, a gallows. Mostly content rather than code; the point is that steps 1–5
-already make a town *function*, and this makes it *look* like one.
+**6. Old west content pass — done.** Boardwalk terrain, false-front facades, a hitching post,
+batwing doors, a faro table and a gallows — mostly content rather than code, dressing a street
+that steps 1–5 already made *function*. The one exception is the **false front**: standing near a
+shop, it gives that shop's prices a small, capped edge in how appealing they look to a passing
+customer — enough to win a close call between two similarly-priced rivals, never enough to sell a
+shop that's genuinely overpriced. The faro table deliberately does *not* gamble; a real wager
+waits for the gambling hall below.
 
 **7. Hospitality bridge (optional).** An optional add-on that sends Hospitality's guests shopping
 too, so one group can both lodge and spend.

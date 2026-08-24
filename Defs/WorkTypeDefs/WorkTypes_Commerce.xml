@@ -18,4 +18,25 @@
     </workTags>
   </WorkTypeDef>
 
+  <!-- Unlike Shopkeeping, this is a named post, not a floor priority any colonist can pick up —
+       only the specific pawn assigned to a sheriff's office (CompRolePost) ever does anything
+       with it. alwaysStartActive is false on purpose: ticking it for every colonist by default
+       would be misleading, since it would sit inert for everyone but the one badge-holder. -->
+  <WorkTypeDef>
+    <defName>OWT_Sheriffing</defName>
+    <labelShort>sheriff</labelShort>
+    <pawnLabel>sheriff</pawnLabel>
+    <gerundLabel>sheriffing</gerundLabel>
+    <description>Patrol the sheriff's office and step in to calm down rowdy saloon patrons before they cause a disturbance. Only the colonist assigned to the office as sheriff does anything here — assign one from the office's own gizmo.</description>
+    <verb>sheriff</verb>
+    <naturalPriority>460</naturalPriority>
+    <alwaysStartActive>false</alwaysStartActive>
+    <relevantSkills>
+      <li>Social</li>
+    </relevantSkills>
+    <workTags>
+      <li>Social</li>
+    </workTags>
+  </WorkTypeDef>
+
 </Defs>

@@ -55,4 +55,21 @@
     </services>
   </OldWestTown.Shops.ShopKindDef>
 
+  <OldWestTown.Shops.ShopKindDef>
+    <defName>OWT_Hotel</defName>
+    <label>hotel</label>
+    <description>A front desk and a row of rented beds. Travellers with nowhere else to sleep pay by the night.</description>
+    <customerNoun>guest</customerNoun>
+    <defaultMarkup>1.6</defaultMarkup>
+    <markupRange>0.5~3.5</markupRange>
+    <appeal>1.3</appeal>
+    <!-- The most patient of the four kinds: a guest who's decided to rent a room for the night
+         has more riding on it than a browser or a thirsty patron, so they'll wait for a key
+         nearly twice as long as a saloon patron waits for a drink (1500). -->
+    <customerPatienceTicks>2800</customerPatienceTicks>
+    <services>
+      <li>OWT_Lodging</li>
+    </services>
+  </OldWestTown.Shops.ShopKindDef>
+
 </Defs>
