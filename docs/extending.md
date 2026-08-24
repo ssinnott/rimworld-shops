@@ -23,7 +23,6 @@ A kind with no services is pure data. Add it to `Defs/ShopKindDefs/ShopKinds.xml
   <defName>OWT_Gunsmith</defName>
   <label>gunsmith</label>
   <description>Powder, shot and iron. Nothing a frontier town needs more of.</description>
-  <customerNoun>customer</customerNoun>
   <defaultMarkup>1.6</defaultMarkup>
   <markupRange>0.5~3.5</markupRange>
   <appeal>1.2</appeal>
@@ -46,14 +45,17 @@ pricing, appeal and ledger are all kind-agnostic.
 | `defaultMarkup` | float | 1.35 | Markup a fresh counter starts at. |
 | `markupRange` | `FloatRange` | 0.5~3.0 | The band the player's price slider may move within. |
 | `appeal` | float | 1.0 | How much one open, stocked business of this kind adds to town [appeal](economy.md#appeal). |
-| `customerNoun` | string | "customer" | The word the UI uses for this business's customers. |
+| `customerNoun` | string | "customer" | Reserved. Nothing in the UI reads it yet — set it if you like, but it will not show up anywhere. |
 | `customerPatienceTicks` | int | 2500 | How long a customer waits at an unattended counter before [walking out](customers.md#walkouts). |
 | `services` | list of `ServiceDef` | empty | [Services](services.md) this business offers alongside its stock. |
 
-**Tuning notes.** `appeal` is per *distinct* kind, and a repeat of an existing kind is worth 35%
-of the first, so a new kind is worth adding for its own sake — pick a value near 1.0 unless the
-business is genuinely a bigger draw. `customerPatienceTicks` is the main difficulty lever: a
-short fuse (the saloon's 1500) makes staffing urgent.
+**Tuning notes.** `appeal` is counted per shop-*front*, and repeats fall away geometrically: the
+second front of a kind is worth 35% of the first, the third 12%, and the whole kind never adds up
+to more than 1.54 times one front. A second counter of the same kind on the same sales floor is
+not a repeat at all — it is a second till, and adds nothing to the businesses term; what it buys
+the player is serving two customers at once. So a new kind is worth adding for its own sake — pick
+a value near 1.0 unless the business is genuinely a bigger draw. `customerPatienceTicks` is the
+main difficulty lever: a short fuse (the saloon's 1500) makes staffing urgent.
 
 ## Add a building
 
@@ -81,6 +83,12 @@ a graphic, an icon, and a `CompProperties_Business`:
   </comps>
 </ThingDef>
 ```
+
+`openAirRadius` is the fallback sales floor for a counter with no room around it — a stall, a
+boardwalk table. Indoors it is ignored and the room is the shop; outdoors it decides both what is
+on the shelves and whether two counters of the same kind standing near each other are one
+shop-front or two. It defaults to 9.9, so leave it out unless the building trades from a smaller
+patch.
 
 Then add a row to the `BUILDINGS` table in `tools/make_textures.py` and run it. CI fails if a
 building in that table has no art on disk, so this is not optional:
@@ -137,13 +145,19 @@ running. It **must** use `JobDriver_UseService`; `ServiceDef.ConfigErrors` rejec
 | --- | --- | --- | --- |
 | `jobDef` | `JobDef` | *required* | The job a customer runs to receive this service. One per service, never shared. |
 | `worker` | `ServiceWorker` | *required* | Pluggable behaviour, with its own XML-configurable fields. |
-| `serveTicks` | int | 180 | Continuous **staffed** ticks required to complete one visit. |
+| `colonistJobDef` | `JobDef` | *(none)* | A second job, running `JobDriver_ColonistUseService`, that lets the player send their own colonists for this service. They pay nothing and leave no row in the town's books. Leave it out and the service stays a stranger's. |
+| `serveTicks` | int | 180 | Continuous **staffed** ticks required to complete one visit — and, through it, how deep a line will form for it. Nobody joins a wait longer than 6000 ticks, so a counter holds `ceil(6000 / serveTicks)`: 40 at the saloon's 150, three at the barber's 2200. A long serve is what makes a queue a real thing. |
 | `basePrice` | float | 10 | Price basis, used **only** when nothing on the shelf backs the service. |
 | `allowsSelfService` | bool | false | Whether the *Allow self-service* setting applies to this service at all. |
 
 Both `jobDef` and `worker` are validated at load time: a def missing either surfaces as a red
 error naming the def, rather than as a null reference from inside a pawn's think tree an hour
 into the game.
+
+To let the colony use the service too, add a second JobDef with `driverClass`
+`OldWestTown.AI.JobDriver_ColonistUseService` and name it in `colonistJobDef`. `ConfigErrors`
+rejects any other driver there, and rejects it outright on a stock-consuming service — a colonist
+pays nothing, so nobody would be charged for the item taken off the shelf.
 
 ### The worker classes
 
@@ -153,7 +167,7 @@ new service usually needs no new code at all — just XML pointing at one of the
 | Class | Consumes stock | What it does |
 | --- | --- | --- |
 | `ServiceWorker_Ingest` | yes | Consumes one matching item off the display and resolves its effect through that item's own vanilla ingestion outcome. Filtered by `foodType` and/or `requireMeal`; scored against a `needHook` of `Food`, `Joy` or `None`. Ships parameterized twice: [drink](services.md#drink) (Liquor / Joy) and [meal](services.md#meal) (any meal / Food). |
-| `ServiceWorker_Thought` | no | A bare "grant a thought" primitive. Deliberately does nothing else — reusable by any future stock-free service. |
+| `ServiceWorker_Thought` | no | Grants a thought, and refuses anyone who already carries it — so the rate limit lives on the thought's own `durationDays`, in XML. Reusable by any future stock-free service. |
 | `ServiceWorker_Haircut` | no | `ServiceWorker_Thought` plus a visible hair change, using the same helper vanilla's own automatic styling uses. |
 
 An ingest worker's `Desirability` is `Lerp(2.5, 1, need%)`: a hungry customer is likelier to
@@ -172,7 +186,7 @@ Write a new `ServiceWorker` subclass only when the *effect* is genuinely new. Ov
 | --- | --- |
 | `ConsumesStock` | Return true if the service eats an item off the shelf. Changes pricing, appeal accounting and whether the customer fetches anything. |
 | `CanUse(Thing)` | Required if `ConsumesStock` is true — which shelf items qualify. |
-| `Desirability(Pawn)` | If demand should vary by pawn state. **Floor it above zero** so a satisfied customer still occasionally buys. |
+| `Desirability(Pawn)` | If demand should vary by pawn state. Return zero only when the service genuinely would do nothing for this pawn — that is the answer that takes the shop off their list and greys out the colonist order. Where it is a want that never quite goes away, floor it above zero so a satisfied customer still occasionally buys. |
 | `ApplyEffect(Pawn, Thing)` | Always. The `Thing` is null for a stock-free service. |
 
 > Do not start a new job from inside `ApplyEffect`. It runs inside the service job's own toil,
@@ -186,10 +200,17 @@ a bank — reuse the seam rather than routing around it:
 
 - Keep the **shared-state** rule: the customer and the colonist read and write `CompBusiness`,
   never each other.
-- Build the customer job on `JobDriver_PatronizeBusiness` so you inherit the walk/wait/patience/
-  walkout shape and the [alert](customers.md#the-alert) for free.
+- Build a *visitor's* job on `JobDriver_PatronizeBusiness` and you inherit the walk/wait/patience/
+  walkout shape, a place in the counter's line, and the [alert](customers.md#the-alert) for free.
+  A job for the colony's own people should not use it: its patience branch is a walkout, which
+  writes a shop ledger line, a row in the town's patron table and a reputation cost, and none of
+  those should ever be about a colonist. See `JobDriver_ColonistUseService`.
 - Move money through `ShopTransaction` and decide prices in `ShopPricing`.
-- Implement `IBusinessPatron` on the driver so queue spacing and the alert see it.
+- Implement `IBusinessPatron` on the driver, and put the counter at `TargetIndex.B` and the
+  standing cell at `TargetIndex.C`. That is how queue spacing, the line at the counter, the
+  waiting-customers alert, the shopkeeper's customer scan and closing time's reprieve all find
+  your patron without the business layer naming your type. Answer `BeingServed` honestly — it is
+  what stops a sale being torn up one tick from the till.
 
 The [roadmap](roadmap.md) sketches several of these.
 

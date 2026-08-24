@@ -36,8 +36,8 @@ namespace OldWestTown.Shops
             Map map = counter?.Map;
             if (map == null) yield break;
 
-            Room room = counter.GetRoom();
-            if (room != null && !room.PsychologicallyOutdoors && !room.TouchesMapEdge)
+            Room room = shop.SalesFloorRoom;
+            if (room != null)
             {
                 List<Thing> contained = room.ContainedAndAdjacentThings;
                 for (int i = 0; i < contained.Count; i++)
@@ -85,9 +85,13 @@ namespace OldWestTown.Shops
 
         /// <summary>
         /// Picks what a given customer would like to buy from this shop, or null if nothing here
-        /// tempts them or nothing is within their means.
+        /// tempts them or nothing is within their means. <paramref name="skipDefs"/> is what this
+        /// particular customer has already given up on here — passing it in, rather than filtering
+        /// the winner afterwards, is what lets the runner-up stack win instead of the shop dropping
+        /// out of the running entirely.
         /// </summary>
-        public static Thing ChoosePurchase(CompBusiness shop, Pawn customer, int budget, out int count)
+        public static Thing ChoosePurchase(CompBusiness shop, Pawn customer, int budget, out int count,
+            List<ThingDef> skipDefs = null)
         {
             count = 0;
             List<Thing> stock = shop.StockOnDisplay;
@@ -101,14 +105,12 @@ namespace OldWestTown.Shops
             {
                 Thing t = stock[i];
                 if (!t.Spawned || t.Destroyed) continue;
-
-                int unitPrice = ShopPricing.PriceFor(shop, t, 1);
-                if (unitPrice > budget) continue;
+                if (skipDefs != null && skipDefs.Contains(t.def)) continue;
 
                 // Buy as much of the stack as they can afford, capped so one shopper can't
                 // strip a shelf in a single visit.
-                int affordable = unitPrice > 0 ? budget / unitPrice : 0;
-                int wanted = Mathf.Clamp(affordable, 1, Mathf.Min(t.stackCount, MaxUnitsPerPurchase(t)));
+                int cap = Mathf.Min(t.stackCount, MaxUnitsPerPurchase(t));
+                int wanted = ShopPricing.MaxAffordable(shop, t, budget, cap);
                 if (wanted <= 0) continue;
 
                 if (!customer.CanReach(t, PathEndMode.ClosestTouch, Danger.Deadly)) continue;
@@ -134,13 +136,31 @@ namespace OldWestTown.Shops
             return t.def.stackLimit > 1 ? Mathf.Max(1, t.def.stackLimit / 4) : 1;
         }
 
-        /// <summary>The item on display this service can use, or null if nothing currently
-        /// qualifies. The customer scoring pass and TownEconomy's AvailableServices share this one
-        /// scan instead of each re-deriving "is there stock for this." Pass <paramref name="customer"/>
-        /// to also require they can actually path to it — CompBusiness.AvailableServices calls this
-        /// customer-agnostically (there's no specific pawn to check reachability against yet), so
-        /// that parameter defaults to null and skips the reachability filter.</summary>
-        public static Thing ChooseService(CompBusiness shop, ServiceDef service, Pawn customer = null)
+        /// <summary>Whether anything on display could back this service right now.
+        ///
+        /// Separate from <see cref="ChooseService"/> because it is a different question. "Is there
+        /// any" has no tie to break, and the roll ChooseService uses to break one is a draw from the
+        /// shared, seeded game stream — the same stream that rolls raids, damage and quality.
+        /// Answering an availability check with it made selecting a counter change what the
+        /// storyteller did next.</summary>
+        public static bool HasStockFor(CompBusiness shop, ServiceDef service)
+        {
+            if (service?.worker == null || !service.worker.ConsumesStock) return false;
+            List<Thing> stock = shop.StockOnDisplay;
+            for (int i = 0; i < stock.Count; i++)
+            {
+                Thing t = stock[i];
+                if (t.Spawned && !t.Destroyed && service.worker.CanUse(t)) return true;
+            }
+            return false;
+        }
+
+        /// <summary>The item on display this service can use for a given customer, or null if nothing
+        /// currently qualifies or they cannot path to any of it. Which stack is a choice, and the
+        /// spread below is what keeps a queue of customers off one stack — which is also why this may
+        /// only be called for a customer to roll for. Code that only wants to know whether the
+        /// service is on offer at all asks <see cref="HasStockFor"/> instead.</summary>
+        public static Thing ChooseService(CompBusiness shop, ServiceDef service, Pawn customer)
         {
             if (service?.worker == null || !service.worker.ConsumesStock) return null;
             List<Thing> stock = shop.StockOnDisplay;
@@ -152,10 +172,10 @@ namespace OldWestTown.Shops
             {
                 Thing t = stock[i];
                 if (!t.Spawned || t.Destroyed || !service.worker.CanUse(t)) continue;
-                if (customer != null && !customer.CanReach(t, PathEndMode.ClosestTouch, Danger.Deadly)) continue;
+                if (!customer.CanReach(t, PathEndMode.ClosestTouch, Danger.Deadly)) continue;
 
                 // Same tie-break as ChoosePurchase: without it, every customer scoring this
-                // service in the same stock-cache window picks the identical first-qualifying
+                // service against the same shelf snapshot picks the identical first-qualifying
                 // stack and queues for it instead of spreading across equally good ones.
                 float score = ShopPricing.UnitValue(t) * Rand.Range(0.6f, 1.4f);
                 if (score > bestScore)

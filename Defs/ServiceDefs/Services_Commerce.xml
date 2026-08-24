@@ -37,6 +37,7 @@
     <defName>OWT_Haircut</defName>
     <label>haircut</label>
     <jobDef>OWT_ServeHaircut</jobDef>
+    <colonistJobDef>OWT_GetHaircut</colonistJobDef>
     <serveTicks>2200</serveTicks>
     <basePrice>16</basePrice>
     <allowsSelfService>false</allowsSelfService>

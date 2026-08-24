@@ -311,7 +311,6 @@ For completeness, the visible surface that isn't a picture file:
 | Build-menu category icon | The game's default for a build category |
 | Research tab entry | The game's default |
 | **Open for business** button | The game's own "unforbid" icon |
-| **Set prices** button | The game's own power-management icon |
 | **Collect takings** button | The silver icon |
 | **Town ledger** button | The game's own info icon |
 | Stock tab | The stockpile filter list, unmodified |

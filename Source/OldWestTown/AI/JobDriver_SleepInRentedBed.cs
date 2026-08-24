@@ -77,8 +77,8 @@ namespace OldWestTown.AI
                 if (condition != JobCondition.Succeeded && shop != null)
                 {
                     shop.RecordWalkout();
-                    shop.parent.Map?.GetComponent<TownEconomy>()?.RecordWalkout(pawn.Faction);
-                    if (record != null) record.refusedShops.Add(shop.parent);
+                    shop.parent.Map?.GetComponent<TownEconomy>()?.RecordWalkout(pawn);
+                    if (record != null) record.RefuseShop(shop.parent);
                     Messages.Message("OWT_GuestEvicted".Translate(pawn.LabelShort, shop.parent.Label),
                         new LookTargets(pawn), MessageTypeDefOf.NegativeEvent);
                 }

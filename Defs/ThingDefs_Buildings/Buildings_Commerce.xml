@@ -93,7 +93,7 @@
   <ThingDef ParentName="OWT_CounterBase">
     <defName>OWT_BarberChair</defName>
     <label>barber chair</label>
-    <description>A padded chair and a mirror. A colonist assigned to Shopkeeping will cut hair here for anyone willing to wait and pay.</description>
+    <description>A padded chair and a mirror. A colonist assigned to Shopkeeping will cut hair here for anyone willing to wait and pay.\n\nYour own colonists can use it too: select one and right-click the chair. They pay nothing — but somebody still has to stand behind it, neither of them is working while it happens, and they come out with whatever new style the barber felt like.</description>
     <graphicData>
       <texPath>Things/Building/Commerce/BarberChair</texPath>
       <graphicClass>Graphic_Multi</graphicClass>

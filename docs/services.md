@@ -20,7 +20,7 @@ A round at the [saloon bar](buildings.md#saloon-bar).
 | --- | --- |
 | Serve time | a couple of seconds at normal speed |
 | Uses up stock | yes — one bottle of liquor off the bar's own shelves |
-| Price | the drink's market value × the shop's markup |
+| Price | the drink's market value, then the shop's markup and the town's reputation |
 | Self-service | allowed, if the setting is on |
 | Effect | the drink is really drunk — mood, the usual alcohol effects, the usual hangover |
 
@@ -39,7 +39,7 @@ A hot meal at the bar.
 | --- | --- |
 | Serve time | a couple of seconds at normal speed |
 | Uses up stock | yes — any cooked meal on the shelves. Ingredients don't count |
-| Price | the meal's market value × the shop's markup |
+| Price | the meal's market value, then the shop's markup and the town's reputation |
 | Self-service | allowed, if the setting is on |
 | Effect | eaten for real — nutrition, and whatever the meal itself does for mood |
 
@@ -114,7 +114,9 @@ count as both without being counted twice.
   the stock-free side: it needs nothing from the Stock tab, but it does need an actual vacant
   [hotel bed](buildings.md#hotel-bed) somewhere on the desk's sales floor.
 - **Pricing.** A service that uses up stock is priced from whatever it actually consumes. Only a
-  service with nothing behind it has a price of its own.
+  service with nothing behind it has a price of its own. Both are on the counter's Stock tab: a
+  haircut is listed with what it currently costs, a drink or a meal as sold at shelf price —
+  whatever the bottle or the plate it comes off is going for.
 - **Appeal.** A saloon's beer already counts once, as stock on the shelf. Only services with
   nothing physical behind them add to [appeal](economy.md#appeal) separately, so a bottle isn't
   counted twice for being sellable two ways.
@@ -133,9 +135,47 @@ A service visit and a goods purchase are the same four steps:
    starts the service over rather than resuming it.
 4. **Pay**, and the effect lands.
 
-If patience runs out first, the customer [walks out](customers.md#walkouts): the shop takes a
-reputation hit, the customer refuses to queue there again this visit, and anything they were
-carrying is dropped on the floor unpaid.
+A counter serves **one customer at a time**. Anyone else who has walked up waits their turn, and
+waiting your turn costs nothing — patience only burns at a counter nobody is working. The line is
+there to share out one shopkeeper's attention, so it only exists while somebody is behind the
+counter: with self-service on, everyone standing at an unattended one helps themselves at once.
+
+Customers weigh the queue before they commit: rather than join a wait longer than about a tenth
+of a day — a fifth of the time their group is in town at all — they take their money somewhere
+else. At the barber's long haircut that means three deep; at a saloon bar it is a line no group
+will ever reach.
+
+If patience runs out first, the customer [walks out](customers.md#walkouts): anything they were
+carrying is dropped on the floor unpaid, and they count against the town when the day is judged
+that night — giving up halves whatever else their day was worth. They will not queue at that
+counter again *while it is still unattended* — put somebody behind it and they come back.
+
+## Your own colonists
+
+A haircut is not only for strangers. Select a colonist, right-click a barber chair, and choose
+**Get a haircut here**: somebody else stands the chair, your colonist sits in it, and they walk
+away with the same mood boost a customer gets — and, like a customer, whatever new style the
+barber felt like. You don't have to post the barber yourself: a colonist waiting at a chair
+counts as a customer at that counter, so the Shopkeep work asks for somebody the same way a
+stranger would — and holds them there for the whole cut, which is longer than a shopkeeper will
+stand at an empty counter.
+
+They pay nothing. Silver moving from the colony into the colony's own till would be a wash, and
+counting a colonist as a customer would let you build the town's good name with your own people
+instead of by looking after travellers. So a colonist leaves no mark on the books at all: no sale,
+no takings, nothing in the town's service record. What it costs is the only thing it should — two
+colonists' time, one of them standing behind the counter, because there is no serving yourself.
+
+A colonist won't stand there forever either. They give up on the same clock a paying customer
+runs on, and the message says which of the two things went wrong: nobody came to work the counter,
+or the counter was busy with other customers the whole time. The first wants a shopkeeper, the
+second wants a second chair. Either way the town's books stay empty; all it cost was the hour.
+
+The order is refused, with the reason, when the business is closed, when the pawn already has a
+fresh haircut, when somebody else is already waiting there, when two customers are on their way,
+or when your colonist simply cannot walk to the chair. Drinks and meals are deliberately not
+offered this way: those are items on a shelf, and vanilla's own recreation and food jobs already
+send colonists to them under your drug policy.
 
 ---
 

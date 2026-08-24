@@ -4,7 +4,7 @@
   <!-- Mod settings -->
   <OWT_ModTitle>Old West Town</OWT_ModTitle>
   <OWT_SettingSelfService>Allow self-service</OWT_SettingSelfService>
-  <OWT_SettingSelfServiceDesc>Customers will buy from an unattended counter instead of walking out. Convenient, but every self-service sale quietly erodes the town's reputation — nobody remembers a shop nobody works.</OWT_SettingSelfServiceDesc>
+  <OWT_SettingSelfServiceDesc>Customers will buy from an unattended counter instead of walking out. Convenient, but a customer nobody served thinks only half as well of the town as one who was looked after.</OWT_SettingSelfServiceDesc>
   <OWT_SettingVolume>Customer volume: {0}</OWT_SettingVolume>
   <OWT_SettingWealth>Customer wealth: {0}</OWT_SettingWealth>
 
@@ -12,7 +12,9 @@
   <OWT_StatusOpen>Open for business</OWT_StatusOpen>
   <OWT_StatusClosed>Closed</OWT_StatusClosed>
   <OWT_Unattended>unattended</OWT_Unattended>
-  <OWT_StockLine>On sale: {0} items ({1})</OWT_StockLine>
+  <OWT_AtCounterLine>At the counter: {0}</OWT_AtCounterLine>
+  <OWT_QueueLine>Waiting their turn: {0}</OWT_QueueLine>
+  <OWT_StockLine>On sale: {0} stacks ({1})</OWT_StockLine>
   <OWT_ServicesLine>Services offered: {0}</OWT_ServicesLine>
   <OWT_RoomsLine>Rooms: {0} of {1} vacant</OWT_RoomsLine>
   <OWT_MarkupLine>Markup: {0} of market value</OWT_MarkupLine>
@@ -28,36 +30,61 @@
   <!-- Counter gizmos -->
   <OWT_CmdOpen>Open for business</OWT_CmdOpen>
   <OWT_CmdOpenDesc>When open, customers may browse and buy from this counter. Closing it does not stop your colonists using the room.</OWT_CmdOpenDesc>
-  <OWT_CmdMarkup>Set prices</OWT_CmdMarkup>
-  <OWT_CmdMarkupDesc>Set what this business charges, as a percentage of an item's market value. Cheaper shops win customers away from rivals; dearer ones make more per sale.</OWT_CmdMarkupDesc>
-  <OWT_MarkupSlider>Charge {0} of market value</OWT_MarkupSlider>
   <OWT_CmdCollect>Collect takings ({0})</OWT_CmdCollect>
   <OWT_CmdCollectDesc>Empty the till onto the floor beside the counter, where a hauler can pick it up.</OWT_CmdCollectDesc>
   <OWT_CmdLedger>Town ledger</OWT_CmdLedger>
-  <OWT_CmdLedgerDesc>How the town is trading: appeal, reputation, today's business, and every shop's takings. Appeal drives how often customers arrive and how much silver they carry.</OWT_CmdLedgerDesc>
+  <OWT_CmdLedgerDesc>How the town is trading: what its appeal is made of and what raises it, the town's name, today's business, and every shop's takings.</OWT_CmdLedgerDesc>
 
   <!-- Town ledger dialog -->
   <OWT_LedgerTitle>Town ledger</OWT_LedgerTitle>
-  <OWT_LedgerAppealLine>Appeal: {0} — customers start arriving at 0.5; the higher it climbs, the more often they come and the richer they are. Grow it with more distinct, well-stocked, open businesses.</OWT_LedgerAppealLine>
-  <OWT_LedgerReputationLine>Reputation: {0} — served customers raise it; walkouts and self-service sales erode it. It sways both what customers will pay and how many come.</OWT_LedgerReputationLine>
-  <OWT_LedgerTodayLine>Today: {0} sales, {1} walkouts, {2} taken.</OWT_LedgerTodayLine>
+  <OWT_LedgerAppealLine>Appeal: {0} — how much trade the town attracts. Customers start arriving at 0.5. How often they come stops improving at 4.0; how many come keeps climbing past it. It is these three, multiplied:</OWT_LedgerAppealLine>
+  <OWT_LedgerAppealBusinessesLine>  Businesses: {0}. A kind of business the town does not have yet is worth its full draw; each further one of a kind you already run is worth 35% of the one before it. A second counter of a kind you already sell, on a floor you already trade from, is a second till rather than a second business — it lets you serve two customers at once, and adds nothing here. A counter of a different kind on that floor is a new trade, and does count.</OWT_LedgerAppealBusinessesLine>
+  <OWT_LedgerAppealGoodsLine>  On offer: {0} — x{1}. Goods at market value, plus what a business that sells time rather than things is reckoned to be worth. Four times the goods for twice the draw, and every stack counts once however many counters can see it. What you charge does not count: appeal is what the town offers, not what it asks.</OWT_LedgerAppealGoodsLine>
+  <OWT_LedgerAppealStandingLine>  Standing: {0} — x{1}.</OWT_LedgerAppealStandingLine>
+  <OWT_LedgerAppealMissingLine>  Nothing on offer from a {0} right now — either the town has none, or the one it has is closed or bare. A trade you don't run at all is worth far more than another of one you do.</OWT_LedgerAppealMissingLine>
+  <OWT_LedgerPurseLine>Customer purses: x{0} — set by the goods on offer alone, not by appeal. Breadth and a good name bring more travellers; a richer shelf brings travellers who can afford it.</OWT_LedgerPurseLine>
+  <OWT_LedgerReputationLine>Reputation: {0} — the town's service record. Every caller leaves one verdict a day, however much they bought: being served by somebody is worth full marks, taking goods off an unwatched counter half, and giving up waiting halves whatever else their day was worth. It sways how many travellers come (a good name brings half again as much custom as a neutral one, a bad name half as much) and what they'll pay (up to 10% either way).</OWT_LedgerReputationLine>
+  <OWT_LedgerTodayLine>Today: {0} came to a counter, {1} of them gave up waiting, {2} taken.</OWT_LedgerTodayLine>
+  <OWT_LedgerServiceLine>Service today: {0}. The town's name moves toward that tonight — putting somebody behind a counter now still changes it.</OWT_LedgerServiceLine>
+  <OWT_LedgerQuietLine>Nobody has come to a counter today; the town's name drifts back toward the middle.</OWT_LedgerQuietLine>
   <OWT_LedgerLifetimeLine>Lifetime takings: {0}.</OWT_LedgerLifetimeLine>
   <OWT_LedgerShopLine>{0} — {1} today, {2} in the till.</OWT_LedgerShopLine>
+  <OWT_LedgerShopWalkouts>({0} gave up here.)</OWT_LedgerShopWalkouts>
   <OWT_LedgerRegularLine>Customers from {0} have become regulars ({1} standing).</OWT_LedgerRegularLine>
   <OWT_LedgerColdLine>Customers from {0} want nothing more to do with this town ({1} standing).</OWT_LedgerColdLine>
 
   <!-- Stock tab -->
   <OWT_TabStock>Stock</OWT_TabStock>
-  <OWT_TabStockHeader>Offered for sale ({0} on the shelves)</OWT_TabStockHeader>
-  <OWT_ResetStock>Reset</OWT_ResetStock>
+  <OWT_TabStockShelves>On the shelves: {0} — {1} at market, {2} here</OWT_TabStockShelves>
+  <OWT_TabStockEmpty>Nothing on the shelves.</OWT_TabStockEmpty>
+  <OWT_TabStockShelvesTip>What this counter has out: what those goods would fetch at market value, and what it is asking for them. On the shelves means out on this counter's sales floor — the room it stands in, or the ground around it if it stands outdoors — and allowed by the list below. Anything forbidden, or already claimed by one of your own haulers, is not for sale.</OWT_TabStockShelvesTip>
+  <OWT_MarkupSliderTip>What this business charges, as a percentage of an item's market value. Cheaper shops win customers away from rivals; dearer ones make more per sale.</OWT_MarkupSliderTip>
+  <OWT_MarkupSlider>Asking {0} of market value</OWT_MarkupSlider>
+  <OWT_TabStockReputation>The town's name means customers pay {0}.</OWT_TabStockReputation>
+  <OWT_TabStockServices>Services: {0}</OWT_TabStockServices>
+  <OWT_TabStockServiceFixed>{0} {1}</OWT_TabStockServiceFixed>
+  <OWT_TabStockServiceStock>{0} at shelf price</OWT_TabStockServiceStock>
+  <OWT_ResetStock>Reset list</OWT_ResetStock>
+
+  <!-- Ordering a service for a colonist -->
+  <OWT_OrderService>Get a {0} here</OWT_OrderService>
+  <OWT_OrderServiceDisabled>Get a {0} here ({1})</OWT_OrderServiceDisabled>
+  <OWT_ReasonClosed>closed</OWT_ReasonClosed>
+  <OWT_ReasonRecently>had one recently</OWT_ReasonRecently>
+  <OWT_ReasonReserved>{0} is already waiting here</OWT_ReasonReserved>
+  <OWT_ReasonBusy>two customers are already headed there</OWT_ReasonBusy>
+  <OWT_ReasonUnreachable>can't get there</OWT_ReasonUnreachable>
 
   <!-- Events -->
   <OWT_LetterCustomersLabel>Customers arriving ({0})</OWT_LetterCustomersLabel>
   <OWT_LetterCustomersText>{0} travellers from {1} have heard there is business to be done here, and have come to spend.\n\nThey will browse whatever your open shops have on display and pay across the counter — if there is someone there to serve them.</OWT_LetterCustomersText>
   <OWT_CustomersLeaving>The {0} from {1} are heading home.</OWT_CustomersLeaving>
   <OWT_CustomersScared>Violence in town. The customers from {0} are leaving.</OWT_CustomersScared>
-  <OWT_CustomerWalkedOut>{0} gave up waiting at {1} and left the goods behind. Word of the poor service spreads.</OWT_CustomerWalkedOut>
-  <OWT_CustomerWalkedOutService>{0} gave up waiting at {1} and left. Word of the poor service spreads.</OWT_CustomerWalkedOutService>
+  <OWT_CustomerWalkedOut>{0} gave up waiting at {1} and left the goods behind. They think the less of the town for it, and won't go back to that counter until somebody is standing behind it.</OWT_CustomerWalkedOut>
+  <OWT_CustomerWalkedOutService>{0} gave up waiting at {1} and left. They think the less of the town for it, and won't go back to that counter until somebody is standing behind it.</OWT_CustomerWalkedOutService>
+  <OWT_ColonistGaveUp>{0} gave up waiting for a {1} at {2}. Nobody came to work the counter — raise Shopkeeping's priority, or right-click the counter with another colonist to send them to it. It cost the town nothing, and {0} the better part of an hour.</OWT_ColonistGaveUp>
+  <OWT_ColonistNotReached>{0} gave up waiting for a {1} at {2}. The counter was busy with other customers the whole time — it serves one at a time, so a second one is what would have fitted {0} in. It cost the town nothing, and {0} a few hours.</OWT_ColonistNotReached>
+  <OWT_CounterBusy>Customers are walking past {0} rather than wait — a counter serves one at a time. Nobody was neglected and the town's name is untouched; what it costs is the sale. Another counter with somebody behind it is what turns them back into money.</OWT_CounterBusy>
   <OWT_GuestEvicted>{0}'s room at {1} was taken from them. Word of the poor treatment spreads.</OWT_GuestEvicted>
 
   <!-- Alerts -->

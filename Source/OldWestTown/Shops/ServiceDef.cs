@@ -15,6 +15,16 @@ namespace OldWestTown.Shops
         /// driver recovers which service it's running.</summary>
         public JobDef jobDef;
 
+        /// <summary>Job a COLONIST runs to receive this service, or null when the colony's own
+        /// people cannot have it. A second JobDef for the same reason as the first — Job has no
+        /// generic slot to carry a Def reference — and a second driver because the two sides of
+        /// the counter end differently: a stranger's visit ends in a transaction, a colonist's
+        /// ends in an effect and nothing else.
+        ///
+        /// Null is the default and the meaningful one: a service is a stranger's until it is
+        /// deliberately opened to the colony.</summary>
+        public JobDef colonistJobDef;
+
         /// <summary>Pluggable behaviour, embedded like DutyDef.thinkNode: the concrete worker
         /// class supplies its own XML-configurable fields.</summary>
         public ServiceWorker worker;
@@ -29,6 +39,21 @@ namespace OldWestTown.Shops
         /// <summary>Whether the "Allow self-service" mod setting applies to this service at
         /// all, on top of the setting itself being on.</summary>
         public bool allowsSelfService;
+
+        /// <summary>The service a given job runs, whichever side of the counter it came from.
+        /// One lookup rather than one per driver, because a JobDef-to-ServiceDef search is the
+        /// only way either driver can recover what it is running and two copies could disagree
+        /// about which jobs belong to which service.</summary>
+        public static ServiceDef ForJob(JobDef job)
+        {
+            if (job == null) return null;
+            List<ServiceDef> all = DefDatabase<ServiceDef>.AllDefsListForReading;
+            for (int i = 0; i < all.Count; i++)
+            {
+                if (all[i].jobDef == job || all[i].colonistJobDef == job) return all[i];
+            }
+            return null;
+        }
 
         /// <summary>
         /// Both fields below are dereferenced without a null check on the hot paths that pick and
@@ -51,6 +76,19 @@ namespace OldWestTown.Shops
             else if (jobDef.driverClass != typeof(AI.JobDriver_UseService))
             {
                 yield return $"jobDef {jobDef.defName} does not use JobDriver_UseService";
+            }
+
+            if (colonistJobDef != null)
+            {
+                if (colonistJobDef.driverClass != typeof(AI.JobDriver_ColonistUseService))
+                {
+                    yield return $"colonistJobDef {colonistJobDef.defName} does not use JobDriver_ColonistUseService";
+                }
+                if (worker != null && worker.ConsumesStock)
+                {
+                    yield return "colonistJobDef on a stock-consuming service — a colonist pays nothing, so "
+                               + "there is no answer to who paid for the item it would take off the shelf";
+                }
             }
         }
     }

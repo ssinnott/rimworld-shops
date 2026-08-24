@@ -31,16 +31,16 @@ All under `Source/OldWestTown/`, namespace `OldWestTown`.
 | File | Type | Job |
 | --- | --- | --- |
 | `ShopKindDef.cs` | `ShopKindDef` | Data-driven [business type](businesses.md): default stock, price band, appeal, patience, services. Adding a kind is XML, not code. |
-| `CompBusiness.cs` | `CompProperties_Business`, `IBusinessPatron`, `CompBusiness` | Makes a building a business. Owns the till, filter, markup, ledger, staff flag, and the staff/customer cell pair. The largest file in the mod, and the hub the two pawn loops meet at. |
+| `CompBusiness.cs` | `CompProperties_Business`, `IBusinessPatron`, `CompBusiness` | Makes a building a business. Owns the till, filter, markup, ledger, staff flag, the staff/customer cell pair, the line waiting at the counter, and the right-click order that sends one of your own colonists to a service. The largest file in the mod, and the hub the two pawn loops meet at. |
 | `ServiceDef.cs` | `ServiceDef` | A [thing a business sells](services.md) that isn't a shelf item. Validates its own required fields at load. |
 | `ServiceWorker.cs` | `ServiceNeedHook`, `ServiceWorker`, `ServiceWorker_Ingest`, `ServiceWorker_Thought`, `ServiceWorker_Haircut`, `ServiceWorker_Lodging` | The pluggable behaviour behind a service: what it can act on, how much a customer wants it, what it does once paid for. `ServiceWorker_Lodging` is the first to widen `ApplyEffect`'s return into a `Thing` a service claims for longer than the sale itself — the [hotel bed](buildings.md#hotel-bed) it just booked. |
 | `ShopStock.cs` | `ShopStock` | [What's on the shelves](economy.md#what-counts-as-stock), what a given customer would buy, and which item a service can currently consume. |
 | `ShopPricing.cs` | `ShopPricing` | The only place a [price](economy.md#pricing) is decided, so UI, AI and transaction can't disagree. |
 | `ShopTransaction.cs` | `ShopTransaction` | The single point where silver, goods and service effects move. Re-validates everything. |
+| `TownEconomy.cs` | `TownEconomy` | `MapComponent`: business register, daily ledger, arrival clock, and the two clocks the economy hangs off — the 60-tick survey that re-reads every shop's shelves and prices the town's [appeal](economy.md#appeal), and the nightly settling of [reputation](economy.md#reputation) from the day's callers. |
 | `CompRentableBed.cs` | `CompProperties_RentableBed`, `CompRentableBed` | A [hotel bed](buildings.md#hotel-bed) a guest has paid to sleep in for one night. Purely passive shared state, mirroring `CompBusiness`'s own staff flag on purpose — the guest's own sleep job is what notices it and acts on it, never a handshake with the desk that sold the stay. |
 | `CompFalseFront.cs` | `CompProperties_FalseFront`, `CompFalseFront` | A [false front](buildings.md#false-front)'s one mechanical hook: `CurbAppealBonus` folds a small, capped bonus for a nearby dressed-up storefront into `ShopPricing.ValueAppeal`. Walks `FalseFrontRegistry` rather than the map, since `ValueAppeal` is a customer-AI hot path. Nothing here is persisted. |
 | `FalseFrontRegistry.cs` | `FalseFrontRegistry` | `MapComponent`. Live roster of spawned `CompFalseFront`s, registered the same way `TownEconomy` registers shops — so curb-appeal scoring never has to scan every Thing on the map. |
-| `TownEconomy.cs` | `TownEconomy` | `MapComponent`: business register, daily ledger, reputation, [appeal](economy.md#appeal), arrival clock, and — per faction — a sparse [standing](economy.md#standing-with-a-faction) dictionary that biases which faction's customers arrive next. |
 
 ### `AI/` — the pawn loops
 
@@ -50,8 +50,9 @@ All under `Source/OldWestTown/`, namespace `OldWestTown`.
 | `JobDriver_PatronizeBusiness.cs` | `JobDriver_PatronizeBusiness` | The shared "walk up, wait to be served, get served or walk out" shape, plus the patience and walkout logic. |
 | `JobDriver_BuyFromShop.cs` | `JobDriver_BuyFromShop` | A goods purchase: fetch, browse, carry, wait, pay. |
 | `JobDriver_UseService.cs` | `JobDriver_UseService` | A [service visit](services.md#how-a-service-visit-runs). Skips the fetch step for a stock-free service. |
-| `WorkGiver_ManShop.cs` | `WorkGiver_ManShop` | Colonist side. Kind-agnostic: [staffs any business](shopkeeping.md#when-a-counter-asks-for-staff) with something to offer — a hotel desk included. |
-| `JobDriver_ManShop.cs` | `JobDriver_ManShop` | Stands at the staff cell and pings `NotifyStaffedBy` every tick. |
+| `WorkGiver_ManShop.cs` | `WorkGiver_ManShop` | Colonist side. Kind-agnostic: [staffs any business](shopkeeping.md#when-a-counter-asks-for-staff) with something to offer. |
+| `JobDriver_ManShop.cs` | `JobDriver_ManShop` | Stands at the staff cell and pings `NotifyStaffedBy` every tick. Re-scans for customers every 30 ticks rather than every one. |
+| `JobDriver_ColonistUseService.cs` | `JobDriver_ColonistUseService` | The colony's own side of a counter. Waits on the same staffing flag a stranger does and receives the same effect, and names no price, till, ledger or lord — so [a colonist](services.md#your-own-colonists) can never reach the town's books. |
 | `JobGiver_SleepInRentedBed.cs` | `JobGiver_SleepInRentedBed` | A checked-in [guest](services.md#lodging)'s other job: sends them to the bed they paid for once they're actually tired. Runs ahead of `JobGiver_BuyFromShop` in the same `OWT_Shop` duty. |
 | `JobDriver_SleepInRentedBed.cs` | `JobDriver_SleepInRentedBed` | Sleeps a guest until rested, or a hard tick cap. Never references the desk or colonist that sold the stay — only `CompRentableBed` and the guest's own `CustomerRecord`. |
 | `WorkGiver_Patrol.cs` | `WorkGiver_Patrol` | Sends the assigned [sheriff](shopkeeping.md#sheriffing) to stand watch at their own office — the ambient half of suppression. Skips entirely if the town has no rowdiness-capable saloon to patrol for. |
@@ -72,10 +73,11 @@ All under `Source/OldWestTown/`, namespace `OldWestTown`.
 | --- | --- | --- |
 | `Lords/LordJob_ShopVisit.cs` | `CustomerRecord`, `LordJob_ShopVisit` | The [visiting group](customers.md#the-visit) and its per-customer records — including, now, who's checked into a bed. Deliberately a flat graph: shopping, then exit; `Trigger_VisitComplete` additionally waits for every rented bed to empty before the group can leave. |
 | `Lords/LordToil_Shop.cs` | `LordToil_Shop` | Hands every group member the `OWT_Shop` duty. |
-| `Incidents/IncidentWorker_ShopCustomers.cs` | `IncidentWorker_ShopCustomers` | Turns town appeal into [arrivals](customers.md#arrival), purses and group size, and — per faction standing — biases [which faction](customers.md#which-faction-turns-up) actually shows up. |
+| `Lords/LordToil_CloseUp.cs` | `LordToil_CloseUp` | Closing time. Sends the group home the way vanilla's exit toil does, except for a customer whose sale is being worked that moment. |
+| `Incidents/IncidentWorker_ShopCustomers.cs` | `IncidentWorker_ShopCustomers` | Turns town appeal into [arrivals](customers.md#arrival), purses and group size. |
 | `Alerts/Alert_CustomersWaiting.cs` | `Alert_CustomersWaiting` | Raised while customers burn patience at an unattended business. |
+| `UI/ITab_ShopStock.cs` | `ITab_ShopStock` | The Stock tab, and the one screen where a price is set: shelf totals, the markup slider and what the services cost, above vanilla's storage-filter widget so the stock list still reads like a stockpile. |
 | `Alerts/Alert_RowdyPatrons.cs` | `Alert_RowdyPatrons` | Raised while a patron is "getting loud" and still calmable — the sheriff's real window before a disturbance fires unattended. Mirrors `Alert_CustomersWaiting`'s shape. |
-| `UI/ITab_ShopStock.cs` | `ITab_ShopStock` | The Stock tab. Reuses vanilla's storage-filter widget, so it reads like a stockpile. |
 
 ### Root
 
@@ -88,12 +90,15 @@ All under `Source/OldWestTown/`, namespace `OldWestTown`.
 ## Boundaries worth keeping
 
 **The `Shops` layer never depends on `AI`.** `CompBusiness` recognizes "a pawn is patronizing
-something" through a small marker interface, `IBusinessPatron`, rather than by naming a concrete
-driver type or `JobDef`. That is what lets queue-spacing and the waiting-customers alert work
+something", and "somebody is working their sale right now", through a small interface,
+`IBusinessPatron`, rather than by naming a concrete driver type or `JobDef`. That is what lets
+queue-spacing, the line at the counter, the waiting-customers alert and closing time all work
 without the business layer knowing the AI namespace exists.
 
 **One price basis, one transaction point.** `ShopPricing` is the only thing that decides what
-something costs; `ShopTransaction` is the only thing that moves silver. Both goods and services
+something costs — and, through `MaxAffordable`, how much of it a purse can pay for, so the order
+a customer sizes at the shelf and the bill the counter charges can never disagree.
+`ShopTransaction` is the only thing that moves silver. Both goods and services
 go through them. A new business type that needs its own pricing rule should extend those, not
 route around them.
 
@@ -134,8 +139,10 @@ anything changes hands.
   Goods a colonist has already reserved are excluded from the shelves, which removes most of the
   churn, but a hauler can still start a job on goods a customer is mid-walk toward, and two
   customers can race for the same stack. The loser's job fails gracefully.
-- `Appeal` walks every open business's stock. It's cached per business for a second, which is
-  fine for a main street and would want revisiting for a hundred counters.
+- The town surveys itself every 60 ticks: one pass re-reads every shop's shelves and prices the
+  whole offer, and `Appeal` is then just a product of what that pass recorded. Nothing else decides
+  when a scan happens, which is what keeps drawing a counter's inspect pane from changing the game.
+  Fine for a main street; a hundred counters would want the survey spread across several ticks.
 - Two vanilla calls the services path leans on — `Thing.Ingested` for drink and meal, and the
   `PawnStyleItemChooser.RandomHairFor` + `SetAllGraphicsDirty` pair for a haircut's visible hair
   change — are exercised by this mod for the first time. Every signature is confirmed against the
