@@ -14,7 +14,7 @@
   <OWT_Unattended>unattended</OWT_Unattended>
   <OWT_AtCounterLine>At the counter: {0}</OWT_AtCounterLine>
   <OWT_QueueLine>Waiting their turn: {0}</OWT_QueueLine>
-  <OWT_StockLine>On sale: {0} items ({1})</OWT_StockLine>
+  <OWT_StockLine>On sale: {0} stacks ({1})</OWT_StockLine>
   <OWT_ServicesLine>Services offered: {0}</OWT_ServicesLine>
   <OWT_MarkupLine>Markup: {0} of market value</OWT_MarkupLine>
   <OWT_TillLine>Till: {0} (today: {1})</OWT_TillLine>
@@ -23,9 +23,6 @@
   <!-- Counter gizmos -->
   <OWT_CmdOpen>Open for business</OWT_CmdOpen>
   <OWT_CmdOpenDesc>When open, customers may browse and buy from this counter. Closing it does not stop your colonists using the room.</OWT_CmdOpenDesc>
-  <OWT_CmdMarkup>Set prices</OWT_CmdMarkup>
-  <OWT_CmdMarkupDesc>Set what this business charges, as a percentage of an item's market value. Cheaper shops win customers away from rivals; dearer ones make more per sale.</OWT_CmdMarkupDesc>
-  <OWT_MarkupSlider>Charge {0} of market value</OWT_MarkupSlider>
   <OWT_CmdCollect>Collect takings ({0})</OWT_CmdCollect>
   <OWT_CmdCollectDesc>Empty the till onto the floor beside the counter, where a hauler can pick it up.</OWT_CmdCollectDesc>
   <OWT_CmdLedger>Town ledger</OWT_CmdLedger>
@@ -49,8 +46,16 @@
 
   <!-- Stock tab -->
   <OWT_TabStock>Stock</OWT_TabStock>
-  <OWT_TabStockHeader>Offered for sale ({0} on the shelves)</OWT_TabStockHeader>
-  <OWT_ResetStock>Reset</OWT_ResetStock>
+  <OWT_TabStockShelves>On the shelves: {0} — {1} at market, {2} here</OWT_TabStockShelves>
+  <OWT_TabStockEmpty>Nothing on the shelves.</OWT_TabStockEmpty>
+  <OWT_TabStockShelvesTip>What this counter has out: what those goods would fetch at market value, and what it is asking for them. On the shelves means out on this counter's sales floor — the room it stands in, or the ground around it if it stands outdoors — and allowed by the list below. Anything forbidden, or already claimed by one of your own haulers, is not for sale.</OWT_TabStockShelvesTip>
+  <OWT_MarkupSliderTip>What this business charges, as a percentage of an item's market value. Cheaper shops win customers away from rivals; dearer ones make more per sale.</OWT_MarkupSliderTip>
+  <OWT_MarkupSlider>Asking {0} of market value</OWT_MarkupSlider>
+  <OWT_TabStockReputation>The town's name means customers pay {0}.</OWT_TabStockReputation>
+  <OWT_TabStockServices>Services: {0}</OWT_TabStockServices>
+  <OWT_TabStockServiceFixed>{0} {1}</OWT_TabStockServiceFixed>
+  <OWT_TabStockServiceStock>{0} at shelf price</OWT_TabStockServiceStock>
+  <OWT_ResetStock>Reset list</OWT_ResetStock>
 
   <!-- Ordering a service for a colonist -->
   <OWT_OrderService>Get a {0} here</OWT_OrderService>

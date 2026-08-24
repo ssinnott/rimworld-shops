@@ -91,6 +91,15 @@ namespace OldWestTown.Shops
 
         private List<Thing> cachedStock = new List<Thing>();
 
+        // What the shelves are worth, priced when the answer can change rather than when
+        // somebody looks at it. See EnsurePriced.
+        private int stockVersion;
+        private int pricedVersion = -1;
+        private float pricedMarkup;
+        private float pricedReputation;
+        private int cachedStockPrice;
+        private int cachedStockMarket;
+
         public CompProperties_Business Props => (CompProperties_Business)props;
 
         public ShopKindDef Kind => Props.shopKind;
@@ -101,6 +110,12 @@ namespace OldWestTown.Shops
             set => open = value;
         }
 
+        /// <summary>Price band for a business whose kind names none.</summary>
+        private static readonly FloatRange DefaultMarkupRange = new FloatRange(0.5f, 3f);
+
+        /// <summary>What the player may charge here, as a multiple of market value.</summary>
+        public FloatRange MarkupRange => Kind?.markupRange ?? DefaultMarkupRange;
+
         public float Markup
         {
             get
@@ -108,11 +123,7 @@ namespace OldWestTown.Shops
                 if (markup < 0f) markup = Kind?.defaultMarkup ?? 1.35f;
                 return markup;
             }
-            set
-            {
-                FloatRange range = Kind?.markupRange ?? new FloatRange(0.5f, 3f);
-                markup = Mathf.Clamp(value, range.min, range.max);
-            }
+            set => markup = Mathf.Clamp(value, MarkupRange.min, MarkupRange.max);
         }
 
         public ThingFilter StockFilter
@@ -260,23 +271,53 @@ namespace OldWestTown.Shops
         /// </summary>
         public List<Thing> StockOnDisplay => cachedStock;
 
-        /// <summary>Total shelf price of everything on display — the shop's visible richness.</summary>
-        public int StockValue
+        /// <summary>Total shelf price of everything on display — what this counter is asking for
+        /// its stock, and the shop's visible richness.</summary>
+        public int StockValue { get { EnsurePriced(); return cachedStockPrice; } }
+
+        /// <summary>What those same goods are worth at market: the yardstick an asking price is
+        /// set against. This counter's shelves alone — the town's own offer total counts a stack
+        /// two counters can both see once, and adds what a service is reckoned to be worth, so
+        /// the two figures are the same quantity but not the same number.</summary>
+        public int StockMarketValue { get { EnsurePriced(); return cachedStockMarket; } }
+
+        /// <summary>Prices the shelves — a MarketValue stat lookup per stack — when the answer
+        /// can have changed, rather than when somebody looks. Both readers, the inspect pane and
+        /// the Stock tab, draw every frame. The answer moves only when the shelf snapshot is
+        /// retaken (the town's survey does that every 60 ticks; a sale or a filter edit does it
+        /// at once), when the player moves the markup, or when the town's name moves at midnight,
+        /// and all three are in the key below. So the markup and the town's name are exact to the
+        /// frame, while the shelves are as fresh as the snapshot: a stack that shrinks or burns
+        /// inside an unchanged one keeps the price the survey last saw, for a second at worst —
+        /// and the stack count printed beside it is stale by exactly the same amount, so the two
+        /// figures never disagree on screen.
+        ///
+        /// This derives rather than snapshots: it reads the list the survey already took and
+        /// rolls no dice, which is what makes it safe on a draw path where RefreshStock is
+        /// not.</summary>
+        private void EnsurePriced()
         {
-            get
+            float rep = ReputationPriceFactor;
+            if (pricedVersion == stockVersion && pricedMarkup == Markup && pricedReputation == rep) return;
+
+            float market = 0f;
+            int price = 0;
+            for (int i = 0; i < cachedStock.Count; i++)
             {
-                int total = 0;
-                List<Thing> stock = StockOnDisplay;
-                for (int i = 0; i < stock.Count; i++)
-                {
-                    total += ShopPricing.PriceFor(this, stock[i], stock[i].stackCount);
-                }
-                return total;
+                Thing t = cachedStock[i];
+                market += ShopPricing.UnitValue(t) * t.stackCount;
+                price += ShopPricing.PriceFor(this, t, t.stackCount);
             }
+            cachedStockMarket = Mathf.RoundToInt(market);
+            cachedStockPrice = price;
+            pricedVersion = stockVersion;
+            pricedMarkup = Markup;
+            pricedReputation = rep;
         }
 
         /// <summary>Re-reads the shelves. Called once per shop by the town's survey, and again the
-        /// moment a player action changes what is on sale — a filter edit, or a sale.
+        /// moment a player action changes what is on sale — a filter edit, or a sale. The counter
+        /// is what tells the priced totals above that the shelves they were priced from are gone.
         ///
         /// Deliberately NOT done from the getter. A refreshing getter meant that drawing this
         /// counter's inspect pane could decide WHEN the snapshot was taken, and the customer AI
@@ -285,6 +326,7 @@ namespace OldWestTown.Shops
         /// storyteller rolled next. Looking at a shop must not change the game.</summary>
         public void RefreshStock()
         {
+            stockVersion++;
             cachedStock = ShopStock.ScanFor(this).ToList();
         }
 
@@ -634,23 +676,6 @@ namespace OldWestTown.Shops
                 icon = TexCommand.ForbidOff,
                 isActive = () => open,
                 toggleAction = () => open = !open
-            };
-
-            yield return new Command_Action
-            {
-                defaultLabel = "OWT_CmdMarkup".Translate(),
-                defaultDesc = "OWT_CmdMarkupDesc".Translate(),
-                icon = TexCommand.DesirePower,
-                action = () =>
-                {
-                    FloatRange range = Kind?.markupRange ?? new FloatRange(0.5f, 3f);
-                    Find.WindowStack.Add(new Dialog_Slider(
-                        pct => "OWT_MarkupSlider".Translate((pct / 100f).ToStringPercent()),
-                        Mathf.RoundToInt(range.min * 100f),
-                        Mathf.RoundToInt(range.max * 100f),
-                        pct => Markup = pct / 100f,
-                        Mathf.RoundToInt(Markup * 100f)));
-                }
             };
 
             if (TillSilver > 0)

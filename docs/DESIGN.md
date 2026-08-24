@@ -449,6 +449,62 @@ defensible because the number now moves once a night rather than on every sale i
 can still shift under a customer mid-walk when a visit spans midnight, but no longer because
 somebody else bought a beer while they were choosing.
 
+### Setting a price where you can see it
+
+The Stock tab is where a business's goods are decided, and until now it said nothing about money:
+not what the shelves were worth, not what the counter was asking for them, and not what the price
+control — a separate gizmo opening a modal slider over the top of the goods it repriced — was doing
+to either. The player set a price blind and found out by watching the till.
+
+So the price moved into the tab and the gizmo went. A markup is a setting, not an action, and the
+one screen that can show its consequence is the screen listing the goods it applies to. Two rows
+above vanilla's filter tree carry the decision: what is on the shelves, what it would fetch at
+market value and what this counter is asking for it; then the slider itself.
+
+Those two money figures are the comparison a price *is*, so they share a line, and their ratio is
+the multiplier actually charged — including the part of it the player did not set. Reputation moves
+the real price by up to a tenth either way, so a screen printing only the markup would state a
+number the till does not charge. Money cannot disagree with the till, and where the slider's
+percentage and the charged one are genuinely different numbers a third line says the charged one —
+drawn by comparing the two percentages as they will be *printed*, so it never appears to repeat the
+line above it. In a town of neutral standing it never appears at all.
+
+A fourth line exists only for a counter that sells something no shelf can price. The barber's whole
+trade is a haircut, so without it that tab is a slider with no visible effect; the saloon's drink is
+priced off a bottle the player would not think to look at, so it is named without a price, because
+it hasn't got one of its own.
+
+Everything else was left out. A price cannot be shown against vanilla's filter tree because that
+tree lists defs and a price is a property of a stack — quality, stuff and hit points are all inside
+`Thing.MarketValue` — so a figure beside "Fine apparel" would be wrong for almost every garment
+behind it. A full per-stack price list was built and rejected: it answers browsing rather than the
+decision, and it costs the map three hundred pixels no vanilla tab takes. A per-row percentage would
+be one number printed forty times, since every shelf price is market value times the same two
+factors. What a customer can afford is a town figure fixed when a group spawns, and the ledger is
+where town figures live. What is selling would be a new saved per-def record on every counter, for a
+question a shrinking stack already answers.
+
+The tab draws every frame it is open, and pricing a shelf costs a `MarketValue` lookup per stack, so
+nothing is priced while drawing. The counter keeps its two totals against the three things that can
+move them — the shelf snapshot, the markup, and the town's name — and recomputes only when one of
+them has. The markup and the town's name are exact to the frame; the shelves are as fresh as the survey that
+read them, which is a second at worst. That makes the figures exact against the snapshot rather than
+merely fresh: there is no window in which the tab
+shows yesterday's name. It is also a removal rather than an addition, because the inspect pane used
+to sum the whole shelf every frame to print one line, and now reads the same memo; the pane and the
+tab cannot disagree, because there is one number. Deriving totals from a snapshot somebody else took
+is safe on a draw path in a way that retaking the snapshot is not: no dice are rolled, and nothing is
+re-read from the world.
+
+`ITab` instances are built once per tab type, not per building, so the quick-search box and scroll
+position in the filter tree were shared by every counter in town: a search typed at the saloon
+silently filtered the general store's tree from a box scrolled out of sight. Vanilla's own storage
+tab holds the same shared state and scrubs it when the tab opens and when the player clicks away —
+neither of which happens when the *selection* changes under an already-open tab, which is the case
+that leaks. This tab remembers which counter its filter state belongs to and starts clean when the
+selection moves, by id rather than by holding the building, so a demolished counter is not kept
+alive by the tab that last drew it.
+
 ## Roadmap
 
 Staged so each step is playable on its own.
@@ -532,6 +588,12 @@ competitive rather than solitaire.
 - **None of this has run in RimWorld.** It compiles against the 1.6 reference assemblies and
   passes `tools/validate_defs.py`, but job drivers, lord graphs and duty think trees are
   exactly the code that static checking can't validate. First-play bugs are expected.
+- The Stock tab's two new rows are laid out against widgets whose internals cannot be read off the
+  reference assemblies: `Widgets.HorizontalSlider` decides for itself where inside its rect the
+  label and the rail go, and `Widgets.LabelFit` decides how to shrink an over-long money line. Both
+  get rects with room to spare, the font is set back before the filter tree in case the slider does
+  not restore it, and no measurement is taken from either — so being wrong costs a cosmetic surprise
+  rather than a broken tab. Neither has been seen in a live game.
 - `CustomerCell` mirrors the interaction cell through the counter. For an unusually shaped or
   awkwardly placed counter this can pick a cell the player didn't intend; there's a fallback to
   any standable neighbour, and queueing customers fan out to free cells around it

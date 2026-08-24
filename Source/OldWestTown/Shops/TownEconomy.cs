@@ -45,9 +45,9 @@ namespace OldWestTown.Shops
         /// front however many of it you build.</summary>
         private const float RepeatFrontFactor = 0.35f;
 
-        /// <summary>How often the town takes stock of itself. No faster than the per-shop shelf scan
-        /// it reads (CompBusiness.StockCacheTicks, also 60): surveying more often just re-derives the
-        /// same answer from the same cached shelves.</summary>
+        /// <summary>How often the town takes stock of itself, and — since the survey is what
+        /// retakes them — how often every shop's shelves are re-read, and its priced totals with
+        /// them. Surveying faster would only re-derive the same answer from the same shelves.</summary>
         private const int SurveyInterval = 60;
 
         /// <summary>How often the arrival clock is consulted. MTB math corrects for the interval.
