@@ -1,3 +1,4 @@
+using OldWestTown.Compat;
 using UnityEngine;
 using Verse;
 
@@ -14,12 +15,23 @@ namespace OldWestTown
         /// <summary>Scales the silver customers arrive carrying.</summary>
         public float customerWealth = 1f;
 
+        /// <summary>Master switch for the Hospitality bridge (Compat/). Only ever consulted
+        /// while HospitalityInterop.Present is true, so this has no effect at all on an install
+        /// without Hospitality.</summary>
+        public bool hospitalityBridgeEnabled = true;
+
+        /// <summary>Whether the bridge tops up a Hospitality guest's purse the same way an
+        /// arriving customer's is. Off leaves a guest to spend only silver they already carry.</summary>
+        public bool hospitalityGuestsCarrySilver = true;
+
         public override void ExposeData()
         {
             base.ExposeData();
             Scribe_Values.Look(ref allowSelfService, "allowSelfService");
             Scribe_Values.Look(ref customerVolume, "customerVolume", 1f);
             Scribe_Values.Look(ref customerWealth, "customerWealth", 1f);
+            Scribe_Values.Look(ref hospitalityBridgeEnabled, "hospitalityBridgeEnabled", true);
+            Scribe_Values.Look(ref hospitalityGuestsCarrySilver, "hospitalityGuestsCarrySilver", true);
         }
     }
 
@@ -48,6 +60,27 @@ namespace OldWestTown
 
             list.Label("OWT_SettingWealth".Translate(Settings.customerWealth.ToStringPercent()));
             Settings.customerWealth = list.Slider(Settings.customerWealth, 0.25f, 3f);
+
+            // Hospitality section: a status line always shown, so the player can tell the bridge
+            // apart from a mod that's simply doing nothing; controls only once there's something
+            // for them to do. A checkbox that could never do anything (Hospitality absent) is
+            // hidden entirely rather than shown disabled.
+            list.Gap();
+            list.Label(HospitalityInterop.Present
+                ? "OWT_HospitalityDetected".Translate()
+                : "OWT_HospitalityNotDetected".Translate());
+
+            if (HospitalityInterop.Present)
+            {
+                list.CheckboxLabeled("OWT_SettingHospitalityEnabled".Translate(), ref Settings.hospitalityBridgeEnabled,
+                    "OWT_SettingHospitalityEnabledDesc".Translate());
+
+                if (Settings.hospitalityBridgeEnabled)
+                {
+                    list.CheckboxLabeled("OWT_SettingHospitalitySilver".Translate(), ref Settings.hospitalityGuestsCarrySilver,
+                        "OWT_SettingHospitalitySilverDesc".Translate());
+                }
+            }
 
             list.End();
         }

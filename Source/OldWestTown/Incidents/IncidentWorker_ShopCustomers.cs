@@ -161,7 +161,7 @@ namespace OldWestTown.Incidents
         /// Gives a customer money to spend. Richer towns attract richer custom, so investment
         /// in the town compounds rather than just adding more footfall.
         /// </summary>
-        private static void GivePurse(Pawn pawn, float appeal)
+        internal static void GivePurse(Pawn pawn, float appeal)
         {
             if (pawn?.inventory == null) return;
 

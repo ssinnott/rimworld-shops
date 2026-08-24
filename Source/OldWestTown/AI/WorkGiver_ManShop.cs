@@ -71,7 +71,14 @@ namespace OldWestTown.AI
                 Pawn p = all[i];
                 if (p.Faction == Faction.OfPlayer || p.Dead || p.Downed) continue;
                 if (p.HostileTo(Faction.OfPlayer)) continue;
-                if (p.mindState?.duty?.def != OWTDefOf.OWT_Shop) continue;
+
+                // A native customer is recognized by duty; a bridged Hospitality guest never has
+                // one (Compat/HospitalityBridge.cs never touches PawnDuty), so it's recognized
+                // by the same IBusinessPatron marker CompBusiness.CellFreeFor and
+                // Alert_CustomersWaiting already key off instead of the duty.
+                bool isCustomer = p.mindState?.duty?.def == OWTDefOf.OWT_Shop || p.jobs?.curDriver is IBusinessPatron;
+                if (!isCustomer) continue;
+
                 if (p.Position.DistanceTo(shop.parent.Position) <= CustomerScanRadius) return true;
             }
             return false;

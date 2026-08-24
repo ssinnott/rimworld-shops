@@ -82,4 +82,13 @@
   <OWT_AlertRowdyPatrons>Rowdy patrons ({0})</OWT_AlertRowdyPatrons>
   <OWT_AlertRowdyPatronsDesc>A patron is getting loud at a saloon. If nothing steps in, it will turn into a disturbance — losing you their custom for the rest of their visit and hurting the town's reputation. An assigned, on-duty sheriff can calm them down first.</OWT_AlertRowdyPatronsDesc>
 
+  <!-- Hospitality bridge -->
+  <OWT_HospitalityDetected>Hospitality detected — idle guests may wander off to shop or drink while they're here.</OWT_HospitalityDetected>
+  <OWT_HospitalityNotDetected>Hospitality not detected — nothing to bridge.</OWT_HospitalityNotDetected>
+  <OWT_SettingHospitalityEnabled>Let Hospitality guests shop</OWT_SettingHospitalityEnabled>
+  <OWT_SettingHospitalityEnabledDesc>An idle Hospitality guest may patronize an open business the same way a travelling customer does. They never rent one of your hotel rooms — Hospitality is already housing them.</OWT_SettingHospitalityEnabledDesc>
+  <OWT_SettingHospitalitySilver>Give Hospitality guests spending money</OWT_SettingHospitalitySilver>
+  <OWT_SettingHospitalitySilverDesc>Top up a Hospitality guest's purse the same way an arriving customer's is, if they aren't already carrying enough to buy anything. Turn this off to only let guests spend silver they already have.</OWT_SettingHospitalitySilverDesc>
+  <OWT_HospitalityBridgeEngaged>{0} wandered over from where they're staying and did business at {1}.</OWT_HospitalityBridgeEngaged>
+
 </LanguageData>

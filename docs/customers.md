@@ -176,3 +176,34 @@ disturbance has already happened by the time anything could react to it. An assi
 **on-duty** sheriff can walk over and talk a specific patron down before they get there — see
 [sheriffing](shopkeeping.md#sheriffing) for how a colonist takes up that post in the first
 place.
+
+## Hospitality guests
+
+If you also run the Hospitality mod — it isn't required, and everything above works exactly the
+same without it — a guest Hospitality is already putting up for the night can wander over and do
+business with you too: buying something off a shelf, ordering a drink or a meal, or sitting for
+a haircut, the same as a travelling customer would.
+
+This only ever happens while the guest genuinely has nothing else to do. Hospitality's own
+routine for them — checking in, eating, socializing, sleeping — always comes first, and a guest
+busy with any of that is never interrupted. Roughly every six in-game minutes, if one of your
+businesses has something to offer and a guest happens to be idle right then, they may be sent on
+a single shopping trip.
+
+A Hospitality guest **never rents one of your hotel rooms** — Hospitality is already housing them
+for the night, and there's no way for the two systems to end up disagreeing about where a guest
+is supposed to sleep.
+
+Recognizing a Hospitality guest at all rests on how Hospitality's own mod happens to be built —
+something this mod has never actually been tested alongside a real copy of Hospitality to
+confirm. If that turns out to be wrong, nothing breaks: guests from Hospitality simply never
+wander over, exactly as if this feature didn't exist. The first time it *does* work in a save,
+you'll see a one-off message naming the guest and the business.
+
+Two settings control this, both under **Old West Town** in the mod settings menu, and both only
+shown at all once Hospitality is actually detected:
+
+- **Let Hospitality guests shop** — the on/off switch for the whole thing. On by default.
+- **Give Hospitality guests spending money** — tops up a guest's pockets the same way an
+  arriving customer's are, if they aren't already carrying enough to buy anything. Turn it off
+  to only let guests spend silver they already have on them.

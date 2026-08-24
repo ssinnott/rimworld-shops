@@ -63,9 +63,40 @@ change itself, and update the [wiki page](contributing.md#the-workflow) it affec
   every push to `main`.
 - `CLAUDE.md`, recording the repository's layout, commands and conventions — including the rule
   that a change to the mod updates the wiki and this changelog in the same commit.
+- **The Hospitality bridge** (`Compat/`) — the last staged item, and the first one built against
+  a mod this codebase has never had installed, decompiled, or run against even once.
+  `HospitalityInterop` detects a loaded Hospitality install by scanning loaded assemblies for one
+  named `"Hospitality"` (a guess, not a verified fact) and recognizes its guests structurally —
+  by which assembly owns a pawn's `Lord`/`LordJob`, or any of their `ThingComp`s — rather than by
+  naming a single Hospitality type or member. `HospitalityBridge`, a new per-map
+  `MapComponent`, periodically offers one shopping trip (goods, a drink, a meal or a haircut —
+  never a room; Hospitality is already housing them) to an idle Hospitality guest through
+  `Pawn_JobTracker.TryTakeOrderedJob`, the same door a player's own forced order already uses,
+  gated on the guest's own AI having already declared it has nothing better to do. Reuses
+  `JobGiver_BuyFromShop`'s scoring (now `PickShoppingJob`, extracted with a new
+  `lodgingAllowed` parameter) and `IncidentWorker_ShopCustomers.GivePurse` completely unmodified.
+  Two new settings, `hospitalityBridgeEnabled` and `hospitalityGuestsCarrySilver` (both default
+  on, both hidden unless Hospitality is actually detected), and an always-visible settings-window
+  status line reporting detection either way. If the assembly-name guess is wrong, the bridge is
+  permanently and silently inert — indistinguishable from Hospitality not being installed at all.
+  See [Hospitality guests](customers.md#hospitality-guests),
+  [the design notes](DESIGN.md#the-hospitality-bridge) and
+  [the code map's known risks](architecture.md#known-risks) for the full account of what is, and
+  isn't, verified here.
 
 ### Changed
 
+- `WorkGiver_ManShop.AnyCustomerNear` now also recognizes a customer by the `IBusinessPatron`
+  marker interface, not only by the `OWT_Shop` duty — what a bridged Hospitality guest actually
+  carries, since the bridge never assigns one. `CompBusiness.CellFreeFor` and
+  `Alert_CustomersWaiting` already keyed off `IBusinessPatron` directly and needed no change.
+- `JobGiver_BuyFromShop.TryGiveJob`'s scoring pass is now `PickShoppingJob`, a separate
+  `internal static` method taking a `lodgingAllowed` parameter (default `true`) — so
+  `HospitalityBridge` can reuse the identical scan instead of duplicating it. No behavior change
+  for the duty-driven caller.
+- `IncidentWorker_ShopCustomers.GivePurse` is now `internal` rather than `private`, so
+  `HospitalityBridge` can give a bridged guest the identical arrival top-up a native customer
+  gets. Same formula, same existing callers, same behavior for them.
 - `docs/DESIGN.md` is now the *why* only. Its component map, roadmap and known-risk list moved
   into the wiki so each has a single home: [code map](architecture.md),
   [roadmap](roadmap.md), [known risks](architecture.md#known-risks). The design reasoning itself
@@ -93,7 +124,13 @@ change itself, and update the [wiki page](contributing.md#the-workflow) it affec
 
 ### Save compatibility
 
-- No gameplay change. Safe to drop into a save in progress.
+- No gameplay change from the documentation work above. Safe to drop into a save in progress.
+- The Hospitality bridge adds exactly one new persisted field: `HospitalityBridge.hasAnnouncedBridge`,
+  a plain `bool` on a brand-new per-map `MapComponent`. An existing save gets a fresh instance
+  with this defaulted to `false`, the same way `TownEconomy` and `FalseFrontRegistry` were both
+  introduced with no migration needed. The bridge's own per-`(pawn, shop)` cooldown table, and
+  its per-guest "already given a silver top-up" set, are both deliberately never persisted at
+  all. Safe to drop into a save in progress either way, with or without Hospitality installed.
 
 ---
 

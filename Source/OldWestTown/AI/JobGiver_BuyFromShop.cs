@@ -15,7 +15,17 @@ namespace OldWestTown.AI
     /// </summary>
     public class JobGiver_BuyFromShop : ThinkNode_JobGiver
     {
-        protected override Job TryGiveJob(Pawn pawn)
+        protected override Job TryGiveJob(Pawn pawn) => PickShoppingJob(pawn);
+
+        /// <summary>
+        /// The scoring pass itself, pulled out of TryGiveJob so Compat/HospitalityBridge.cs can
+        /// force-start the identical job on an idle Hospitality guest via
+        /// Pawn_JobTracker.TryTakeOrderedJob, rather than duplicating this ~80-line scan.
+        /// <paramref name="lodgingAllowed"/> defaults to true, so the duty-driven caller above
+        /// is byte-for-byte unchanged; the bridge passes false, since Hospitality is already
+        /// housing its own guests — see docs/DESIGN.md.
+        /// </summary>
+        internal static Job PickShoppingJob(Pawn pawn, bool lodgingAllowed = true)
         {
             if (pawn.Map == null || pawn.Downed || pawn.InMentalState) return null;
 
@@ -67,6 +77,23 @@ namespace OldWestTown.AI
                 {
                     if (service.worker is ServiceWorker_Lodging)
                     {
+                        // A bridged Hospitality guest is never offered a room at all —
+                        // Hospitality is already housing them. See Compat/HospitalityBridge.cs
+                        // and docs/DESIGN.md for why the two mods can't end up fighting over the
+                        // same guest even without this guard.
+                        if (!lodgingAllowed) continue;
+
+                        // Unconditional, independent of lodgingAllowed above: nothing downstream
+                        // of a Lodging job (ServiceWorker_Lodging, ShopStock.ChooseVacantBed,
+                        // CompRentableBed) ever consults CustomerRecord, so this scoring loop is
+                        // the ONLY thing standing between a Lord-less pawn and a real bed claim —
+                        // and a pawn with no LordJob_ShopVisit has no CustomerRecord for
+                        // JobGiver_SleepInRentedBed to ever find later, so it would never run the
+                        // job that checks them back out. A caller who forgets lodgingAllowed:false
+                        // (the default is true) must not be able to strand a bed this way, so this
+                        // is checked regardless of that parameter, not instead of it.
+                        if (lordJob == null) continue;
+
                         // An already-housed guest is never offered a second room, and nobody is
                         // offered a *new* stay once the visit's base duration has elapsed —
                         // goods and every other service are unaffected by either guard.

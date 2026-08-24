@@ -6,13 +6,16 @@ spend it.
 
 Hospitality gets guests onto your map. This is about what they do once they're there.
 
-**Status: the whole staged plan is built except the Hospitality bridge.** A customer arrives,
-then either picks something off your shelves, orders a drink, a meal or a haircut, or checks into
-a hotel room for the night — queues, and pays either way. A guest who rents a room stays until
-they've slept it off, so the whole visit can run past a single day. Leave a saloon unwatched long
-enough and it starts real trouble; assign a sheriff to keep the peace. Factions you treat well
-become regulars and come back more often. There's boardwalk to lay and a false front to nail over
-your store while you wait for them. See [docs/DESIGN.md](docs/DESIGN.md) for the architecture and
+**Status: the whole staged plan is built.** A customer arrives, then either picks something off
+your shelves, orders a drink, a meal or a haircut, or checks into a hotel room for the night —
+queues, and pays either way. A guest who rents a room stays until they've slept it off, so the
+whole visit can run past a single day. Leave a saloon unwatched long enough and it starts real
+trouble; assign a sheriff to keep the peace. Factions you treat well become regulars and come
+back more often. There's boardwalk to lay and a false front to nail over your store while you
+wait for them. If you also run Hospitality, an idle guest it's already housing can wander over
+and shop too — narrowly, and honestly built against a mod this codebase has never had installed
+to test with; see [Hospitality guests](https://ssinnott.github.io/rimworld-shops/customers.html#hospitality-guests).
+See [docs/DESIGN.md](docs/DESIGN.md) for the architecture and
 [the roadmap](https://ssinnott.github.io/rimworld-shops/roadmap.html) for what's left.
 
 📖 **[Read the wiki](https://ssinnott.github.io/rimworld-shops/)** — every building, business,
@@ -78,6 +81,11 @@ This mod is standalone. It does not require Hospitality, and is written to sit a
   treated — served, walked out on, or evicted from a rented room. Favor one faction and they
   show up more often than everyone else; mistreat them and only their own trade dries up. The
   town ledger names your best and worst relationship once either one actually stands out.
+- **A Hospitality bridge, optional and honestly narrow.** If Hospitality is also installed, one
+  of its idle guests can wander off to shop, drink or get a haircut — never a room, since
+  Hospitality is already housing them. This is the one feature built against a mod that has
+  never actually run alongside this one in this sandbox; it degrades to doing nothing at all,
+  silently, if its one guess about how Hospitality is put together turns out wrong.
 
 ## Installing
 

@@ -235,6 +235,142 @@ fight, no mental break, just a scripted event resolved entirely through the same
 comp/economy state (`CompBusiness`, `TownEconomy`, `CustomerRecord`) every other transaction in
 this mod already reads and writes.
 
+### The Hospitality bridge
+
+Hospitality is not installed anywhere this mod has ever been built, run, or tested. There is no
+assembly to reference, no way to decompile one, and no way for `tools/refdump` to confirm a
+single Hospitality type or member name — it reads RimWorld's own reference assemblies only.
+Every design choice below has to hold up against that constraint, not just against what would be
+convenient if the assembly were in hand.
+
+**A hard or optional assembly reference, a compiled stub, an XML patch, and Harmony were all
+rejected**, in that order of how tempting they look and how bad an idea each one turns out to be.
+A reference (hard or `MayRequire`-gated) needs a second `.csproj`, a `loadFolders.xml` this mod
+has never shipped, and a second committed DLL, for a "loads fine without Hospitality" guarantee a
+single in-process boolean already gives for free. A compiled stub typed against recalled
+Hospitality signatures would *look* like a checked, compiler-verified contract to the next
+reader, when it would actually be unverified memory wearing a compiler's coat — strictly more
+misleading than a reflection string, which visibly announces itself as a guess. An XML patch has
+nothing to patch: this design never needs to change anything Hospitality itself defines. Harmony
+is the one this mod has never taken as a dependency at all, and the one thing it would buy —
+surgically overriding whatever assigns a guest's duty or next job inside code this mod can't
+see — is exactly the invasive move the next two paragraphs already avoid on their own merits.
+Taking on this mod's first-ever Harmony dependency to serve a use case the design does without is
+a real, permanent cost for nothing.
+
+**Detection is structural, not a guess at Hospitality's namespace or class names.**
+`HospitalityInterop.Present` resolves once, by scanning loaded assemblies for one whose simple
+name is `"Hospitality"` (case-insensitive) — a guess about Hospitality's own build output, not a
+verified fact, and the one thing every downstream check sits behind. Once that assembly is
+resolved, recognizing a guest never again involves guessing a type or member name: a pawn is a
+Hospitality guest if the `LordJob` governing them, or any `ThingComp` attached to them, belongs
+to that same assembly — checked by `System.Type.Assembly` reference equality, not a namespace
+string. Either signal alone is enough (they're OR'd), so detection only fails completely if both
+guesses are wrong at once — a meaningfully more forgiving bar than leaning on one signal, for
+free. If the assembly-name guess itself is wrong, every downstream check is moot:
+`HospitalityInterop.Present` is false forever, and the bridge is permanently, silently inert —
+indistinguishable from Hospitality not being installed, and no more expensive than that to
+carry. See [the code map's known risks](architecture.md#known-risks) for the full confidence
+accounting, signal by signal.
+
+**A job is force-handed through `Pawn_JobTracker.TryTakeOrderedJob`, gated on
+`Pawn_MindState.IsIdle`, rather than the guest ever being given the `OWT_Shop` duty.** The
+roadmap's own original wording — "gives Hospitality guests the `OWT_Shop` duty" — turned out to
+be the wrong shape once weighed against how aggressively this mod's *own* `LordToil_Shop`
+reasserts that duty onto every pawn it owns, every toil re-entry (`UpdateAllDuties()`): there is
+no way to know from here how often Hospitality's own equivalent does the same, and overwriting a
+foreign pawn's duty would be exactly the paired, fragile coordination [the one rule](#the-one-decision-everything-else-follows-from)
+this whole mod exists to avoid — now against a partner whose code can't even be inspected to know
+what breaks. `TryTakeOrderedJob` is different in kind: it's the same generic, vanilla-sanctioned
+door a player's own forced order on any pawn already uses, and gating the call on `IsIdle` means
+it only ever fires in a window the guest's own AI has already vacated — nothing running to
+interrupt, and nothing to resume afterward, because nothing was pre-empted in the first place.
+Once the call returns, the bridge's involvement with that pawn is over; Hospitality's own AI
+reassesses on its own schedule next, exactly as it must already tolerate after any other
+forced order.
+
+**Lodging is categorically excluded, by two checks inside `PickShoppingJob`'s own scoring
+loop** — not, as an earlier draft of this section claimed, by an independent structural fact
+about `CustomerRecord` that would make either guard redundant on its own. That claim doesn't
+survive tracing the actual lodging code: `ServiceWorker_Lodging`'s
+`IsAvailable`/`Desirability`/`ApplyEffect`, `ShopStock.ChooseVacantBed` and
+`CompRentableBed.Claim` never read `CustomerRecord` at all — a bed is claimed by a customer and a
+shop, nothing else, and `CustomerRecord` lives one layer up, on `LordJob_ShopVisit`. Nothing
+downstream of the scoring loop ever looks there. So the scoring loop is not a second belt on top
+of a guarantee that already held independently of it; it is the *only* thing standing between a
+Lord-less pawn and a claimed bed, and it earns that job with two checks, not the single one this
+section used to describe. The explicit guard: `PickShoppingJob` (the scoring pass
+`JobGiver_BuyFromShop` and the bridge now share — see
+[the code map](architecture.md#compat--soft-dependencies)) takes a `lodgingAllowed` parameter,
+`true` for the duty-driven native caller and `false` for the bridge, which removes Lodging from
+the set of candidates a bridged guest's trip can ever score into. The unconditional guard,
+checked regardless of what a caller passes: the same loop also skips Lodging outright whenever
+the pawn's own `Lord` isn't running `LordJob_ShopVisit` — the identical condition that already
+means `CustomerRecord` resolves to null for them. Skipping this check would be worse than an
+ordinary double-booking: `JobGiver_SleepInRentedBed` also requires a resolvable `CustomerRecord`
+before it will ever send a pawn to sleep in, and eventually vacate, a claimed bed, so a pawn who
+somehow claimed one with no record to hang it on would never check out through this mod's own
+systems either — the bed would sit "occupied" until a player found the evict gizmo. Today, with
+the bridge as the only second caller, the two guards happen to agree: a bridged guest always has
+both `lodgingAllowed: false` *and* `lordJob == null`, for the identical single-`Lord`-per-pawn
+reason `IsHospitalityGuest` relies on (see `HospitalityInterop`). The unconditional guard is what
+keeps that agreement from depending on some future caller remembering to pass the parameter.
+
+**That same single-`Lord` invariant is what keeps the two mods from ever fighting over one
+guest**, in either direction. "Who is housing this pawn" and "is this pawn a Hospitality guest"
+are the same underlying question — which `Lord`/`LordJob` owns them — read two ways, not two
+independently tracked flags that could drift out of sync with each other. One of this mod's own
+customers can never satisfy `IsHospitalityGuest`: its LordJob signal can't match a customer
+running `LordJob_ShopVisit`, for the single-`Lord` reason above, and `IsHospitalityGuest` checks
+that explicitly, before its second, weaker signal (a matching `ThingComp`) ever runs — that
+second signal has no equivalent guarantee on its own (see `HospitalityInterop`). A Hospitality
+guest can never hold one of this mod's rented beds, for the mirrored reason — but, as corrected
+above, that "mirrored reason" is `PickShoppingJob`'s own unconditional `lordJob == null` guard,
+not an independent fact about `CustomerRecord`. Neither mod has to cooperate with the other for
+either half to hold; both are pinned to vanilla's own single-`Lord`-per-pawn guarantee, which
+neither mod has a reason to break. The one honest limit on this guarantee: it only proves *this
+mod's* side never double-books a guest Hospitality already houses. It says nothing about whether
+Hospitality's own code might, independently, try to do something with a staffed counter or a
+customer of this mod's own — that is outside what a one-directional, read-only-of-Hospitality
+bridge can observe or prevent.
+
+**A bridged guest is throttled per-shop rather than given a full `CustomerRecord` of its own.**
+`refusedShops` and `causedTrouble` both live on `CustomerRecord`, and a Hospitality-owned pawn
+structurally can't have one (see above) — so a naive bridge would keep re-offering the same
+chronically unstaffed shop to the same idle guest, once per scan, indefinitely. Rather than
+rebuilding that bookkeeping for a pawn that can't carry it, `HospitalityBridge` keeps one small,
+deliberately unpersisted `(pawn, shop) → tick` cooldown: once a pair has been dispatched —
+bought something, or found nothing — that shop is off the table for that guest for one of the
+shop's own `customerPatienceTicks`. It's a blunter instrument than the real thing: a guest who
+successfully buys from a good, staffed shop is throttled from immediately buying there again
+too, which a native customer never is. Accepted as the honest cost of a targeted fix over a
+parallel bookkeeping system that would only imitate, and could drift from, the one it's copying.
+`causedTrouble` gets no equivalent stand-in at all — a bridged guest who tips a saloon into a
+disturbance can, in principle, be offered another round later in the same stay. Left as-is
+deliberately: nothing in the existing scoring loop gates a *native* customer on rowdiness before
+they cross into `causedTrouble` either, so a bridge-only gate would make bridged guests behave
+more conservatively than native ones for no principled reason — and the natural slow climb back
+up (`TroubleUtility` zeroes the hediff the instant a disturbance fires) already keeps a repeat
+rare in practice.
+
+**Whether the guest carries any silver at all is deliberately not guessed either way.** Rather
+than assume Hospitality guests do or don't already carry spending money, the bridge's silver
+top-up reuses `IncidentWorker_ShopCustomers.GivePurse` completely unmodified — the identical
+formula and settings scaling a native customer's arrival purse already gets. `GivePurse` only
+ever tops up a shortfall, so if guests turn out to already carry plenty, this simply adds
+nothing. A settings checkbox (`hospitalityGuestsCarrySilver`) lets a cautious player turn it off
+regardless.
+
+**The one place the player can tell any of this actually worked** is a single one-time message,
+the first time in a save that the bridge successfully hands a guest a job — the in-fiction
+confirmation that the entire unverified detection chain above matched at least once. Everything
+else about detection state is available on request rather than announced: an always-visible
+settings-window status line (`OWT_HospitalityDetected` / `OWT_HospitalityNotDetected`), and —
+this mod's first `[DebugAction]`, kept to exactly that one exception to its otherwise
+zero-`Log.Message` history — a Dev Mode diagnostic that dumps every pawn's detection result,
+`Lord`/`LordJob` type and full comp list, for whoever eventually corrects the guesses above
+against a real Hospitality install.
+
 ## The economy loop
 
 ```

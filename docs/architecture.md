@@ -66,6 +66,13 @@ All under `Source/OldWestTown/`, namespace `OldWestTown`.
 | `CompRolePost.cs` | `CompProperties_RolePost`, `CompRolePost` | A named post one specific colonist holds — the [sheriff's office](buildings.md#sheriffs-office)'s assignment, on `CompRolePost.OnDuty` other code reads. Built on vanilla's own `CompAssignableToPawn`, the same idiom a throne or a grave already uses. |
 | `TroubleUtility.cs` | `TroubleUtility` | The saloon's one hook into town roles: bumps a customer's `OWT_Rowdy` hediff per drink served, applies the sheriff/shopkeeper suppression factors, and fires the scripted [disturbance](customers.md#trouble-at-the-saloon) when it tops out. |
 
+### `Compat/` — soft dependencies
+
+| File | Type | Job |
+| --- | --- | --- |
+| `HospitalityInterop.cs` | `HospitalityInterop` | Detects a loaded Hospitality install and recognizes its guests, entirely by reflection — no reference, hard or optional, to Hospitality's assembly. `Present` is a guessed assembly name; `IsHospitalityGuest` is two structural signals (Lord/LordJob assembly, or any ThingComp's assembly) OR'd together. Also this mod's first `[DebugAction]`, for dumping detection state against a real Hospitality install. |
+| `HospitalityBridge.cs` | `HospitalityBridge` | `MapComponent`. The active half: every 250 ticks, offers one shopping job to an idle Hospitality guest via `Pawn_JobTracker.TryTakeOrderedJob` — never a duty, never an interrupt. Reuses `JobGiver_BuyFromShop.PickShoppingJob` and `IncidentWorker_ShopCustomers.GivePurse` unmodified. |
+
 ### `Lords/`, `Incidents/`, `Alerts/`, `UI/`
 
 | File | Type | Job |
@@ -199,3 +206,60 @@ anything changes hands.
   saloon actually reaches "spoiling for a fight" at a sane pace, and whether an on-duty sheriff or
   a skilled barkeep visibly changes that pace, wants a specific playtest, in the same spirit as
   the false front's curb-appeal numbers above.
+- **The entire Hospitality bridge (`Compat/`) is built against an assembly this sandbox has never
+  had, decompiled, or run against.** `refdump` reads RimWorld's own reference assemblies only —
+  it cannot check a single Hospitality type or member name, and nothing here names one directly
+  for exactly that reason. What it actually leans on, and how sure this is of each:
+  - **Medium confidence:** Hospitality's compiled assembly has the simple name `"Hospitality"`
+    (case-insensitive). A widely-repeated convention among RimWorld compatibility patches, not a
+    verified fact. If it's wrong, `HospitalityInterop.Present` is false forever and the whole
+    bridge is permanently, silently inert — indistinguishable from Hospitality not being
+    installed, and no more expensive than that to carry.
+  - **Low-to-medium confidence:** a Hospitality guest is governed by a `Verse.AI.Group.Lord`
+    whose `LordJob` lives in that same assembly. Structurally plausible — it's the standard
+    vanilla idiom for any coordinated pawn group, and this mod's own customers use exactly this
+    shape — but unconfirmed.
+  - **Low confidence:** Hospitality attaches at least one `ThingComp`, of any name, to a guest
+    pawn. A guess about whether such a comp exists at all, not about what it's called.
+  - The two structural signals above are OR'd, not ANDed, so detection only fails completely if
+    *both* guesses are wrong — a meaningfully more forgiving bar than leaning on either alone,
+    and it costs nothing extra to check.
+  - **Deliberately not guessed either way:** whether a Hospitality guest carries any silver by
+    default. The silver top-up setting (`hospitalityGuestsCarrySilver`) reuses
+    `IncidentWorker_ShopCustomers.GivePurse` unmodified rather than assuming an answer, and
+    defaults on — if guests turn out to already carry plenty, the top-up simply tops up nothing
+    (`GivePurse` only ever adds the shortfall).
+  - A `[DebugAction]` (`HospitalityInterop.LogDetectionState`, Dev Mode only) dumps every
+    non-player humanlike pawn's detection result, `Lord`/`LordJob` type and full comp list on
+    every map — the tool a maintainer with a real Hospitality install needs to correct the
+    guesses above without decompiling anything blind.
+- **`HospitalityBridge` hands a job to a foreign-`Lord`-owned pawn through
+  `Pawn_JobTracker.TryTakeOrderedJob`, gated on `Pawn_MindState.IsIdle`.** Both members are real,
+  confirmed vanilla API, but this specific interaction — a second mod's per-tick AI governing a
+  pawn whose `IsIdle` this mod is reading and whose job tracker this mod is calling into — has
+  never been observed in a live game, because no Hospitality install exists in this sandbox to
+  test against. This compounds the mod's own pre-existing "none of this has run in RimWorld"
+  risk at the top of this list with a second, larger unknown neither `refdump` nor
+  `tools/validate_defs.py` can touch, since both only ever see this mod's own assembly and
+  RimWorld's reference assemblies, never a third mod's.
+- **A bridged guest is recognized by `WorkGiver_ManShop.AnyCustomerNear` only after the bridge
+  has already dispatched them** — up to `HospitalityBridge`'s own 250-tick scan interval of
+  latency before a colonist is prompted to staff up for them, versus instant recognition for a
+  duty-driven native customer. Disclosed, not fixed: closing the gap would mean duplicating
+  Hospitality-detection logic inside a hot per-colonist work-search path, which is worse than the
+  latency it would remove.
+- **A bridged guest has no `CustomerRecord`** (that lives on this mod's own `LordJob_ShopVisit`,
+  which a Hospitality-owned pawn structurally can't be running), so two of its usual protections
+  don't apply to them the same way. `HospitalityBridge`'s own per-`(pawn, shop)` cooldown stands
+  in for `refusedShops` — bounding, not eliminating, repeat visits to a chronically unstaffed
+  shop, at the disclosed cost of also throttling legitimate repeat business at a good one. There
+  is no stand-in for `causedTrouble` at all: a bridged guest who tips a saloon into a disturbance
+  can, in principle, be offered another round later in the same stay. Both are accepted,
+  bounded-but-not-eliminated gaps — see `docs/DESIGN.md` for the full reasoning behind not
+  closing either one.
+- **`HospitalityInterop`'s assembly-reference-equality check assumes Hospitality ships every
+  guest-relevant type from one assembly named `"Hospitality"`.** If a future Hospitality version
+  splits guest-related types across a second assembly (a shared library, say), types living
+  there would be invisible to `IsHospitalityGuest` even though `Present` correctly detects
+  Hospitality itself. Undiscoverable from this sandbox either way, and stated plainly rather than
+  papered over.

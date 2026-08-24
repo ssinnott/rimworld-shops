@@ -63,7 +63,10 @@ colonist is offered the job when **all** of these are true:
 - nobody else is already working it;
 - the staff side is clear, reachable, and not claimed by another colonist;
 - the business **has something to offer** — stock on the shelf or an available service;
-- there is at least one **visiting customer within 25 tiles**.
+- there is at least one **visiting customer within 25 tiles** — including a
+  [Hospitality guest](customers.md#hospitality-guests) the bridge has already sent your way,
+  though recognizing one takes a little longer than a native customer since there's no arrival
+  moment to key off.
 
 That last condition is why nobody stands behind an empty store all day. Right-clicking the
 counter and prioritizing it by hand skips the stock and customer checks entirely, so you can post

@@ -174,6 +174,12 @@ where it lives in C# it is a `const` in the named file.
 | `RestedThreshold` | 0.9 | Rest level at which a sleeping guest wakes and checks out |
 | `MaxSleepTicks` | 30000 | Hard cap on one sleep job, independent of `Need_Rest` |
 
+### Hospitality bridge — `Compat/HospitalityInterop.cs`, `Compat/HospitalityBridge.cs`
+
+| Name | Value | Meaning |
+| --- | --- | --- |
+| `ScanIntervalTicks` | 250 | How often `HospitalityBridge` scans the map for an idle guest to offer a job to |
+
 ### Town roles — `Roles/CompRolePost.cs`, `Roles/TroubleUtility.cs`, `Defs/HediffDefs/Hediffs_Commerce.xml`, `Defs/ServiceDefs/Services_Commerce.xml`
 
 | Name | Value | Meaning |
@@ -198,6 +204,8 @@ where it lives in C# it is a `const` in the named file.
 | `allowSelfService` | false | on/off | Customers buy from unattended counters, at −0.005 reputation per sale |
 | `customerVolume` | 1.0 | 0.25–3.0 | Scales both the arrival clock and group size |
 | `customerWealth` | 1.0 | 0.25–3.0 | Scales the silver each customer carries |
+| `hospitalityBridgeEnabled` | true | on/off | Master switch for the [Hospitality bridge](customers.md#hospitality-guests). Only shown, and only consulted, while `HospitalityInterop.Present` is true |
+| `hospitalityGuestsCarrySilver` | true | on/off | Whether the bridge tops up a Hospitality guest's purse the way an arriving customer's is. Only shown while the bridge itself is enabled |
 
 ## Translation keys
 
@@ -218,6 +226,7 @@ otherwise.
 | False front | `OWT_FalseFrontAdvertising`, `OWT_FalseFrontIdle` |
 | Sheriff's office gizmo and inspect panel | `OWT_CmdAssignSheriff`, `OWT_CmdAssignSheriffDesc`, `OWT_PostAlreadyFilled`, `OWT_PostVacant`, `OWT_PostOnDuty`, `OWT_PostOffDuty` |
 | Saloon trouble | `OWT_SaloonTrouble`, `OWT_DisturbanceLine`, `OWT_AlertRowdyPatrons`, `OWT_AlertRowdyPatronsDesc` |
+| Hospitality bridge | `OWT_HospitalityDetected`, `OWT_HospitalityNotDetected`, `OWT_SettingHospitalityEnabled`, `OWT_SettingHospitalityEnabledDesc`, `OWT_SettingHospitalitySilver`, `OWT_SettingHospitalitySilverDesc`, `OWT_HospitalityBridgeEngaged` |
 
 ## Saved state
 
@@ -236,6 +245,8 @@ What survives a save/load, and where it lives.
 | Current guest, selling desk | `CompRentableBed` | References only; released if the guest is dead on load |
 | Sheriff assignment | `CompRolePost` (vanilla `CompAssignableToPawn`) | Persisted by the base class itself; `CompRolePost` adds no `ExposeData` of its own |
 | On-duty flag (`lastOnDutyTick`/`lastOnDutyPawn`) | `CompRolePost` | Deliberately **not** persisted, mirroring `CompBusiness`'s own staff flag — re-established within moments once the sheriff's patrol job re-ticks after a reload |
+| Whether the bridge has announced itself yet (`hasAnnouncedBridge`) | `HospitalityBridge` | One per map. Absent (reads `false`) on any save from before this stage — the same "a new sparse field just reads as the honest default" story `TownEconomy`'s per-faction standing already tells |
+| Per-`(pawn, shop)` cooldown table | `HospitalityBridge` | Deliberately **not** persisted, same reasoning as `CompRolePost`'s on-duty flag above — a reload starts every guest's cooldown fresh, which can only make the bridge briefly more generous, never stuck |
 | Mod settings | `OldWestTownSettings` | Global, not per save |
 
 `TownEconomy` rebuilds its business register in `FinalizeInit`, because comps register on spawn

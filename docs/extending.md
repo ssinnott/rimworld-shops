@@ -193,6 +193,46 @@ a bank — reuse the seam rather than routing around it:
 
 The [roadmap](roadmap.md) sketches several of these.
 
+## Bridging to another mod
+
+The [Hospitality bridge](DESIGN.md#the-hospitality-bridge) (`Compat/`) is this mod's first soft
+dependency on another mod, and the pattern is worth reusing rather than reinventing if a future
+bridge needs the same shape: recognizing and lightly interacting with pawns another mod's own
+`Lord` governs, without a hard reference to that mod's assembly.
+
+- **No hard or `MayRequire`-gated reference, no compiled stub, no XML patch, no Harmony —
+  reflection only.** A reference needs a second `.csproj` and a `loadFolders.xml` this mod has
+  never shipped, for a guarantee an in-process boolean already gives for free. A stub typed
+  against recalled signatures *looks* verified when it isn't. An XML patch has nothing to patch
+  unless the other mod's own Defs genuinely need changing. Harmony is the one this mod has never
+  taken on at all — see [the design notes](DESIGN.md#the-hospitality-bridge) for why the one
+  thing it would buy here isn't worth its cost.
+- **Detect the other mod by assembly simple name, once, behind a single cached bool.** A
+  `private static readonly` field, initialized by a method that wraps the whole lookup in
+  `try/catch` and returns `null` on any failure — see `HospitalityInterop.FindHospitalityAssembly`.
+  C#'s own static-initialization guarantee gives "compute once, safely" for free; there is no
+  separate `Init()` to remember to call.
+- **Recognize the other mod's pawns structurally, never by a guessed type or member name.**
+  `HospitalityInterop.IsHospitalityGuest` never calls a member the other mod declares — it only
+  ever compares `System.Type.Assembly` against the assembly resolved above, on this mod's own
+  already-proven vanilla API (`GetLord()`, `LordJob`, `AllComps`). A rename or restructure on the
+  other side degrades this to "never matches," not a crash.
+- **Act through a generic vanilla door, gated on idle, never a duty or an interrupt.**
+  `HospitalityBridge` hands out a job with `Pawn_JobTracker.TryTakeOrderedJob` — the same
+  mechanism a player's own forced order already uses — and only when the pawn's own
+  `Pawn_MindState.IsIdle` is already true. It never touches the pawn's `Lord` or `PawnDuty`.
+  That's what keeps a bridge from becoming a second version of
+  [the one thing](architecture.md#the-one-rule) this mod's whole architecture exists to avoid —
+  two pawn loops synchronizing with each other — now against a partner whose code can't even be
+  inspected.
+- **Ship a `[DebugAction]` that dumps what detection actually saw.** This mod's first one
+  (`HospitalityInterop.LogDetectionState`) — the tool whoever eventually tests against a real
+  copy of the other mod needs to correct the guesses above, without decompiling anything blind.
+- **Say, in the wiki, exactly which facts are guesses and how confident each one is.** See
+  [the code map's known risks](architecture.md#known-risks) for the shape this took for
+  Hospitality — a bridge with no assembly to test against is only as trustworthy as its own
+  honesty about what it couldn't check.
+
 ## Before you commit
 
 ```sh

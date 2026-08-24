@@ -3,8 +3,7 @@ title: Roadmap
 summary: What is built, what is next, and the larger directions that build on top of it.
 ---
 
-The plan is staged so each step is playable on its own. Stages 1 through 6 are shipped; stage 7
-is designed, not built, and is the only staged item left.
+The plan is staged so each step is playable on its own. All seven stages are shipped.
 
 For the reasoning behind the shipped stages, see the [design notes](DESIGN.md).
 
@@ -62,8 +61,21 @@ customer — enough to win a close call between two similarly-priced rivals, nev
 shop that's genuinely overpriced. The faro table deliberately does *not* gamble; a real wager
 waits for the gambling hall below.
 
-**7. Hospitality bridge (optional).** An optional add-on that sends Hospitality's guests shopping
-too, so one group can both lodge and spend.
+**7. Hospitality bridge — done.** Hospitality is not installed anywhere this mod has ever been
+built or tested, so this stage is narrower than "guests shop too" might suggest, and honest about
+where its edges are. Roughly every six in-game minutes, on a map where Hospitality is actually
+running, an idle Hospitality guest — one whose own AI has already decided it has nothing better
+to do right now — may be handed a single shopping trip: buy something off a shelf, get a drink, a
+meal or a haircut. Never a room; Hospitality is already housing them, and the two mods can't end
+up fighting over the same guest, [by construction](DESIGN.md#the-hospitality-bridge). Nothing
+about a guest's stay with Hospitality — their bed, their duty, their `Lord` — is ever touched.
+Hospitality itself is recognized without ever naming one of its types: by which assembly a
+guest's governing `Lord` or any of their `ThingComp`s belongs to, a guess this mod's own sandbox
+has no way to check against a real install. If that guess is wrong, the bridge stays
+permanently and silently switched off — indistinguishable from Hospitality never having been
+there at all. See [Hospitality guests](customers.md#hospitality-guests) for what this looks like
+in play, and the [code map's known risks](architecture.md#known-risks) for the full account of
+what is, and isn't, verified here.
 
 ## Beyond the staged plan — thematic expansions
 
