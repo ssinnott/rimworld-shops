@@ -232,10 +232,12 @@ own over the following hours if nobody tops it up.
 
 Left unchecked, it climbs through three stages: **feeling good**, **getting loud**, then
 **spoiling for a fight**. Cross that last line and it turns into a **disturbance**: a message
-naming the patron and the business, a reputation hit worse than an ordinary
-[walkout](#walkouts) — **0.05** rather than 0.02 — and that patron stops buying anything for the
-rest of their visit. A meal doesn't contribute at all, and neither does a winning hand — it's
-specifically the drinking, and the losing, that does it.
+naming the patron and the business, and a harsher [reputation](economy.md#reputation) hit than an
+ordinary [walkout](#walkouts) — a disturbance docks the town's own name a flat **0.05** at the
+next settlement, for every disturbance that day, where an ordinary walkout costs no flat number
+at all: it only halves that one customer's own contribution to the night's verdict. That patron
+also stops buying anything for the rest of their visit. A meal doesn't contribute at all, and
+neither does a winning hand — it's specifically the drinking, and the losing, that does it.
 
 **At the gambling hall**, an ordinary loss adds exactly what a round of drink does, but an unlucky
 one can add more: losing a hand sometimes draws a **cheating accusation** — a message naming the

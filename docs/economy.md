@@ -448,7 +448,10 @@ customer already applies to your own shops, just pointed outward at a competitor
 The first time your own appeal clears the threshold that lets customers set out for you at all,
 *and* a rival has grown large enough to actually compare against, the game starts watching who's
 ahead — your own market pull, or the combined pull of every rival. It stays quiet about that
-first comparison; from then on, a message tells you whenever the lead actually changes hands.
+first comparison; from then on, a message tells you whenever the lead actually changes hands. That
+comparison runs on the same live clock the arrival roll itself checks — every ten seconds or so,
+not the nightly ledger — so a lead that flips and flips back during a stretch with no visitors at
+all still gets both messages, not neither.
 
 Any counter's inspect pane shows your current share once there's a rival worth comparing against
 at all. The [Town ledger](#the-daily-ledger) goes further: open it, and it names every known

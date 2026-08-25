@@ -128,8 +128,9 @@ purchase — the customer can walk away with *more* silver than they sat down wi
 [the wager](services.md#wager) for how a hand actually resolves.
 
 A gambling hall carries a second dial alongside its markup: **house edge**, set from the table's
-own **Set house edge** button, the same slider idiom as **Set prices** and living right next to
-it in the counter's gizmo row. Markup sets the stakes — it prices a hand exactly like a haircut,
+own **Set house edge** button — a `Command_Action` opening a modal slider dialog, the same shape
+markup itself used before it moved to the Stock tab. Markup sets the stakes — it prices a hand
+exactly like a haircut,
 through the same value-times-markup-times-reputation formula every other price in the mod uses.
 House edge sets the odds: it is, by construction, the fraction of every silver wagered the house
 keeps on average, nothing more and nothing less. A low edge keeps a table fair and its gamblers

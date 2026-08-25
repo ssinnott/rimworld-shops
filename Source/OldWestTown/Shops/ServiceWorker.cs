@@ -241,7 +241,7 @@ namespace OldWestTown.Shops
             // already cleared in TryServe. Accepted, same class of race DESIGN.md's Known Risks
             // already covers for stock.
             if (bed == null) return null;
-            bed.TryGetComp<CompRentableBed>()?.Claim(customer, shop);
+            bed.TryGetComp<CompRentableBed>()?.Claim(customer);
             return bed;
         }
     }

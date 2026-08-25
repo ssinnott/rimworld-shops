@@ -122,7 +122,7 @@ All under `Source/OldWestTown/`, namespace `OldWestTown`.
 | `Alerts/Alert_CustomersWaiting.cs` | `Alert_CustomersWaiting` | Raised while customers burn patience at an unattended business. |
 | `UI/ITab_ShopStock.cs` | `ITab_ShopStock` | The Stock tab, and the one screen where a price is set: shelf totals, the markup slider and what the services cost, above vanilla's storage-filter widget so the stock list still reads like a stockpile. |
 | `Alerts/Alert_RowdyPatrons.cs` | `Alert_RowdyPatrons` | Raised while a patron is "getting loud" and still calmable — the sheriff's real window before a disturbance fires unattended. Mirrors `Alert_CustomersWaiting`'s shape. |
-| `Alerts/Alert_StickupRisk.cs` | `Alert_StickupRisk` | Raised once a map's silver at risk — till and sales-floor combined — crosses a threshold below `StickupWatch.MinSilverAtRisk` itself — the [risk](outlaws.md#how-the-risk-builds) is visible climbing before the clock behind it is even live. Its explanation names, per shop, how much is in the till and how much is loose on the floor. |
+| `Alerts/Alert_StickupRisk.cs` | `Alert_StickupRisk` | Raised once a map's silver exposed *beyond what its own businesses need to operate* — each shop's till above its own declared starting capital (`CompBusiness.TillSilverAboveCapital`), plus sales-floor silver — crosses a threshold below `StickupWatch.MinSilverAtRisk` itself — the [risk](outlaws.md#how-the-risk-builds) is visible climbing before the clock behind it is even live. Its explanation names, per shop, how much is in the till above capital and how much is loose on the floor. |
 
 ### Root
 
@@ -221,15 +221,32 @@ anything changes hands.
 - `OWT_SleptAtHotel`'s three stage thresholds (room Impressiveness `< 20` / `< 60` / else) are a
   tuning guess with no reference point for what a bare bunkroom versus a lavish suite actually
   scores.
-- A hotel desk reads "a customer is near" (`WorkGiver_ManShop.AnyCustomerNear`) for as long as
-  *any* pawn on the `OWT_Shop` duty is nearby — including one who's currently asleep elsewhere in
-  the same building. That's a pre-existing level of imprecision in that scan (it never checked
-  whether a nearby customer wants *this* shop specifically), not a new correctness bug.
+- A hotel desk reads "a customer is near" (`WorkGiver_ManShop.AnyCustomerNear`) for any *awake*
+  pawn on the `OWT_Shop` duty nearby — a guest asleep elsewhere in the building is explicitly
+  excluded (`Pawn.Awake()`), so a checked-in lodger sleeping off their stay doesn't keep the desk
+  staffed on their own account. What's still a pre-existing level of imprecision in that scan is
+  that it never checks whether a nearby customer wants *this* shop specifically, only that they're
+  a customer standing somewhere close — not a new correctness bug.
 - Two hotel desks sharing one bunkroom can both offer the same vacant bed to two different guests
   in the same scoring pass; two guests' `JobGiver`s can likewise both pick the same bed in the same
   tick. Both are the same class of race this file already accepts for stock — the pre-payment
   availability recheck in `ShopTransaction.TryServe` closes the paid-then-nothing version of it,
-  and the loser's job fails gracefully with no refund.
+  and the loser's job fails gracefully with no refund. A shared bunkroom's beds churning between
+  its desks over the course of a visit is exactly what makes eviction billing read "who sold this
+  stay" off `CustomerRecord.rentedFrom` rather than the bed's own claim: a *different* desk
+  legitimately re-letting the same bed between an eviction and this guest's own stale-claim check
+  would otherwise have overwritten a per-bed pointer to the new tenant's desk, billing and
+  refusing the wrong hotel.
+- **Eviction is discovered lazily, from the guest's own think tree, not pushed by whatever broke
+  the claim.** `JobGiver_SleepInRentedBed`'s stale-claim branch now calls `Messages.Message` and
+  mutates `CustomerRecord`/`CompBusiness`/`TownEconomy` state directly from inside a
+  `ThinkNode_JobGiver` — a direct application of [the one rule](#the-one-rule) everything else in
+  this file follows: the actor that broke the claim (a gizmo click, `PostDeSpawn` on a destroyed
+  bed, a colonist reclaiming the room) never learns about or reaches into the evicted guest's own
+  job. But exactly how promptly a jobless-again customer's think tree revisits a `ThinkNode_JobGiver`
+  this high in the `OWT_Shop` duty, and whether the guard on the very next entry
+  (`record?.rentedBed == null`) is enough to make repeated evaluation idempotent in practice, is
+  untested in a live game.
 - `OWT_BatwingDoor`'s `ParentName="Door"` assumes vanilla's own door `ThingDef` is genuinely
   named `Door` — extremely well-established modding knowledge, but unverifiable in this sandbox
   either way, since the reference assemblies carry compiled C# only, never Def XML. The faro

@@ -18,6 +18,56 @@ change itself, and update the [wiki page](contributing.md#the-workflow) it affec
 
 ## Unreleased
 
+### Fixed
+
+- A guest evicted before ever falling asleep now costs the town the same reputation and standing
+  hit as any other walkout, and can no longer be paid for and evicted in a loop. Before this, only
+  an eviction that interrupted a guest already in bed charged anything; a claim broken earlier —
+  the bed deconstructed, given to someone else, or evicted by hand while the guest was still out
+  shopping — was cleared silently, with nothing to stop the same room being sold and taken away
+  from them again. The charge is billed to the desk that actually sold the stay even when two
+  hotel desks share one bunkroom: it's read off the guest's own booking record rather than the
+  bed's own claim, which a *different* desk re-letting that same bed in the meantime would
+  otherwise have overwritten — misnaming the hotel in the eviction message and leaving the real
+  offender unrefused, so the guest could walk straight back to it. See [lodging](services.md#lodging).
+- `Alert_StickupRisk` no longer counts a business's own seeded starting capital as silver at risk.
+  A gambling hall ships with a 300-silver bankroll it has to keep on hand to pay out a win; the
+  alert used to read raw till silver, so that bankroll alone tripped it the moment the table was
+  built, with no correct action that could ever clear it. The clock behind the alert
+  (`StickupWatch`) is unchanged — it still counts capital on purpose, since a robber can still take
+  it. See [outlaws and the law](outlaws.md#how-the-risk-builds).
+- The regional-lead message no longer goes silent on a quiet stretch. It used to run only inside
+  the nightly settlement pass, itself skipped on any day with no customers, so a rival's undercut
+  could flip the lead and flip it back with neither message ever firing. It now runs on the same
+  live, 600-tick cadence as the route-tier check, since the values it watches — `MarketPull` and
+  `CompetingPull` — never depended on a day's trade to begin with. See [who's
+  ahead](economy.md#whos-ahead).
+
+### Changed
+
+- Corrected wiki drift found during this pass: the [code map](architecture.md)'s
+  [known-risks register](architecture.md#known-risks) claimed a hotel desk's customer scan counts
+  a guest asleep elsewhere in the same building — it has always excluded sleeping pawns via
+  `Pawn.Awake()`; [buildings](buildings.md), [business kinds](businesses.md) and
+  [services](services.md) still described a *Set prices* gizmo that was removed when markup moved
+  to the Stock tab; [customers](customers.md) compared a disturbance's reputation cost against a
+  walkout's supposed flat 0.02, a fossil of a per-sale reputation model that no longer exists.
+
+### Save compatibility
+
+- Eviction billing moves "which desk sold this stay" off the bed and onto the guest: a new
+  `CustomerRecord.rentedFrom` field (alongside the already-persisted `.rentedBed`) replaces
+  `CompRentableBed`'s own removed `deskThing` field, which the cross-desk fix above made
+  unreliable and which nothing else ever read. A save from earlier in this same unreleased branch,
+  loaded with a guest already mid-stay, comes back with `rentedFrom` absent (reads `null`) for
+  that one in-flight booking; if that particular claim then breaks before the guest falls asleep,
+  eviction billing no-ops for that one stay exactly as it silently did before this fix existed,
+  rather than misattributing it — the very next booking captures `rentedFrom` correctly, so this
+  is a one-time, one-stay gap, not a lasting one. The stickup-alert fix is a computed property
+  (`CompBusiness.TillSilverAboveCapital`) and an `Alert` subclass, neither ever scribed; the
+  regional-lead fix moves an existing call between two already-persisted fields without changing
+  what they mean or how an old save migrates. Safe to drop into a save in progress.
+
 ### Added
 
 - **The wiki now also covers stage 4** — town roles. It shipped on this branch before the wiki

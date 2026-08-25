@@ -784,15 +784,22 @@ namespace OldWestTown.Shops
 
         /// <summary>
         /// Announces a change in who's ahead regionally — this town's own <see cref="MarketPull"/>
-        /// against every rival's combined pull — the moment <see cref="RollOverDay"/> notices
-        /// one. Silent below <see cref="MinAppealForCustomers"/>, or with no qualifying rival to
-        /// be ahead of at all (both mirror <see cref="RegionalShare"/>'s own guard), and silent on
-        /// the very first evaluation on a given map — a fresh colony crossing the threshold, or
-        /// an old save loading under this version for the first time — so the feature turning on
-        /// can never itself read as "you've fallen behind." A Message, not a Letter: unlike a
-        /// route-tier promotion (rare, close to monotonic), this can flip more than once across a
-        /// single undercut swing near parity, and a Letter for a potentially flip-floppy signal
-        /// would be disproportionate.
+        /// against every rival's combined pull — evaluated on the same live, 600-tick
+        /// <see cref="ArrivalCheckInterval"/> cadence as the adjacent
+        /// <see cref="CheckRouteTierChange"/>, from inside <see cref="TryAttractCustomers"/>,
+        /// deliberately decoupled from the nightly, patron-gated settlement pass:
+        /// <see cref="MarketPull"/> and <see cref="CompetingPull"/> are both live-computed values
+        /// with no dependency on the patron table at all, so there was never a reason to wait for
+        /// a day's worth of trade to check them — and a quiet stretch with no patrons used to
+        /// skip this check entirely, silently losing an undercut swing that flipped the lead and
+        /// flipped it back within the gap. Silent below <see cref="MinAppealForCustomers"/>, or
+        /// with no qualifying rival to be ahead of at all (both mirror <see cref="RegionalShare"/>'s
+        /// own guard), and silent on the very first evaluation on a given map — a fresh colony
+        /// crossing the threshold, or an old save loading under this version for the first time —
+        /// so the feature turning on can never itself read as "you've fallen behind." A Message,
+        /// not a Letter: unlike a route-tier promotion (rare, close to monotonic), this can flip
+        /// more than once across a single undercut swing near parity, and a Letter for a
+        /// potentially flip-floppy signal would be disproportionate.
         /// </summary>
         private void CheckRegionalLeadChange()
         {
@@ -836,6 +843,7 @@ namespace OldWestTown.Shops
 
             float appeal = Appeal;
             CheckRouteTierChange();
+            CheckRegionalLeadChange();
             if (appeal < MinAppealForCustomers) return;
 
             // A town scraping past the threshold sees a group every few days; a booming main
@@ -976,8 +984,6 @@ namespace OldWestTown.Shops
                     NudgeStanding(faction, GougeStandingDelta * patronGougeSeverity[i]);
                 }
             }
-
-            CheckRegionalLeadChange();
         }
 
         public override void ExposeData()

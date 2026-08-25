@@ -147,7 +147,7 @@ to play.
    the shop's back room. Customers stand on the opposite side.
 3. Put goods in the same room. Shelves work; so does the floor.
 4. Open the counter's **Stock** tab and choose what it sells.
-5. Set a price with **Set prices**.
+5. Set a price with the markup slider, right there in the **Stock** tab.
 6. Give a colonist a **Shopkeep** priority in the Work tab.
 7. Wait for the *Customers arriving* event, then watch the till.
 
@@ -168,12 +168,13 @@ past when the rest have gone home — the whole visit now waits for every rented
 before anyone leaves.
 
 A **faro table** runs a gambling hall: build one, staff it, and a gambler with money to spare
-will sit down for a hand. Set its **Set house edge** slider, right next to **Set prices**, to
-decide how greedy the house is — a low edge keeps a table fair and its gamblers coming back all
-evening, a high one wins more per hand but angers losers faster and burns through the till's own
-bankroll quicker. A win pays double the stake straight out of that till; if the till ever can't
-cover one, the table closes its own doors until you reopen it, so keep an eye on it the way you
-would any other counter's stock.
+will sit down for a hand. Set its **Set house edge** slider — a gizmo on the counter itself,
+since markup moved into the Stock tab but house edge never followed it — to decide how greedy the
+house is: a low edge keeps a table fair and its gamblers coming back all evening, a high one wins
+more per hand but angers losers faster and burns through the till's own bankroll quicker. A win
+pays double the stake straight out of that till; if the till ever can't cover one, the table
+closes its own doors until you reopen it, so keep an eye on it the way you would any other
+counter's stock.
 
 A saloon or a gambling hall left to run itself eventually gets rowdy — build a **sheriff's
 office** and assign a colonist to it from the office's own gizmo to keep the peace. Unlike

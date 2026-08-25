@@ -36,13 +36,35 @@ namespace OldWestTown.AI
             // to run, and until it's cleared this customer reads as permanently checked in —
             // which would leave the whole group unable to satisfy Trigger_VisitComplete and never
             // go home, for as long as it takes this pawn to grow tired rather than for as long as
-            // the claim has actually been stale. No message or reputation hit either way: the
-            // guest never actually occupied the room under this stale booking, so there's
-            // nothing to be legible about beyond it quietly evaporating.
-            if (!(record.rentedBed is Building_Bed bed) || !bed.Spawned
-                || bed.TryGetComp<CompRentableBed>()?.IsRentedBy(pawn) != true)
+            // the claim has actually been stale. record.rentedBed is nulled below either way, for
+            // that same reason.
+            //
+            // This now charges the identical walkout-shaped cost a mid-sleep eviction does
+            // (JobDriver_SleepInRentedBed.ChargeEviction), not silence: payment already cleared
+            // atomically at check-in (ShopTransaction.TryServe takes the silver before
+            // service.worker.ApplyEffect ever claims the bed), so a guest whose claim breaks here
+            // already paid in full and got nothing for it — worse than a mid-sleep eviction,
+            // which at least banks partial rest, not better. Charging nothing had the economics
+            // backwards. It also closes what was otherwise a free-rebooking loop: RefuseShop
+            // (called inside ChargeEviction) is the same guard the shop-choice scoring loop
+            // already checks before offering this guest the room again while the desk stays
+            // unstaffed — without it, the same night could be sold and taken away from this guest
+            // over and over.
+            Building_Bed bed = record.rentedBed as Building_Bed;
+            CompRentableBed claim = bed?.TryGetComp<CompRentableBed>();
+            if (bed == null || !bed.Spawned || claim?.IsRentedBy(pawn) != true)
             {
+                // Resolved from this guest's own record, not the bed's claim: two Lodging desks
+                // can share one room (CompBusiness.SalesFloorRoom), so by the time a stale claim
+                // is noticed here, a *different* desk may already have legitimately re-let this
+                // same bed to someone else — which would have overwritten a per-bed "who claimed
+                // this" pointer to name the new tenant's desk, not the one that evicted this
+                // guest. record.rentedFrom is this guest's own copy, so nobody else's booking can
+                // touch it.
+                CompBusiness shop = record.rentedFrom?.TryGetComp<CompBusiness>();
+                JobDriver_SleepInRentedBed.ChargeEviction(pawn, record, shop);
                 record.rentedBed = null;
+                record.rentedFrom = null;
                 return null;
             }
 

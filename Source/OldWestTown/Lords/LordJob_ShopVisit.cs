@@ -99,6 +99,18 @@ namespace OldWestTown.Lords
         /// to decide whether the whole group can leave yet.</summary>
         public Thing rentedBed;
 
+        /// <summary>Which desk sold the stay named by <see cref="rentedBed"/>, captured once at
+        /// check-in. Eviction billing (JobGiver_SleepInRentedBed's stale-claim branch, and
+        /// JobDriver_SleepInRentedBed's own finish action) reads this rather than the bed's own
+        /// CompRentableBed claim: two Lodging desks can share one room
+        /// (CompBusiness.SalesFloorRoom), so a bed this guest lost is free for a *different* desk
+        /// to sell before this guest's own stale claim is ever noticed — and billing off the bed
+        /// would then charge whichever desk sold it *next*, not whichever desk actually evicted
+        /// this guest. Per-guest state can't be clobbered by a different guest's booking the way
+        /// a per-bed pointer can, because nothing but this guest's own check-in and check-out ever
+        /// touches it.</summary>
+        public Thing rentedFrom;
+
         /// <summary>Set once by TroubleUtility.Notify_ServiceRound if this customer tipped a
         /// saloon into a disturbance. JobGiver_BuyFromShop reads it to stop offering them
         /// anything else for the rest of the visit — the same legible consequence a walkout
@@ -115,6 +127,7 @@ namespace OldWestTown.Lords
             Scribe_Collections.Look(ref refusedGoodsShops, "refusedGoodsShops", LookMode.Reference);
             Scribe_Collections.Look(ref refusedGoodsDefs, "refusedGoodsDefs", LookMode.Def);
             Scribe_References.Look(ref rentedBed, "rentedBed");
+            Scribe_References.Look(ref rentedFrom, "rentedFrom");
             Scribe_Values.Look(ref causedTrouble, "causedTrouble");
             if (Scribe.mode == LoadSaveMode.PostLoadInit)
             {

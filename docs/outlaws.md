@@ -23,10 +23,13 @@ real money — somewhere north of **2,000 silver** exposed across your tills and
 You can see this coming before it bites. An alert appears once your exposed silver totals **150**
 combined — before the risk itself is even live at 300 — and it breaks the total down counter by
 counter, till and floor separately, so you know exactly where the money actually is and what it
-would take to get it to safety. There's also a small, independent chance of a stickup regardless,
-the same background trickle every arriving customer group already has. Either way, a stickup
-won't pile onto an existing threat: if something else hostile is already active on your map, the
-clock holds off rather than adding a second crisis on top of the first.
+would take to get it to safety. That 150 doesn't count a business's own declared starting capital
+— a [gambling hall](businesses.md#gambling-hall)'s 300-silver bankroll, for instance — since
+silver a business needs just to keep running isn't something you can safely pull out of it; only
+silver piling up beyond that counts toward the alert. There's also a small, independent chance of
+a stickup regardless, the same background trickle every arriving customer group already has.
+Either way, a stickup won't pile onto an existing threat: if something else hostile is already
+active on your map, the clock holds off rather than adding a second crisis on top of the first.
 
 **Collecting your takings is not the same as clearing the risk.** *Collect takings* empties a
 till onto the floor beside the counter for a hauler to pick up — that's a move from one half of
