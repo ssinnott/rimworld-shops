@@ -103,14 +103,17 @@ the reason a freshly built table is seeded with a bankroll of its own rather tha
 empty till. The stage-6 faro table is promoted into this, not duplicated alongside it: there is
 exactly one faro table in the build menu, not two confusingly similar ones.
 
-**Outlaws and the law — done.** A rich town becomes a target: the more silver sitting
-uncollected across every till, the higher the chance of a *[stickup](outlaws.md)* — a small,
-capped raider band that heads straight for counters instead of colonists, empties whatever it can
-reach, and leaves unless resisted. Sized off the silver actually at risk, not colony wealth, so a
-very rich town's stickup stays a small, focused hit rather than an ordinary raid scaled to
-everything the colony owns. An [alert](outlaws.md#how-the-risk-builds) shows the risk climbing
-well before the clock behind it is even live, so "collect the takings" stops being a chore with no
-downside to postponing it and becomes a genuine risk-management call. Counterplay is the step-4
+**Outlaws and the law — done.** A rich town becomes a target: the more silver sitting exposed —
+in a till, or loose on a sales floor — the higher the chance of a *[stickup](outlaws.md)* — a
+small, capped raider band that heads straight for counters instead of colonists, takes whatever it
+can reach (a till or a floor pile alike), and leaves unless resisted. Sized off the silver
+actually at risk, not colony wealth, so a very rich town's stickup stays a small, focused hit
+rather than an ordinary raid scaled to everything the colony owns. An
+[alert](outlaws.md#how-the-risk-builds) shows the risk climbing well before the clock behind it is
+even live, and names exactly where the exposed silver is — because collecting a till only moves
+its silver onto the floor, it doesn't clear the risk. Only a hauler actually carrying that silver
+off to a stockpile does, which is what makes "get the takings to safety" the genuine
+risk-management call, not the one-click reflex it first shipped as. Counterplay is the step-4
 [sheriff](shopkeeping.md#sheriffing): being on duty roughly halves both how often a stickup
 happens and how long one lasts — still a passive presence, not a new combat job, since the sheriff
 was built to calm drinkers, not shoot outlaws. Everything past that is ordinary, unmodified
@@ -188,3 +191,24 @@ combined, is already a real, player-caused "you've neutralized them" state. See 
 competition](economy.md#regional-competition) for how it plays, and [the design
 notes](DESIGN.md#rival-towns-an-opponent-not-a-second-town) for the reasoning, the worked bound,
 and the multi-colony answer.
+
+## Dev and testing tools
+
+Not a player-facing feature — this mod's own tooling for testing everything above without
+waiting on its real clocks.
+
+**First-play kit — done.** Twelve shipped systems and zero minutes of runtime made most of this
+wiki's known risks unreachable in a short session: a stickup needs an hour of real-time till
+accumulation, a gold rush is an MTB roll, a route-tier promotion takes in-game days, a rival
+undercut is a roughly-12-day MTB. An "Old West Town" category under RimWorld's own Dev Mode
+debug actions menu now covers all of it: spawn a customer group, fire a stickup, start a gold
+rush and force it to bust, force a rival undercut, max out rival appeal, roll straight to the
+nightly settlement, set town reputation directly, expire the stagecoach arrival clock, top up a
+selected till or a selected pawn's purse, spike a patron's rowdiness, and dump the full
+town-economy state to the log. Every lever reuses a real production entry point — the same
+`Storyteller.TryFire` call an organic arrival or stickup already makes, or a direct write to the
+same till/purse/economy state a real transaction already touches — so nothing here is a second
+pawn loop or a shortcut that could strand one. Alongside it, an opt-in **Telemetry logging**
+setting (off by default) writes one log line per customer arrival, nightly settlement and
+stickup roll — the real numbers this wiki's known risks keep asking to have confirmed in play.
+See [Contributing](contributing.md#dev-mode-kit) for the full list and what each lever calls into.

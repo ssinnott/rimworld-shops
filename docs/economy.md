@@ -234,10 +234,12 @@ chance of winning a payout the till has no way to cover — not a rare accident,
 on transaction one.
 
 **Letting it sit is a risk, too.** A till only ever fills up on its own — collecting it is still
-entirely up to you, and nothing before this forced the question. Leave enough silver sitting
-uncollected across your tills for long enough, though, and it starts drawing armed attention: see
-[outlaws and the law](outlaws.md) for how that risk builds, what it targets, and what actually
-slows it down.
+entirely up to you, and nothing before this forced the question. But collecting isn't the same as
+clearing it: *Collect takings* only moves silver from the till onto the floor beside the counter,
+where a hauler still has to carry it off to a stockpile before it's actually out of harm's way.
+Leave enough silver exposed — in a till, or loose on the floor — for long enough, and it starts
+drawing armed attention: see [outlaws and the law](outlaws.md) for how that risk builds, what it
+targets, and what actually slows it down.
 
 ## What counts as stock
 

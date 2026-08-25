@@ -41,6 +41,12 @@ namespace OldWestTown
         /// customerVolume/customerWealth do; see TownEconomy.CompetingPull.</summary>
         public float rivalStrength = 1f;
 
+        /// <summary>Opt-in Dev Mode telemetry: one log line per customer arrival, nightly
+        /// settlement and stickup roll (DevTools/Telemetry.cs) — the real numbers this mod's own
+        /// tuning constants are still guesses about. Off by default; meant for testing, not
+        /// ordinary play.</summary>
+        public bool telemetryLoggingEnabled = false;
+
         public override void ExposeData()
         {
             base.ExposeData();
@@ -53,6 +59,7 @@ namespace OldWestTown
             Scribe_Values.Look(ref goldRushEnabled, "goldRushEnabled", true);
             Scribe_Values.Look(ref rivalTownsEnabled, "rivalTownsEnabled", true);
             Scribe_Values.Look(ref rivalStrength, "rivalStrength", 1f);
+            Scribe_Values.Look(ref telemetryLoggingEnabled, "telemetryLoggingEnabled", false);
         }
     }
 
@@ -96,6 +103,10 @@ namespace OldWestTown
                 list.Label("OWT_SettingRivalStrength".Translate(Settings.rivalStrength.ToStringPercent()));
                 Settings.rivalStrength = list.Slider(Settings.rivalStrength, 0.25f, 3f);
             }
+            list.Gap();
+
+            list.CheckboxLabeled("OWT_SettingTelemetryEnabled".Translate(), ref Settings.telemetryLoggingEnabled,
+                "OWT_SettingTelemetryEnabledDesc".Translate());
 
             // Hospitality section: a status line always shown, so the player can tell the bridge
             // apart from a mod that's simply doing nothing; controls only once there's something

@@ -124,9 +124,9 @@ namespace OldWestTown.Compat
         /// whether <see cref="IsHospitalityGuest"/> recognizes them, their Lord's LordJob type,
         /// and every comp they carry — everything a maintainer with a real Hospitality install
         /// needs to correct the guesses in docs/DESIGN.md without decompiling anything blind.
-        /// The one deliberate exception to this codebase's zero-Log.Message history: it only
-        /// ever runs from the debug-actions menu on a developer's own request, never during
-        /// ordinary play.
+        /// This codebase's first Dev Mode use of <c>Log.Message</c> — DevTools/DebugActions.cs
+        /// and DevTools/Telemetry.cs are what make it more than one. It only ever runs from the
+        /// debug-actions menu on a developer's own request, never during ordinary play.
         /// </summary>
         [DebugAction("Old West Town", "Hospitality bridge state", allowedGameStates = AllowedGameStates.PlayingOnMap, actionType = DebugActionType.Action)]
         private static void LogDetectionState()

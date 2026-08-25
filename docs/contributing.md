@@ -118,6 +118,64 @@ python3 tools/validate_docs.py
 
 Checks that this wiki has not drifted from the code. See below.
 
+## Dev Mode kit
+
+This mod has never been run in RimWorld, and several of its systems have real-time or in-game-day
+clocks a short test session can't otherwise reach: a stickup needs an hour of real-time till
+accumulation past 300 silver, a gold rush is an MTB roll, a route-tier promotion takes in-game
+days, a rival undercut is a roughly-12-day MTB. `Source/OldWestTown/DevTools/` exists to make a
+first play session actually test something instead of mostly waiting.
+
+With Dev Mode on (`Options → Debug`, or launch with `-quicktest`/the vanilla dev toggle), open
+**Debug Actions Menu** and look for the **Old West Town** category:
+
+| Lever | Calls into |
+| --- | --- |
+| Spawn customer group now | `Storyteller.TryFire(OWT_ShopCustomers)` — the same call `TownEconomy.TryAttractCustomers` makes organically |
+| Expire stagecoach arrival clock | `TownEconomy.DebugExpireArrivalClock` — makes the *next* arrival read `GuaranteedArrivalDue` true and pick up its route tier's purse multiplier and VIP roll |
+| Fire a stickup | `Storyteller.TryFire(OWT_Stickup)` — the same call `StickupWatch.MapComponentTick` makes organically |
+| Start a gold rush | `Storyteller.TryFire(OWT_GoldRushStrike)` |
+| Force gold rush to bust | `GameCondition_GoldRush.DebugForceBust` — the identical transition `GameConditionTick` performs once the boom's own duration elapses |
+| Force a rival undercut | Writes `RivalTown.undercutEndDay` directly, the same assignment `RivalTowns`' own organic roll makes |
+| Max out rival appeal | Writes `RivalTown.currentAppeal` to its own `maxAppeal` — the single slowest clock in the mod (roughly 570 days to cap on its own, per the shipped `RivalTownDef`s) |
+| Advance to nightly settlement | `TownEconomy.DebugForceSettlement` (`RollOverDay`) — logs the day's verdict figures first, since judging the day is also what clears them |
+| Set town reputation | `TownEconomy.DebugSetReputation` — one slider for route-tier promotion, gold-rush bust recovery and a regional-lead flip at once |
+| Fill selected till | Select a business counter first; a slider tops up its till via `CompBusiness.AddToTill` |
+| Give selected pawn a purse | Select a pawn first; a slider multiplies the same purse formula `IncidentWorker_ShopCustomers.GivePurse` uses for a real arrival |
+| Spike selected pawn's rowdiness | Select a pawn first; nudges `TroubleUtility.Notify_ServiceRound` at the first rowdiness-capable business found on their map |
+| Dump town economy state | Logs `TownEconomy`, `StickupWatch`, gold rush and per-shop state for every map, then the world's rival roster |
+
+Every lever fires the mod's real incident through `Storyteller.TryFire`, or writes straight to
+shared till/purse/economy state a real transaction already touches — never a hand-built job, so
+nothing here can strand a customer or colonist the way a shortcut through the pawn AI might. One
+consequence worth knowing: a lever that fires an incident inherits that incident's own
+`minRefireDays`. If a lever appears to do nothing shortly after the same incident already fired —
+organically, or from another debug call — that's the cooldown working as designed, not a bug;
+each lever logs whether it actually fired rather than assuming it did.
+
+Everything here is Dev Mode only and costs nothing in an ordinary game — but it is not free of
+save effects. Neither `DebugActions` nor `Telemetry` is itself `IExposable`; there's no bespoke
+save/load code of this feature's own to get wrong. Several of the levers above, though, write
+straight into fields a real transaction already persists — till silver, town reputation, a
+rival's appeal and undercut timer, the gold rush's bust flag — exactly as that transaction would,
+so those effects are ordinary saved state from the next save onward, the same as if a customer
+had caused them. Use a save you don't mind that happening to.
+
+### Opt-in telemetry logging
+
+The **Telemetry logging** mod setting (off by default) writes one log line per:
+
+- **Customer arrival** — ticks since the last one, group size, total purse, and whether it came
+  from the organic MTB roll or the stagecoach guarantee.
+- **Nightly settlement** — the day's patron/unserved/service-score figures and how far
+  reputation moved.
+- **Stickup roll** — the till total and MTB days behind the roll, and whether it fired, logged
+  for every roll rather than only a successful one.
+
+Each of the three log methods in `Telemetry.cs` starts by checking the setting and returning
+immediately if it's off, so a normal game pays for this at most one bool read per already
+infrequent call site — never a per-tick cost, and nothing saved to the game file.
+
 ## Continuous integration
 
 `.github/workflows/ci.yml` runs on every push and pull request:

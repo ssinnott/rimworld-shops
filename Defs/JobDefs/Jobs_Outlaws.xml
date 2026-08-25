@@ -8,4 +8,11 @@
     <casualInterruptible>false</casualInterruptible>
   </JobDef>
 
+  <JobDef>
+    <defName>OWT_GrabSilver</defName>
+    <driverClass>OldWestTown.AI.JobDriver_GrabSilver</driverClass>
+    <reportString>grabbing loose silver at TargetB.</reportString>
+    <casualInterruptible>false</casualInterruptible>
+  </JobDef>
+
 </Defs>

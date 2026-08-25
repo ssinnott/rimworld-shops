@@ -237,6 +237,38 @@ namespace OldWestTown.Shops
             return total;
         }
 
+        /// <summary>The other place a raider can take silver that was never in a till at all —
+        /// a loose stack sitting on a shop's own sales floor, exactly where Collect takings just
+        /// left it. Unlike RobTill this never touches CompBusiness.TakeFromTill/AddToTill: a
+        /// floor stack is an ordinary spawned Thing, not something living inside a till's
+        /// ThingOwner, so none of the till-container primitives apply — it moves straight from
+        /// the floor into the thief's inventory. <paramref name="shop"/> may be null (the silver
+        /// is real whether or not its originating business still exists); when it isn't, this
+        /// records the theft against the same ledger bucket a till robbery uses and refreshes
+        /// the floor cache immediately, so it doesn't go on crediting a stack that's already
+        /// gone. Returns the amount actually taken, 0 if the stack was already gone (somebody
+        /// else got there first, or a hauler beat the thief to it) — the same graceful no-op
+        /// every other race in this file resolves to.</summary>
+        public static int GrabFloorSilver(CompBusiness shop, Thing stack, Pawn thief)
+        {
+            if (stack == null || !stack.Spawned || stack.Destroyed) return 0;
+            if (stack.def != ThingDefOf.Silver || stack.stackCount <= 0) return 0;
+            if (thief?.inventory == null) return 0;
+
+            int amount = stack.stackCount;
+            stack.DeSpawn();
+            if (!thief.inventory.innerContainer.TryAdd(stack, true))
+            {
+                // Inventory refused it (rare) — leave it on the floor rather than voiding it,
+                // mirroring RobTill's own fallback.
+                GenPlace.TryPlaceThing(stack, thief.Position, thief.Map, ThingPlaceMode.Near);
+            }
+
+            shop?.RecordRobbery(amount);
+            shop?.RefreshStock();
+            return amount;
+        }
+
         /// <summary>Moves <paramref name="amount"/> silver out of the customer's purse and into the till.</summary>
         private static bool TakeSilver(Pawn customer, int amount, CompBusiness shop)
         {

@@ -27,9 +27,11 @@ namespace OldWestTown.Shops
         /// <summary>
         /// The raw candidate set a shop's sales floor contains — everything in its room, or
         /// within its open-air radius outdoors — before any per-Thing filter is applied. Shared
-        /// by ScanFor (goods and stock-backed services, filtered through Sellable) and
-        /// ChooseVacantBed/CountBeds (rentable beds, filtered by type instead): both care about
-        /// "what's on this floor", they just disagree about what counts.
+        /// by ScanFor (goods and stock-backed services, filtered through Sellable),
+        /// ChooseVacantBed/CountBeds (rentable beds, filtered by type instead) and
+        /// LooseSilverOnFloor (silver instead of sellable stock, no forbidden/reserved filtering
+        /// at all): all three care about "what's on this floor", they just disagree about what
+        /// counts.
         /// </summary>
         private static IEnumerable<Thing> ThingsOnFloor(CompBusiness shop)
         {
@@ -237,6 +239,23 @@ namespace OldWestTown.Shops
                 if (comp.Vacant) vacant++;
             }
             return total;
+        }
+
+        /// <summary>Every loose silver stack sitting on this shop's sales floor right now — what
+        /// Collect takings just dropped there, waiting on a hauler, plus anything else that's
+        /// ended up on the floor by any other route. Deliberately no forbidden or reserved check,
+        /// unlike Sellable: forbidding a stack must not be a way to make it stop counting toward
+        /// stickup risk without moving it an inch, and a robber ignoring forbidden status already
+        /// matches JobDriver_RobTill's own "robbing a closed till is the entire point".</summary>
+        public static IEnumerable<Thing> LooseSilverOnFloor(CompBusiness shop)
+        {
+            foreach (Thing t in ThingsOnFloor(shop))
+            {
+                if (t == null || !t.Spawned || t.Destroyed) continue;
+                if (t.def != ThingDefOf.Silver) continue;
+                if (t.stackCount <= 0) continue;
+                yield return t;
+            }
         }
     }
 }

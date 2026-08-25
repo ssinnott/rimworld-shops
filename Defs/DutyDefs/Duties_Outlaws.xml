@@ -3,8 +3,10 @@
 
   <!-- Held by every member of a stickup crew for the length of the raid. Self-defense always
        wins first (vanilla's own JobGiver_AIFightEnemies, the same "reactive concern ahead of
-       everything else" shape OWT_Shop already proves for a different concern); robbing a till
-       is next; wandering is what's left once there's nothing left to take and nobody to fight. -->
+       everything else" shape OWT_Shop already proves for a different concern); JobGiver_RobTill
+       is next — it scores a till and every loose floor silver stack in the one pass and sends
+       the crew after whichever's worth the walk; wandering is what's left once there's nothing
+       left to take and nobody to fight. -->
   <DutyDef>
     <defName>OWT_StickupDuty</defName>
     <hook>HighPriority</hook>

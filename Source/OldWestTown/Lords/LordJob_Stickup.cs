@@ -7,10 +7,11 @@ using Verse.AI.Group;
 namespace OldWestTown.Lords
 {
     /// <summary>
-    /// A stickup crew: walk in, empty tills, leave — on their own once there's nothing left to
-    /// take or the clock runs out, or in a rout the moment anyone shoots back. Structurally a
-    /// near-twin of LordJob_ShopVisit's own flat graph; the two toils just play a hostile role
-    /// instead of a paying one.
+    /// A stickup crew: walk in, take whatever silver it can reach — a till, or a loose pile on
+    /// the floor — and leave, on their own once there's nothing left to take or the clock runs
+    /// out, or in a rout the moment anyone shoots back. Structurally a near-twin of
+    /// LordJob_ShopVisit's own flat graph; the two toils just play a hostile role instead of a
+    /// paying one.
     /// </summary>
     public class LordJob_Stickup : LordJob
     {
@@ -19,7 +20,7 @@ namespace OldWestTown.Lords
         private int durationTicks = 20000;
 
         /// <summary>Stamped once, at construction — this raid's own clock, read by
-        /// Trigger_StickupComplete alongside StickupWatch.TotalTillSilver.</summary>
+        /// Trigger_StickupComplete alongside StickupWatch.TotalSilverAtRisk.</summary>
         private int groupArrivedTick;
 
         public LordJob_Stickup() { }
@@ -81,9 +82,17 @@ namespace OldWestTown.Lords
             Scribe_Values.Look(ref groupArrivedTick, "groupArrivedTick");
         }
 
-        /// <summary>The raid's real exit condition: the duration cap has elapsed, or every till
-        /// on the map has already been emptied. A nested class so it can read the owner's fields
-        /// directly — mirrors LordJob_ShopVisit's own Trigger_VisitComplete idiom exactly.</summary>
+        /// <summary>The raid's real exit condition: the duration cap has elapsed, or there's no
+        /// silver left at risk anywhere on the map — till or floor. A nested class so it can
+        /// read the owner's fields directly — mirrors LordJob_ShopVisit's own
+        /// Trigger_VisitComplete idiom exactly.
+        ///
+        /// Reading TotalSilverAtRisk here, not just till contents, is the one place this feature
+        /// requires the till-vs-floor rename to reach beyond the entry-side clock: once a crew
+        /// can legitimately grab a loose floor pile (JobGiver_RobTill/JobDriver_GrabSilver),
+        /// "nothing left worth taking" has to mean the same thing at both ends of the raid, or a
+        /// crew could announce it's leaving over an untouched floor pile it was fully capable of
+        /// grabbing.</summary>
         private class Trigger_StickupComplete : Trigger
         {
             private readonly LordJob_Stickup owner;
@@ -97,7 +106,7 @@ namespace OldWestTown.Lords
             {
                 if (Find.TickManager.TicksGame - owner.groupArrivedTick >= owner.durationTicks) return true;
                 Map map = lord.Map;
-                return map != null && map.GetComponent<StickupWatch>()?.TotalTillSilver <= 0;
+                return map != null && map.GetComponent<StickupWatch>()?.TotalSilverAtRisk <= 0;
             }
         }
     }

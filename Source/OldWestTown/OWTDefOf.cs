@@ -13,6 +13,7 @@ namespace OldWestTown
         public static JobDef OWT_Patrol;
         public static JobDef OWT_CalmTrouble;
         public static JobDef OWT_RobTill;
+        public static JobDef OWT_GrabSilver;
 
         public static DutyDef OWT_Shop;
         public static DutyDef OWT_StickupDuty;

@@ -100,6 +100,7 @@ The [stagecoach line](economy.md#the-stagecoach-line)'s route ladder, `OldWestTo
 | `OWT_Patrol` | `JobDriver_Patrol` | patrolling TargetA. |
 | `OWT_CalmTrouble` | `JobDriver_CalmTrouble` | calming down TargetA. |
 | `OWT_RobTill` | `JobDriver_RobTill` | cracking the till at TargetB. |
+| `OWT_GrabSilver` | `JobDriver_GrabSilver` | grabbing loose silver at TargetB. |
 
 ### Raid strategies
 
@@ -263,20 +264,35 @@ where it lives in C# it is a `const` in the named file.
 | Shortfall reputation hit (`TownEconomy.RecordShortfall`) | −0.08 | The worst single-event reputation hit in the mod — worse than a disturbance's −0.05 |
 | `FactionStandingShortfallDelta` (`TownEconomy`) | −0.20 | The worst single-event standing hit in the mod — worse than a walkout's −0.10 |
 
-### Outlaws — `Shops/StickupWatch.cs`, `Incidents/IncidentWorker_Stickup.cs`, `Incidents/RaidStrategyWorker_Stickup.cs`, `Lords/LordToil_Stickup.cs`, `AI/JobDriver_RobTill.cs`, `Shops/CompBusiness.cs`, `Alerts/Alert_StickupRisk.cs`
+### Outlaws — `Shops/StickupWatch.cs`, `Incidents/IncidentWorker_Stickup.cs`, `Incidents/RaidStrategyWorker_Stickup.cs`, `Lords/LordToil_Stickup.cs`, `AI/JobDriver_RobTill.cs`, `Shops/CompBusiness.cs`, `Alerts/Alert_StickupRisk.cs`, `Shops/ShopStock.cs`, `Shops/ShopTransaction.cs`, `AI/JobGiver_RobTill.cs`, `AI/JobDriver_GrabSilver.cs`
 
 | Name | Value | Meaning |
 | --- | --- | --- |
-| `MinSilverAtRisk` (`StickupWatch`) | 300 | Below this much silver sitting uncollected across every till, the stickup clock never rolls at all |
-| MTB curve (`StickupWatch`) | `lerp(6, 0.75, clamp01((silver - 300) / 2000))` days, ×2 with a sheriff on duty | How the average gap between attempts shortens as uncollected silver climbs |
+| `MinSilverAtRisk` (`StickupWatch`) | 300 | Below this much silver at risk — till and sales-floor combined — the stickup clock never rolls at all |
+| MTB curve (`StickupWatch`) | `lerp(6, 0.75, clamp01((silver - 300) / 2000))` days, ×2 with a sheriff on duty | How the average gap between attempts shortens as silver at risk climbs |
 | `ArrivalCheckInterval` (`StickupWatch`) | 600 ticks | How often the clock is consulted — same cadence as `TownEconomy`'s own arrival clock |
 | `AlertThreshold` (`Alert_StickupRisk`) | 150 | Deliberately below `MinSilverAtRisk` — the alert fires before the risk itself is even live |
-| Points scaling (`IncidentWorker_Stickup.ResolveRaidPoints`) | `clamp(silver × 0.6, 80, 400)` | Crew size and gear, scaled off silver at risk rather than colony wealth |
+| Points scaling (`IncidentWorker_Stickup.ResolveRaidPoints`) | `clamp(silver × 0.6, 80, 400)` | Crew size and gear, scaled off silver at risk (till and sales-floor combined) rather than colony wealth |
 | `baseChance` / `minRefireDays` (`OWT_Stickup`) | 2 / 1.0 | The small background trickle on top of `StickupWatch`'s own clock |
 | Duration cap (`RaidStrategyWorker_Stickup`) | 20000 ticks, 10000 with a sheriff on duty | Fixed once at raid creation; a sheriff coming on or off duty mid-raid can't retroactively change it |
 | `RobRadius` (`LordToil_Stickup`) | 30 | Same value as `LordToil_Shop.ShoppingRadius` |
 | `CrackTicks` (`JobDriver_RobTill`) | 180 | The "cracking the till" delay before silver actually moves |
-| `RobberyMessageCooldownTicks` (`CompBusiness`) | 400 | At most one robbery message per till in this window — same shape as `AccusationMessageCooldownTicks` |
+| `SnatchTicks` (`JobDriver_GrabSilver`) | 90 | Half `CrackTicks` — grabbing a loose pile already sitting out in the open is quicker than working a lock |
+| `RobberyMessageCooldownTicks` (`CompBusiness`) | 400 | At most one till-robbery message, and independently one floor-grab message, per shop in this window — a till crack and a floor grab each keep their own tick field (`lastRobberyMessageTick`/`lastFloorRobberyMessageTick`) so a two-raider crew hitting both at once can't have one message silently eat the other. Same shape as `AccusationMessageCooldownTicks` |
+
+`StickupWatch.TotalSilverAtRisk` (renamed from `TotalTillSilver`) now sums till silver **and**
+every shop's loose floor silver, deduplicated across a shared sales floor by physical `Thing`
+identity — see [saved state](#saved-state). None of the constants above changed numerically when
+this widened: they still gate the same total, just a more honestly-measured one. Before this
+fix, clicking *Collect takings* zeroed the till side of the sum, so a diligent clicker could hold
+this number near zero indefinitely; after it, collecting only moves silver from the till side to
+the floor side, and the total falls only once a hauler actually carries that silver off the map's
+shops. The practical effect is that the same four numbers now gate a total that free-falls to
+zero far less often — stickups fire somewhat more often, and somewhat larger on average, for any
+colony that hasn't pointed hauling capacity at its shops. That is the fix working as intended, not
+a side effect to counteract; see [known risks](architecture.md#known-risks) for why the numbers
+themselves were left alone rather than retuned alongside the logic.
+
 ### Stagecoach — `Shops/TownEconomy.cs`, `Incidents/IncidentWorker_ShopCustomers.cs`, `Stagecoach/CoachTierDef.cs`, `Stagecoach/CoachTierUtility.cs`
 
 | Name | Value | Meaning |
@@ -326,10 +342,11 @@ where it lives in C# it is a `const` in the named file.
 | `customerWealth` | 1.0 | 0.25–3.0 | Scales the silver each customer carries |
 | `hospitalityBridgeEnabled` | true | on/off | Master switch for the [Hospitality bridge](customers.md#hospitality-guests). Only shown, and only consulted, while `HospitalityInterop.Present` is true |
 | `hospitalityGuestsCarrySilver` | true | on/off | Whether the bridge tops up a Hospitality guest's purse the way an arriving customer's is. Only shown while the bridge itself is enabled |
-| `stickupsEnabled` | true | on/off | Master switch for [the stickup incident](outlaws.md). Off removes the risk from an uncollected till entirely |
+| `stickupsEnabled` | true | on/off | Master switch for [the stickup incident](outlaws.md). Off removes the risk from exposed silver — till or sales floor — entirely |
 | `goldRushEnabled` | true | on/off | Master switch for [the gold rush event](economy.md#gold-rush). Off removes the event from the storyteller entirely |
 | `rivalTownsEnabled` | true | on/off | Master switch for [regional competition](economy.md#regional-competition). Off restores pre-feature arrival-clock behavior exactly — `CompetingPull` reads 0 everywhere |
 | `rivalStrength` | 1.0 | 0.25–3.0 | Scales every rival's own pull before it's weighed against this town's. A multiplier on a sum, not a divisor, so it carries no near-zero floor the way the sliders above do |
+| `telemetryLoggingEnabled` | false | on/off | Logs one line per customer arrival, nightly settlement and stickup roll to the player log — see [Contributing → Dev Mode kit](contributing.md#dev-mode-kit) |
 
 ## Translation keys
 
@@ -352,7 +369,7 @@ otherwise.
 | Sheriff's office gizmo and inspect panel | `OWT_CmdAssignSheriff`, `OWT_CmdAssignSheriffDesc`, `OWT_PostAlreadyFilled`, `OWT_PostVacant`, `OWT_PostOnDuty`, `OWT_PostOffDuty` |
 | Saloon trouble | `OWT_SaloonTrouble`, `OWT_DisturbanceLine`, `OWT_AlertRowdyPatrons`, `OWT_AlertRowdyPatronsDesc` |
 | Hospitality bridge | `OWT_HospitalityDetected`, `OWT_HospitalityNotDetected`, `OWT_SettingHospitalityEnabled`, `OWT_SettingHospitalityEnabledDesc`, `OWT_SettingHospitalitySilver`, `OWT_SettingHospitalitySilverDesc`, `OWT_HospitalityBridgeEngaged` |
-| Outlaws | `OWT_LetterStickupLabel`, `OWT_LetterStickupText`, `OWT_TillRobbed`, `OWT_StickupResisted`, `OWT_StickupDeparted`, `OWT_AlertStickupRisk`, `OWT_AlertStickupRiskDesc`, `OWT_RobberyLine`, `OWT_SettingStickupsEnabled`, `OWT_SettingStickupsEnabledDesc` |
+| Outlaws | `OWT_LetterStickupLabel`, `OWT_LetterStickupText`, `OWT_TillRobbed`, `OWT_StickupResisted`, `OWT_StickupDeparted`, `OWT_AlertStickupRisk`, `OWT_AlertStickupRiskDesc`, `OWT_RobberyLine`, `OWT_SettingStickupsEnabled`, `OWT_SettingStickupsEnabledDesc`, `OWT_FloorSilverLine`, `OWT_FloorSilverGrabbed`, `OWT_AlertStickupRiskShopLine` |
 
 | Trouble | `OWT_SaloonTrouble`, `OWT_DisturbanceLine`, `OWT_AlertRowdyPatrons`, `OWT_AlertRowdyPatronsDesc` |
 | Gambling hall | `OWT_CmdHouseEdge`, `OWT_CmdHouseEdgeDesc`, `OWT_HouseEdgeSlider`, `OWT_HouseEdgeLine`, `OWT_ShortfallLine`, `OWT_PayoutLine`, `OWT_CheatingAccusation`, `OWT_HouseCantCover`, `OWT_CmdCollectDescWager` |
@@ -360,6 +377,7 @@ otherwise.
 | Coach depot inspect panel | `OWT_DepotTierLine`, `OWT_DepotNextArrivalLine`, `OWT_DepotNextTierLine`, `OWT_DepotMaxTierLine`, `OWT_DepotNoRoute`, `OWT_DepotNoTiers` |
 | Gold rush letters, status lines and setting | `OWT_LetterGoldRushLabel`, `OWT_LetterGoldRushText`, `OWT_GoldRushBustBegins`, `OWT_GoldRushBoomStatus`, `OWT_GoldRushBustStatus`, `OWT_GoldRushGougeWarning`, `OWT_LetterGoldRushRecoveredLabel`, `OWT_LetterGoldRushRecoveredText`, `OWT_SettingGoldRushEnabled`, `OWT_SettingGoldRushEnabledDesc` |
 | Regional competition: inspect line, ledger and settings | `OWT_RegionalShareLine`, `OWT_LedgerRivalsHeader`, `OWT_LedgerRivalLine`, `OWT_LedgerRivalLineUndercutting`, `OWT_LedgerRegionalShareLine`, `OWT_RivalUndercutStartMessage`, `OWT_RivalUndercutEndMessage`, `OWT_RegionalLeadGainedMessage`, `OWT_RegionalLeadLostMessage`, `OWT_SettingRivalTownsEnabled`, `OWT_SettingRivalTownsEnabledDesc`, `OWT_SettingRivalStrength` |
+| Dev tools: telemetry setting and debug-lever sliders | `OWT_SettingTelemetryEnabled`, `OWT_SettingTelemetryEnabledDesc`, `OWT_DevFillTillSlider`, `OWT_DevPurseMultiplierSlider`, `OWT_DevReputationSlider` |
 
 ## Saved state
 
@@ -377,7 +395,7 @@ What survives a save/load, and where it lives.
 | Per-faction standing | `TownEconomy` | Sparse `Dictionary<Faction, float>`; a save with no `standings` node reads every faction as `Reputation`, exactly like the untracked case |
 | Per-customer records, including a checked-in guest's rented bed | `LordJob_ShopVisit` | Saves and dies with the visiting group |
 | Stickup crew state (faction, town center, duration, arrival tick) | `LordJob_Stickup` | Only ever created going forward — no old save can have one running |
-| Uncollected-till total | `StickupWatch` | Not persisted at all — a live sum over `TownEconomy.Shops`, recomputed on every read |
+| Silver-at-risk total | `StickupWatch` | Not persisted at all — a live sum over `TownEconomy.Shops` on every read: each shop's till silver read directly, plus each shop's loose floor silver read from its own un-persisted, `RefreshStock`-cadence cache (`CompBusiness.cachedFloorSilver`, exactly like `cachedStock`), deduplicated across a shared sales floor the same way `TownEconomy.TakeStock` already dedupes appeal |
 | Wait/serve progress | `JobDriver_PatronizeBusiness` | So a mid-sale save resumes correctly |
 | Sleep progress (`ticksAsleep`) | `JobDriver_SleepInRentedBed` | So a mid-stay save resumes correctly |
 | Current guest, selling desk | `CompRentableBed` | References only; released if the guest is dead on load |
