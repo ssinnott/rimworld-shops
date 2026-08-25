@@ -11,16 +11,18 @@ up with silver and spend it.
 
 Hospitality gets guests onto your map. This is about what they do once they're there.
 
-> **Status:** goods and services both work. A customer arrives, then either picks something off
-> your shelves or orders a drink, a meal or a haircut — queues, and pays either way, and your own
-> colonists can be sent to use a service too. The breadth
-> (hotels, banks, stables, town roles) is designed but not built. See the [roadmap](roadmap.md).
-> **Status:** goods and services both work, and the town has a main street to put them on. A
-> customer arrives, then either picks something off your shelves, orders a drink, a meal or a
-> haircut, or checks into a room for the night — queues, and pays either way. A sheriff can
-> now be posted to keep rowdy saloon patrons in line. An optional Hospitality bridge, and a
-> few more business kinds (banks, stables), are designed but not built. See the
-> [roadmap](roadmap.md).
+> **Status:** the whole staged plan is built, and so are every one of the thematic expansions on
+> top of it — a gambling hall, outlaws and the law, a stagecoach line that puts the town on a
+> scheduled route with its own visible tier ladder, a gold rush that floods the town with
+> prospectors for a season then leaves it quiet again, and one or two rival towns competing for
+> the same regional trade. A customer arrives, then either picks something off your shelves,
+> orders a drink, a meal or a haircut, sits for a hand of cards, or checks into a room for the
+> night — queues, and pays either way — and your own colonists can be sent to use a service too.
+> A sheriff can be posted to keep rowdy saloon and gambling-hall patrons in line, and to slow how
+> often an armed band comes to empty an unwatched till. If you also run Hospitality, an idle guest
+> it's already housing can wander over and shop too — see [Hospitality
+> guests](customers.md#hospitality-guests). See the [roadmap](roadmap.md) for how each piece got
+> there.
 
 This mod is standalone. It does not require Hospitality, and is written to sit alongside it.
 

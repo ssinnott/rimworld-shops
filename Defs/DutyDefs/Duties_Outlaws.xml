@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+
+  <!-- Held by every member of a stickup crew for the length of the raid. Self-defense always
+       wins first (vanilla's own JobGiver_AIFightEnemies, the same "reactive concern ahead of
+       everything else" shape OWT_Shop already proves for a different concern); robbing a till
+       is next; wandering is what's left once there's nothing left to take and nobody to fight. -->
+  <DutyDef>
+    <defName>OWT_StickupDuty</defName>
+    <hook>HighPriority</hook>
+    <thinkNode Class="ThinkNode_Priority">
+      <subNodes>
+        <li Class="JobGiver_AIFightEnemies" />
+        <li Class="OldWestTown.AI.JobGiver_RobTill" />
+        <li Class="JobGiver_WanderNearDutyLocation">
+          <wanderRadius>12</wanderRadius>
+          <ticksBetweenWandersRange>180~420</ticksBetweenWandersRange>
+        </li>
+      </subNodes>
+    </thinkNode>
+  </DutyDef>
+
+</Defs>

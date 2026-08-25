@@ -4,6 +4,9 @@ using RimWorld;
 using RimWorld.Planet;
 using UnityEngine;
 using Verse;
+using OldWestTown.GoldRush;
+using OldWestTown.Rivals;
+using OldWestTown.Stagecoach;
 
 namespace OldWestTown.Shops
 {
@@ -85,6 +88,29 @@ namespace OldWestTown.Shops
         /// <summary>Twice the sale delta, the same 2:1 ratio the town's own verdicts use.</summary>
         private const float FactionStandingWalkoutDelta = -0.10f;
 
+        /// <summary>The worst standing hit in the mod, deliberately worse than a walkout's —
+        /// the house winning a hand for a customer and then not paying it out is a sharper
+        /// trust break than slow service ever is.</summary>
+        private const float FactionStandingShortfallDelta = -0.20f;
+
+        /// <summary>Extra reputation/standing hit, scaled by ShopPricing.GougeSeverity and
+        /// accumulated once per gouged customer rather than once per sale (see
+        /// <see cref="PatronGouged"/>), applied only while a gold rush's boom is active — the
+        /// direct, necessary companion to the demand basket. Demand swings the shop-choice score
+        /// roughly 10x, structurally overpowering ValueAppeal's own ~2x price sensitivity, so the
+        /// existing "customers avoid pricey shops" self-correction needs an explicit extra brake
+        /// here while a rush makes price barely matter. See docs/DESIGN.md.</summary>
+        private const float GougeReputationPenalty = 0.03f;
+        private const float GougeStandingDelta = -0.03f;
+
+        /// <summary>
+        /// Structural cap on the arrival clock's regional-competition slowdown — see
+        /// <see cref="RegionalShare"/>. <c>Mathf.Lerp</c> clamps its own interpolant to [0,1], so
+        /// this is a provable bound, not a tuning promise: never faster than today, never more
+        /// than 60% slower, for any rival appeal, any rivalStrength setting, any number of rivals.
+        /// </summary>
+        private const float MaxRegionalSlowdown = 1.6f;
+
         /// <summary>What a night of disturbances costs the town's name, per disturbance. Applied
         /// once at settling rather than as each brawl breaks out, so that the town's name still
         /// moves exactly once a day and from one place.</summary>
@@ -95,6 +121,13 @@ namespace OldWestTown.Shops
         private const int PatronServed = 1;      // somebody stood behind the counter for them
         private const int PatronSelfServed = 2;  // honesty box: goods, no welcome
         private const int PatronWalkedOut = 4;   // waited, gave up, left
+
+        /// <summary>Sold to at a gouging markup at least once today, while a gold rush boom was
+        /// active — see <see cref="RecordGouge"/>. Kept alongside the other per-patron flags so a
+        /// gouged customer's own faction takes its standing hit from the same nightly settlement
+        /// pass (<see cref="SettleStandings"/>) as a served or walked-out customer's, rather than
+        /// from a second, sale-time write to reputation.</summary>
+        private const int PatronGouged = 8;
 
         private readonly List<CompBusiness> shops = new List<CompBusiness>();
 
@@ -123,6 +156,15 @@ namespace OldWestTown.Shops
         private List<int> patronIds = new List<int>();
         private List<int> patronFlags = new List<int>();
 
+        /// <summary>Severity of gouging (<see cref="ShopPricing.GougeSeverity"/>) a given today's
+        /// patron was sold at, summed across however many gouged sales they suffered — at the same
+        /// index as <see cref="patronIds"/>. Zero for everyone else. This is what lets
+        /// <see cref="RecordGouge"/> keep the per-sale severity scaling the gouge penalty always
+        /// had while still only ever writing reputation once, at <see cref="JudgeTheDay"/>: the
+        /// severity is banked here through the day and spent on settlement night, the same as
+        /// every other verdict in this table.</summary>
+        private List<float> patronGougeSeverity = new List<float>();
+
         /// <summary>Who each of today's callers came with, at the same index. Kept so that a
         /// faction's standing settles from the same verdicts the town's own name does, rather than
         /// from a nudge per receipt — a customer who opened their purse six times is one satisfied
@@ -141,6 +183,27 @@ namespace OldWestTown.Shops
         private List<Faction> standingFactions = new List<Faction>();
         private List<float> standingValues = new List<float>();
         private Dictionary<Faction, float> standings = new Dictionary<Faction, float>();
+
+        /// <summary>
+        /// Tick of the last successful customer arrival, organic or guaranteed — the clock the
+        /// stagecoach line's ceiling counts against. See <see cref="TicksSinceLastArrival"/>.
+        /// </summary>
+        private int lastArrivalTick;
+
+        /// <summary>The tier <see cref="CheckRouteTierChange"/> last announced, so a reload
+        /// can't re-announce a tier the player has already been told about.</summary>
+        private CoachTierDef lastAnnouncedTier;
+
+        /// <summary>Whether this map's own town was leading the region the last time
+        /// <see cref="CheckRegionalLeadChange"/> actually evaluated it.</summary>
+        private bool lastRegionLead = true;
+
+        /// <summary>False until <see cref="CheckRegionalLeadChange"/> has evaluated the lead at
+        /// least once on this map. Kept separate from <see cref="lastRegionLead"/> itself so the
+        /// very first evaluation — a fresh colony crossing the threshold, or an old save loading
+        /// under this version for the first time — can silently record state rather than
+        /// announcing a spurious change.</summary>
+        private bool regionLeadKnown = false;
 
         public TownEconomy(Map map) : base(map) { }
 
@@ -177,6 +240,71 @@ namespace OldWestTown.Shops
                 float sum = 0f;
                 for (int i = 0; i < patronFlags.Count; i++) sum += Verdict(patronFlags[i]);
                 return sum / patronFlags.Count;
+            }
+        }
+
+        /// <summary>
+        /// Unweighted mean of every open, stocked shop's own <see cref="ShopPricing.ValueAppeal"/>
+        /// — the identical score a customer already uses to pick between your own shops, now
+        /// averaged into one town-wide number. Shares <see cref="Appeal"/>'s exact gate
+        /// (<c>HasAnythingToOffer</c>), so the two can never disagree about whether there's
+        /// anything here worth pricing at all; 1f (neutral) when there isn't.
+        /// </summary>
+        public float PriceIndex
+        {
+            get
+            {
+                float total = 0f;
+                int count = 0;
+                foreach (CompBusiness shop in OpenShops())
+                {
+                    if (!shop.HasAnythingToOffer) continue;
+                    total += ShopPricing.ValueAppeal(shop);
+                    count++;
+                }
+                return count > 0 ? total / count : 1f;
+            }
+        }
+
+        /// <summary>What this town actually pulls: <see cref="Appeal"/> weighted by how
+        /// competitively it's priced. The player-side half of <see cref="RegionalShare"/>.</summary>
+        public float MarketPull => Appeal * PriceIndex;
+
+        /// <summary>
+        /// Every rival's combined pull, at the player's own rivalStrength setting. 0f with rivals
+        /// disabled, or no world component to read — defensive, degrading silently the way this
+        /// file always has. The floor is 0f, not the 0.25f the volume/wealth sliders use:
+        /// rivalStrength is a multiplier on a sum here, not a divisor, so there's no near-zero
+        /// denominator to guard against — 0f only stops a corrupted negative setting from ever
+        /// making this negative, which would break <see cref="RegionalShare"/>'s arithmetic.
+        /// </summary>
+        private float CompetingPull
+        {
+            get
+            {
+                if (!OldWestTownMod.Settings.rivalTownsEnabled) return 0f;
+                RivalTowns rivalsComp = Find.World?.GetComponent<RivalTowns>();
+                if (rivalsComp == null) return 0f;
+                return rivalsComp.TotalRivalPull * Mathf.Max(0f, OldWestTownMod.Settings.rivalStrength);
+            }
+        }
+
+        /// <summary>
+        /// This town's share of regional trade: this town's own <see cref="MarketPull"/> against
+        /// the combined pull of every rival. Exactly 1f — "as good as no competition exists" —
+        /// whenever there is nothing to compare against: rivals disabled, no rival has grown past
+        /// zero yet, or this town has no appeal yet. Otherwise a proper fraction strictly less
+        /// than 1f. Feeds the arrival clock's slowdown in <see cref="TryAttractCustomers"/>, and
+        /// the ledger and inspect-pane display.
+        /// </summary>
+        public float RegionalShare
+        {
+            get
+            {
+                float pull = MarketPull;
+                float competing = CompetingPull;
+                if (pull <= 0f || competing <= 0f) return 1f;
+                return pull / (pull + competing);
             }
         }
 
@@ -459,10 +587,39 @@ namespace OldWestTown.Shops
             NotePatron(customer, PatronWalkedOut);
         }
 
+        /// <summary>Selling to this customer above this shop's own kind's usual markup, while a
+        /// gold rush's boom is active — the direct, necessary companion to the demand basket; see
+        /// <see cref="GougeReputationPenalty"/>. Filed against the customer for tonight's
+        /// settlement exactly like a sale or a walkout, rather than writing reputation
+        /// immediately: the old per-sale write moved the town's name from a second place, the
+        /// exact thing settling it once a day at <see cref="JudgeTheDay"/> exists to prevent.
+        /// The warning message is the one part of this that still happens at the counter, not at
+        /// midnight — it is a per-shop notice, throttled by <see cref="CompBusiness.TryClaimGougeMessage"/>,
+        /// not a reputation write, so nothing about settling once a day requires delaying it
+        /// too.</summary>
+        public void RecordGouge(Pawn customer, CompBusiness shop)
+        {
+            if (shop == null || !GoldRushUtility.BoomActive(map)) return;
+
+            float severity = ShopPricing.GougeSeverity(shop);
+            if (severity <= 0f) return;
+
+            NotePatron(customer, PatronGouged, severity);
+
+            if (shop.TryClaimGougeMessage())
+            {
+                Messages.Message("OWT_GoldRushGougeWarning".Translate(shop.parent.Label),
+                    new LookTargets(shop.parent), MessageTypeDefOf.NegativeEvent);
+            }
+        }
+
         /// <summary>Files today's outcome against the person it happened to, not against the till.
         /// The table is one day of customers — a linear scan is cheaper than a dictionary at that
-        /// size and saves as two plain int lists.</summary>
-        private void NotePatron(Pawn customer, int flag)
+        /// size and saves as two plain int lists. <paramref name="gougeSeverity"/> adds onto
+        /// whatever this patron already banked today rather than overwriting it, so a customer
+        /// gouged at two different counters (or twice at one) is charged for both — see
+        /// <see cref="patronGougeSeverity"/>.</summary>
+        private void NotePatron(Pawn customer, int flag, float gougeSeverity = 0f)
         {
             if (customer == null) return;
 
@@ -473,11 +630,13 @@ namespace OldWestTown.Shops
             {
                 if (patronIds[i] != id) continue;
                 patronFlags[i] |= flag;
+                patronGougeSeverity[i] += gougeSeverity;
                 return;
             }
             patronIds.Add(id);
             patronFlags.Add(flag);
             patronFactions.Add(customer.Faction);
+            patronGougeSeverity.Add(gougeSeverity);
         }
 
         /// <summary>What one customer thinks of the town at the end of their day, 0..1.
@@ -494,6 +653,16 @@ namespace OldWestTown.Shops
                     : 0f;
             if ((flags & PatronWalkedOut) != 0) v *= 0.5f;
             return v;
+        }
+
+        /// <summary>The house winning a wager for a customer and then not being able to pay it
+        /// out — the worst single-event reputation and standing hit the mod has, on purpose:
+        /// reneging on a paid bet is a sharper trust break than slow service, a walkout, or even
+        /// a saloon disturbance.</summary>
+        public void RecordShortfall(Faction customerFaction = null)
+        {
+            reputation = Mathf.Clamp01(reputation - 0.08f);
+            NudgeStanding(customerFaction, FactionStandingShortfallDelta);
         }
 
         public override void MapComponentTick()
@@ -518,16 +687,134 @@ namespace OldWestTown.Shops
         }
 
         /// <summary>
+        /// This town's current rung on the stagecoach route ladder, or null if there's no coach
+        /// depot on the map, or appeal hasn't reached even the lowest tier. Recomputed from
+        /// current <see cref="Appeal"/> on every read, exactly like Appeal itself is recomputed
+        /// from current stock — not cached, and never ratcheting, so a town whose reputation
+        /// slides can watch its own tier demote, a legible consequence with a name, on top of
+        /// the arrival clock's own quiet slowdown.
+        /// </summary>
+        public CoachTierDef RouteTier => CoachTierUtility.CurrentTier(map, Appeal);
+
+        /// <summary>
+        /// Ticks since the last successful customer arrival of any kind, organic or guaranteed.
+        /// A save from before this field existed reads it as the entire elapsed game time, which
+        /// is the same "safe, a little eager, never stranded" shape LordJob_ShopVisit's own
+        /// groupArrivedTick already ships with — the very next arrival re-anchors the clock.
+        /// </summary>
+        public int TicksSinceLastArrival => Find.TickManager.TicksGame - lastArrivalTick;
+
+        /// <summary>
+        /// True once the active tier's own ceiling has elapsed with no arrival of any kind. This
+        /// is the OR <see cref="TryAttractCustomers"/> adds to its existing MTB roll below — it
+        /// can only ever add a firing attempt where the roll would otherwise stay quiet past the
+        /// ceiling, never suppress or duplicate one, and either path fires the identical
+        /// OWT_ShopCustomers incident, so the incident's own minRefireDays stays a hard cap on
+        /// the combined rate regardless of which condition actually triggered a given firing.
+        /// </summary>
+        public bool GuaranteedArrivalDue
+        {
+            get
+            {
+                CoachTierDef tier = RouteTier;
+                return tier != null && TicksSinceLastArrival >= CoachTierUtility.CeilingTicks(tier);
+            }
+        }
+
+        /// <summary>Called for every successful customer arrival, organic or guaranteed, so the
+        /// guarantee clock reflects reality no matter which condition actually fired it.</summary>
+        public void NotifyArrival() => lastArrivalTick = Find.TickManager.TicksGame;
+
+        /// <summary>
+        /// Announces a change in <see cref="RouteTier"/> the moment <see cref="TryAttractCustomers"/>
+        /// notices one: a promotion gets a letter, a demotion or an outright loss of the route
+        /// gets a quieter message. Checked ahead of the MinAppealForCustomers early-out below so
+        /// a route lost outright — appeal falling under even the lowest tier — is still
+        /// announced rather than silently dropped.
+        /// </summary>
+        private void CheckRouteTierChange()
+        {
+            CoachTierDef current = RouteTier;
+            if (current == lastAnnouncedTier) return;
+
+            bool promoted = current != null
+                && (lastAnnouncedTier == null || current.minAppeal > lastAnnouncedTier.minAppeal);
+
+            if (promoted)
+            {
+                Find.LetterStack.ReceiveLetter(
+                    "OWT_RouteTierUpLabel".Translate(),
+                    "OWT_RouteTierUpText".Translate(current.LabelCap),
+                    LetterDefOf.PositiveEvent);
+            }
+            else if (current != null)
+            {
+                Messages.Message(
+                    "OWT_RouteTierDownMessage".Translate(current.LabelCap),
+                    MessageTypeDefOf.NeutralEvent);
+            }
+            else
+            {
+                Messages.Message("OWT_RouteTierLostMessage".Translate(), MessageTypeDefOf.NeutralEvent);
+            }
+
+            lastAnnouncedTier = current;
+        }
+
+        /// <summary>
+        /// Announces a change in who's ahead regionally — this town's own <see cref="MarketPull"/>
+        /// against every rival's combined pull — the moment <see cref="RollOverDay"/> notices
+        /// one. Silent below <see cref="MinAppealForCustomers"/>, or with no qualifying rival to
+        /// be ahead of at all (both mirror <see cref="RegionalShare"/>'s own guard), and silent on
+        /// the very first evaluation on a given map — a fresh colony crossing the threshold, or
+        /// an old save loading under this version for the first time — so the feature turning on
+        /// can never itself read as "you've fallen behind." A Message, not a Letter: unlike a
+        /// route-tier promotion (rare, close to monotonic), this can flip more than once across a
+        /// single undercut swing near parity, and a Letter for a potentially flip-floppy signal
+        /// would be disproportionate.
+        /// </summary>
+        private void CheckRegionalLeadChange()
+        {
+            if (Appeal < MinAppealForCustomers || CompetingPull <= 0f) return;
+
+            bool leading = MarketPull >= CompetingPull;
+            if (!regionLeadKnown)
+            {
+                regionLeadKnown = true;
+                lastRegionLead = leading;
+                return;
+            }
+            if (leading == lastRegionLead) return;
+
+            lastRegionLead = leading;
+            if (leading)
+            {
+                Messages.Message("OWT_RegionalLeadGainedMessage".Translate(), MessageTypeDefOf.PositiveEvent);
+            }
+            else
+            {
+                Messages.Message("OWT_RegionalLeadLostMessage".Translate(), MessageTypeDefOf.NeutralEvent);
+            }
+        }
+
+        /// <summary>
         /// Word of a good town spreads: appeal directly drives how often customer groups set
         /// out, rather than leaving frequency to the storyteller's flat random roll. Firing
         /// goes through the storyteller so the incident's own minRefireDays still applies —
         /// a booming town gets frequent groups, never a flood of them.
+        ///
+        /// A coach depot layers a guarantee on top, not a second clock: once the active route
+        /// tier's own ceiling has elapsed with no arrival at all, GuaranteedArrivalDue forces an
+        /// attempt through the exact same OR below, so the ceiling can only ever fire the
+        /// identical incident the MTB roll already fires — never a second, independent one with
+        /// its own cooldown. See docs/DESIGN.md for the reasoning and the worked-out numbers.
         /// </summary>
         private void TryAttractCustomers()
         {
             if (Find.TickManager.TicksGame % ArrivalCheckInterval != 0) return;
 
             float appeal = Appeal;
+            CheckRouteTierChange();
             if (appeal < MinAppealForCustomers) return;
 
             // A town scraping past the threshold sees a group every few days; a booming main
@@ -536,7 +823,18 @@ namespace OldWestTown.Shops
             float mtbDays = Mathf.Lerp(3.5f, 0.8f,
                 Mathf.Clamp01((appeal - MinAppealForCustomers) / 3.5f));
             mtbDays /= Mathf.Max(0.25f, OldWestTownMod.Settings.customerVolume);
-            if (!Rand.MTBEventOccurs(mtbDays, 60000f, ArrivalCheckInterval)) return;
+
+            // A gold rush's own boom/bust multiplier (1f, a no-op, whenever no rush is active)
+            // rides on top of the same MTB roll rather than touching GuaranteedArrivalDue below —
+            // the coach line's ceiling stays exactly what it always promises, so a rush can only
+            // ever speed up or slow down the organic clock the ceiling is a backstop for, never
+            // compound with it. See docs/DESIGN.md#gold-rush-one-condition-not-two-clocks.
+            mtbDays *= GoldRushUtility.ArrivalMtbMultiplier(map);
+            // Regional competition stretches the gap, never shrinks it: RegionalShare is 1f
+            // (Lerp's own t=0) whenever there's no qualifying rival, so this is a no-op until one
+            // exists. See RegionalShare and MaxRegionalSlowdown for the provable [1.0x, 1.6x] cap.
+            mtbDays *= Mathf.Lerp(1f, MaxRegionalSlowdown, 1f - RegionalShare);
+            if (!Rand.MTBEventOccurs(mtbDays, 60000f, ArrivalCheckInterval) && !GuaranteedArrivalDue) return;
 
             IncidentParms parms = StorytellerUtility.DefaultParmsNow(
                 OWTDefOf.OWT_ShopCustomers.category, map);
@@ -555,6 +853,7 @@ namespace OldWestTown.Shops
             patronIds.Clear();
             patronFlags.Clear();
             patronFactions.Clear();
+            patronGougeSeverity.Clear();
 
             // Standing decays toward the town's own name at the same rate — a specific faction's
             // regard drifts back to "just another stranger" if nothing keeps happening between
@@ -574,8 +873,13 @@ namespace OldWestTown.Shops
         private void JudgeTheDay()
         {
             // Before the early return below: a brawl on a day when nobody reached a counter is
-            // still a brawl, and the counter is cleared either way when the day rolls.
+            // still a brawl, and the counter is cleared either way when the day rolls. Gouging
+            // can never happen without a sale, so it can never actually fire before there is a
+            // patron on the books — but it is charged alongside disturbances, for the same
+            // reason: both are town-wide costs settled once, independent of the per-patron
+            // service score below.
             ChargeDisturbances();
+            ChargeGouging();
 
             if (patronFlags.Count == 0)
             {
@@ -599,6 +903,20 @@ namespace OldWestTown.Shops
             reputation = Mathf.Clamp01(reputation - DisturbanceNightlyCost * disturbancesToday);
         }
 
+        /// <summary>Gouging during today's gold rush is charged once, tonight — the settlement-time
+        /// equivalent of the penalty this used to apply at each sale. Same GougeReputationPenalty,
+        /// same per-sale ShopPricing.GougeSeverity inputs; just summed across the whole day's
+        /// gouged patrons (<see cref="patronGougeSeverity"/>) instead of written to reputation one
+        /// sale at a time, so the town's name still moves exactly once a day and from one place.
+        /// Faction standing takes the matching per-patron hit in <see cref="SettleStandings"/>.</summary>
+        private void ChargeGouging()
+        {
+            float total = 0f;
+            for (int i = 0; i < patronGougeSeverity.Count; i++) total += patronGougeSeverity[i];
+            if (total <= 0f) return;
+            reputation = Mathf.Clamp01(reputation - GougeReputationPenalty * total);
+        }
+
         /// <summary>Moves each visiting faction's own standing from the same table the town's name
         /// was just settled from — one verdict per person per day, not one per receipt. Nudging on
         /// every sale would put a faction's regard on the granularity the town's own name was taken
@@ -607,13 +925,20 @@ namespace OldWestTown.Shops
         ///
         /// An honesty-box sale earns nothing here, deliberately: nobody chose to serve that
         /// customer, so there is no relationship to credit — only the half-verdict the town's own
-        /// name already took for it.</summary>
+        /// name already took for it.
+        ///
+        /// A gouged patron's own faction takes its hit here too, scaled by exactly the severity
+        /// that patron was sold at (<see cref="patronGougeSeverity"/>) — the same per-sale scaling
+        /// the town-wide charge in <see cref="ChargeGouging"/> uses, just kept per-faction rather
+        /// than summed town-wide.</summary>
         private void SettleStandings()
         {
-            // Bounded by both columns: they are written together, and the load path pads a save
-            // from before the faction column existed, but a loop that trusts one length to index
-            // the other is one bad save away from throwing every midnight.
+            // Bounded by all three columns: they are written together, and the load path pads a
+            // save from before the faction or gouge-severity columns existed, but a loop that
+            // trusts one length to index another is one bad save away from throwing every
+            // midnight.
             int rows = Mathf.Min(patronFactions.Count, patronFlags.Count);
+            rows = Mathf.Min(rows, patronGougeSeverity.Count);
             for (int i = 0; i < rows; i++)
             {
                 Faction faction = patronFactions[i];
@@ -622,7 +947,13 @@ namespace OldWestTown.Shops
                 int flags = patronFlags[i];
                 if ((flags & PatronServed) != 0) NudgeStanding(faction, FactionStandingSaleDelta);
                 if ((flags & PatronWalkedOut) != 0) NudgeStanding(faction, FactionStandingWalkoutDelta);
+                if ((flags & PatronGouged) != 0)
+                {
+                    NudgeStanding(faction, GougeStandingDelta * patronGougeSeverity[i]);
+                }
             }
+
+            CheckRegionalLeadChange();
         }
 
         public override void ExposeData()
@@ -635,9 +966,22 @@ namespace OldWestTown.Shops
             Scribe_Collections.Look(ref patronIds, "patronIds", LookMode.Value);
             Scribe_Collections.Look(ref patronFlags, "patronFlags", LookMode.Value);
             Scribe_Collections.Look(ref patronFactions, "patronFactions", LookMode.Reference);
+            Scribe_Collections.Look(ref patronGougeSeverity, "patronGougeSeverity", LookMode.Value);
             Scribe_Values.Look(ref disturbancesToday, "disturbancesToday");
             Scribe_Collections.Look(ref standings, "standings", LookMode.Reference, LookMode.Value,
                 ref standingFactions, ref standingValues);
+            // Absent on any save from before the stagecoach line existed: lastArrivalTick reads
+            // as 0 (see TicksSinceLastArrival), and lastAnnouncedTier reads as null, which is
+            // indistinguishable from "no depot has ever changed tier" — so an old save can never
+            // spuriously re-announce a tier on its first load with this feature.
+            Scribe_Values.Look(ref lastArrivalTick, "lastArrivalTick");
+            Scribe_Defs.Look(ref lastAnnouncedTier, "lastAnnouncedTier");
+            // Absent on any save from before rival towns existed: regionLeadKnown reads false,
+            // so CheckRegionalLeadChange's first call on that map silently records the current
+            // lead rather than announcing one — an upgraded save can never itself produce a
+            // spurious "you've fallen behind" message.
+            Scribe_Values.Look(ref lastRegionLead, "lastRegionLead", true);
+            Scribe_Values.Look(ref regionLeadKnown, "regionLeadKnown", false);
 
             if (Scribe.mode == LoadSaveMode.PostLoadInit)
             {
@@ -651,6 +995,7 @@ namespace OldWestTown.Shops
                 if (patronIds == null) patronIds = new List<int>();
                 if (patronFlags == null) patronFlags = new List<int>();
                 if (patronFactions == null) patronFactions = new List<Faction>();
+                if (patronGougeSeverity == null) patronGougeSeverity = new List<float>();
 
                 if (standings == null)
                 {
@@ -669,6 +1014,10 @@ namespace OldWestTown.Shops
                 // two and not this one. Pad rather than drop the day: an unknown faction simply
                 // earns nobody anything tonight.
                 while (patronFactions.Count < patronIds.Count) patronFactions.Add(null);
+                // Same story for the gouge-severity column: a save from before the gold rush
+                // settled its penalty this way just pads in zeroes, which is exactly "nobody
+                // gouged this patron yet" — the honest answer for a day this column never saw.
+                while (patronGougeSeverity.Count < patronIds.Count) patronGougeSeverity.Add(0f);
                 if (preServiceSave && reputation > 0.9f) reputation = NeutralReputation;
             }
         }
@@ -681,6 +1030,7 @@ namespace OldWestTown.Shops
             // first customer of the day rather than a number that reads oddly.
             if (patronIds == null) patronIds = new List<int>();
             if (patronFlags == null) patronFlags = new List<int>();
+            if (patronGougeSeverity == null) patronGougeSeverity = new List<float>();
 
             // Comps register on spawn, but a loaded map spawns them before this component exists.
             shops.Clear();

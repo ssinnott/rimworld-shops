@@ -6,13 +6,16 @@ spend it.
 
 Hospitality gets guests onto your map. This is about what they do once they're there.
 
-**Status: the whole staged plan is built except the Hospitality bridge.** A customer arrives,
-then either picks something off your shelves, orders a drink, a meal or a haircut, or checks into
-a hotel room for the night — queues, and pays either way. A guest who rents a room stays until
-they've slept it off, so the whole visit can run past a single day. Leave a saloon unwatched long
-enough and it starts real trouble; assign a sheriff to keep the peace. Factions you treat well
-become regulars and come back more often. There's boardwalk to lay and a false front to nail over
-your store while you wait for them. See [docs/DESIGN.md](docs/DESIGN.md) for the architecture and
+**Status: the whole staged plan is built.** A customer arrives, then either picks something off
+your shelves, orders a drink, a meal or a haircut, or checks into a hotel room for the night —
+queues, and pays either way. A guest who rents a room stays until they've slept it off, so the
+whole visit can run past a single day. Leave a saloon unwatched long enough and it starts real
+trouble; assign a sheriff to keep the peace. Factions you treat well become regulars and come
+back more often. There's boardwalk to lay and a false front to nail over your store while you
+wait for them. If you also run Hospitality, an idle guest it's already housing can wander over
+and shop too — narrowly, and honestly built against a mod this codebase has never had installed
+to test with; see [Hospitality guests](https://ssinnott.github.io/rimworld-shops/customers.html#hospitality-guests).
+See [docs/DESIGN.md](docs/DESIGN.md) for the architecture and
 [the roadmap](https://ssinnott.github.io/rimworld-shops/roadmap.html) for what's left.
 
 📖 **[Read the wiki](https://ssinnott.github.io/rimworld-shops/)** — every building, business,
@@ -69,15 +72,64 @@ This mod is standalone. It does not require Hospitality, and is written to sit a
   before it's too late. A skilled shopkeeper behind the bar helps too — an unstaffed saloon gets
   no such discount, same as everywhere else in this mod.
 - **A main street that looks like one.** Boardwalk underfoot, false-front facades, a hitching
-  post, batwing doors, a faro table and a gallows — all under the same Commerce category and
-  Frontier commerce research. A false front is the one with teeth: it gives a shop a small,
-  capped edge in the customer AI's own scoring, so a dressed-up storefront pulls trade from an
-  undecorated rival at a similar price.
+  post, batwing doors and a gallows — all under the same Commerce category and Frontier commerce
+  research. A false front is the one with teeth: it gives a shop a small, capped edge in the
+  customer AI's own scoring, so a dressed-up storefront pulls trade from an undecorated rival at
+  a similar price.
+- **A gambling hall, and the first transaction you can win.** A **faro table** deals a hand for a
+  price like anything else, but the payout is a roll of the dice — a win doubles the stake back
+  out of the same till every sale fills, a loss makes that gambler a little rowdier (occasionally
+  with a Social-skill-gated cheating accusation thrown in), and the table's own **house edge**
+  slider, right next to the price one, sets exactly how much of every wager the house keeps on
+  average. Set it fair and a table stays busy all evening; set it greedy and it pays out richer
+  hands but burns through patience — and its own till — faster. A table that can't cover a win
+  in full closes its own doors until reopened by hand, the worst reputation hit in the mod.
 - **Regulars.** Reputation isn't one number any more. Alongside the town's own name, every
   faction you actually trade with keeps its own standing, moved by how its own customers were
   treated — served, walked out on, or evicted from a rented room. Favor one faction and they
   show up more often than everyone else; mistreat them and only their own trade dries up. The
   town ledger names your best and worst relationship once either one actually stands out.
+- **A Hospitality bridge, optional and honestly narrow.** If Hospitality is also installed, one
+  of its idle guests can wander off to shop, drink or get a haircut — never a room, since
+  Hospitality is already housing them. This is the one feature built against a mod that has
+  never actually run alongside this one in this sandbox; it degrades to doing nothing at all,
+  silently, if its one guess about how Hospitality is put together turns out wrong.
+- **Outlaws and the law.** Leave enough silver sitting uncollected across your tills for long
+  enough and it draws a *stickup* — a small, armed band, sized off the silver actually at risk
+  rather than your colony's total wealth, that heads straight for counters instead of colonists
+  and empties whatever it can reach. An alert shows the risk climbing well before it's live, so
+  collecting your takings goes from a chore to an actual call. Staffing a counter doesn't protect
+  it; a sheriff on duty does — halving both how often a stickup happens and how long one lasts.
+  Fight back and the crew routs, though whatever they've already taken stays gone; a captured
+  raider works through the same ordinary prisoner options any other downed hostile does.
+- **A stagecoach line, and the town's first visible milestone ladder.** A **coach depot**, behind
+  its own research past Frontier commerce, switches on a guarantee: whatever the ordinary arrival
+  clock is doing on its own, no gap between customer groups — organic or scheduled — ever runs
+  longer than the town's current route tier allows. Appeal climbs the route through three tiers —
+  irregular freight wagons, a weekly coach, then a daily express — each one tightening the
+  ceiling, richer purses on the customers a tier forces into being, and from the second tier up,
+  a chance of a **VIP passenger** carrying five times an ordinary purse. Crossing a tier fires a
+  letter on the way up and a quieter message on the way down; the depot's own inspect pane always
+  names the current tier and what the next one needs. Built as one extra way for the existing
+  customer incident to fire, not a second, independent one, so it can never double up with, or
+  land on top of, an ordinary arrival.
+- **A gold rush, and the hangover after it.** Word of a strike nearby floods the town with
+  prospectors for a quadrum: arrivals roughly triple and purses swell, but the crowd only really
+  wants tools, meals, booze and medicine — a general store stocked for ordinary custom is
+  suddenly stocked for the wrong people, and reading that is worth real silver. The boom is also
+  a standing invitation to gouge, and gouging is measured against what's normal for *that kind*
+  of business rather than a flat number, so a saloon isn't punished for being a saloon. Charge
+  what the traffic will bear and you'll make a fortune and spend the bust paying for it: when the
+  vein dries up, trade falls below its old baseline until the town's name recovers.
+- **Rival towns, and an opponent for the arrival clock.** One or two NPC towns sit on the wider
+  map with an appeal of their own, priced the identical way your own shops are, and your share of
+  regional trade — your pull against theirs — now slows or leaves alone how often customers set
+  out for you. Worked out, not assumed: it can never stretch the gap by more than **60%**, and
+  never speeds it up, however many rivals exist or how far a *Rival strength* setting is dialed. A
+  rival occasionally undercuts prices for a several-day stretch, a named, messaged event; a
+  message also tells you the first time the regional lead actually changes hands. Any counter's
+  inspect pane shows your current share, and the Town ledger names every known rival by its own
+  appeal and posture. A coach depot's own arrival guarantee is completely immune to all of this.
 
 ## Installing
 
@@ -112,12 +164,22 @@ They sleep until rested, so don't be surprised if some of a customer group is st
 past when the rest have gone home — the whole visit now waits for every rented room to empty out
 before anyone leaves.
 
-A saloon left to run itself eventually gets rowdy — build a **sheriff's office** and assign a
-colonist to it from the office's own gizmo to keep the peace. Unlike Shopkeeping, that colonist
-also needs a **Sheriffing** priority in the Work tab — being assigned is who holds the post,
-the work priority is whether they're currently out there doing it, same as any other job. While
-they're on duty, patrons town-wide get rowdy more slowly; if one starts "getting loud" anyway,
-the sheriff can break off and walk over to calm them down before it turns into a disturbance.
+A **faro table** runs a gambling hall: build one, staff it, and a gambler with money to spare
+will sit down for a hand. Set its **Set house edge** slider, right next to **Set prices**, to
+decide how greedy the house is — a low edge keeps a table fair and its gamblers coming back all
+evening, a high one wins more per hand but angers losers faster and burns through the till's own
+bankroll quicker. A win pays double the stake straight out of that till; if the till ever can't
+cover one, the table closes its own doors until you reopen it, so keep an eye on it the way you
+would any other counter's stock.
+
+A saloon or a gambling hall left to run itself eventually gets rowdy — build a **sheriff's
+office** and assign a colonist to it from the office's own gizmo to keep the peace. Unlike
+Shopkeeping, that colonist also needs a **Sheriffing** priority in the Work tab — being assigned
+is who holds the post, the work priority is whether they're currently out there doing it, same as
+any other job. While they're on duty, patrons town-wide get rowdy more slowly; if one starts
+"getting loud" anyway, the sheriff can break off and walk over to calm them down before it turns
+into a disturbance. A skilled dealer also draws fewer cheating accusations at the gambling hall,
+the same Social skill that trains behind any counter.
 
 ## Building from source
 

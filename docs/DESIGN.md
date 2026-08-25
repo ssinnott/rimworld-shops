@@ -460,6 +460,624 @@ fight, no mental break, just a scripted event resolved entirely through the same
 comp/economy state (`CompBusiness`, `TownEconomy`, `CustomerRecord`) every other transaction in
 this mod already reads and writes.
 
+### The Hospitality bridge
+
+Hospitality is not installed anywhere this mod has ever been built, run, or tested. There is no
+assembly to reference, no way to decompile one, and no way for `tools/refdump` to confirm a
+single Hospitality type or member name — it reads RimWorld's own reference assemblies only.
+Every design choice below has to hold up against that constraint, not just against what would be
+convenient if the assembly were in hand.
+
+**A hard or optional assembly reference, a compiled stub, an XML patch, and Harmony were all
+rejected**, in that order of how tempting they look and how bad an idea each one turns out to be.
+A reference (hard or `MayRequire`-gated) needs a second `.csproj`, a `loadFolders.xml` this mod
+has never shipped, and a second committed DLL, for a "loads fine without Hospitality" guarantee a
+single in-process boolean already gives for free. A compiled stub typed against recalled
+Hospitality signatures would *look* like a checked, compiler-verified contract to the next
+reader, when it would actually be unverified memory wearing a compiler's coat — strictly more
+misleading than a reflection string, which visibly announces itself as a guess. An XML patch has
+nothing to patch: this design never needs to change anything Hospitality itself defines. Harmony
+is the one this mod has never taken as a dependency at all, and the one thing it would buy —
+surgically overriding whatever assigns a guest's duty or next job inside code this mod can't
+see — is exactly the invasive move the next two paragraphs already avoid on their own merits.
+Taking on this mod's first-ever Harmony dependency to serve a use case the design does without is
+a real, permanent cost for nothing.
+
+**Detection is structural, not a guess at Hospitality's namespace or class names.**
+`HospitalityInterop.Present` resolves once, by scanning loaded assemblies for one whose simple
+name is `"Hospitality"` (case-insensitive) — a guess about Hospitality's own build output, not a
+verified fact, and the one thing every downstream check sits behind. Once that assembly is
+resolved, recognizing a guest never again involves guessing a type or member name: a pawn is a
+Hospitality guest if the `LordJob` governing them, or any `ThingComp` attached to them, belongs
+to that same assembly — checked by `System.Type.Assembly` reference equality, not a namespace
+string. Either signal alone is enough (they're OR'd), so detection only fails completely if both
+guesses are wrong at once — a meaningfully more forgiving bar than leaning on one signal, for
+free. If the assembly-name guess itself is wrong, every downstream check is moot:
+`HospitalityInterop.Present` is false forever, and the bridge is permanently, silently inert —
+indistinguishable from Hospitality not being installed, and no more expensive than that to
+carry. See [the code map's known risks](architecture.md#known-risks) for the full confidence
+accounting, signal by signal.
+
+**A job is force-handed through `Pawn_JobTracker.TryTakeOrderedJob`, gated on
+`Pawn_MindState.IsIdle`, rather than the guest ever being given the `OWT_Shop` duty.** The
+roadmap's own original wording — "gives Hospitality guests the `OWT_Shop` duty" — turned out to
+be the wrong shape once weighed against how aggressively this mod's *own* `LordToil_Shop`
+reasserts that duty onto every pawn it owns, every toil re-entry (`UpdateAllDuties()`): there is
+no way to know from here how often Hospitality's own equivalent does the same, and overwriting a
+foreign pawn's duty would be exactly the paired, fragile coordination [the one rule](#the-one-decision-everything-else-follows-from)
+this whole mod exists to avoid — now against a partner whose code can't even be inspected to know
+what breaks. `TryTakeOrderedJob` is different in kind: it's the same generic, vanilla-sanctioned
+door a player's own forced order on any pawn already uses, and gating the call on `IsIdle` means
+it only ever fires in a window the guest's own AI has already vacated — nothing running to
+interrupt, and nothing to resume afterward, because nothing was pre-empted in the first place.
+Once the call returns, the bridge's involvement with that pawn is over; Hospitality's own AI
+reassesses on its own schedule next, exactly as it must already tolerate after any other
+forced order.
+
+**Lodging is categorically excluded, by two checks inside `PickShoppingJob`'s own scoring
+loop** — not, as an earlier draft of this section claimed, by an independent structural fact
+about `CustomerRecord` that would make either guard redundant on its own. That claim doesn't
+survive tracing the actual lodging code: `ServiceWorker_Lodging`'s
+`IsAvailable`/`Desirability`/`ApplyEffect`, `ShopStock.ChooseVacantBed` and
+`CompRentableBed.Claim` never read `CustomerRecord` at all — a bed is claimed by a customer and a
+shop, nothing else, and `CustomerRecord` lives one layer up, on `LordJob_ShopVisit`. Nothing
+downstream of the scoring loop ever looks there. So the scoring loop is not a second belt on top
+of a guarantee that already held independently of it; it is the *only* thing standing between a
+Lord-less pawn and a claimed bed, and it earns that job with two checks, not the single one this
+section used to describe. The explicit guard: `PickShoppingJob` (the scoring pass
+`JobGiver_BuyFromShop` and the bridge now share — see
+[the code map](architecture.md#compat--soft-dependencies)) takes a `lodgingAllowed` parameter,
+`true` for the duty-driven native caller and `false` for the bridge, which removes Lodging from
+the set of candidates a bridged guest's trip can ever score into. The unconditional guard,
+checked regardless of what a caller passes: the same loop also skips Lodging outright whenever
+the pawn's own `Lord` isn't running `LordJob_ShopVisit` — the identical condition that already
+means `CustomerRecord` resolves to null for them. Skipping this check would be worse than an
+ordinary double-booking: `JobGiver_SleepInRentedBed` also requires a resolvable `CustomerRecord`
+before it will ever send a pawn to sleep in, and eventually vacate, a claimed bed, so a pawn who
+somehow claimed one with no record to hang it on would never check out through this mod's own
+systems either — the bed would sit "occupied" until a player found the evict gizmo. Today, with
+the bridge as the only second caller, the two guards happen to agree: a bridged guest always has
+both `lodgingAllowed: false` *and* `lordJob == null`, for the identical single-`Lord`-per-pawn
+reason `IsHospitalityGuest` relies on (see `HospitalityInterop`). The unconditional guard is what
+keeps that agreement from depending on some future caller remembering to pass the parameter.
+
+**That same single-`Lord` invariant is what keeps the two mods from ever fighting over one
+guest**, in either direction. "Who is housing this pawn" and "is this pawn a Hospitality guest"
+are the same underlying question — which `Lord`/`LordJob` owns them — read two ways, not two
+independently tracked flags that could drift out of sync with each other. One of this mod's own
+customers can never satisfy `IsHospitalityGuest`: its LordJob signal can't match a customer
+running `LordJob_ShopVisit`, for the single-`Lord` reason above, and `IsHospitalityGuest` checks
+that explicitly, before its second, weaker signal (a matching `ThingComp`) ever runs — that
+second signal has no equivalent guarantee on its own (see `HospitalityInterop`). A Hospitality
+guest can never hold one of this mod's rented beds, for the mirrored reason — but, as corrected
+above, that "mirrored reason" is `PickShoppingJob`'s own unconditional `lordJob == null` guard,
+not an independent fact about `CustomerRecord`. Neither mod has to cooperate with the other for
+either half to hold; both are pinned to vanilla's own single-`Lord`-per-pawn guarantee, which
+neither mod has a reason to break. The one honest limit on this guarantee: it only proves *this
+mod's* side never double-books a guest Hospitality already houses. It says nothing about whether
+Hospitality's own code might, independently, try to do something with a staffed counter or a
+customer of this mod's own — that is outside what a one-directional, read-only-of-Hospitality
+bridge can observe or prevent.
+
+**A bridged guest is throttled per-shop rather than given a full `CustomerRecord` of its own.**
+`refusedShops` and `causedTrouble` both live on `CustomerRecord`, and a Hospitality-owned pawn
+structurally can't have one (see above) — so a naive bridge would keep re-offering the same
+chronically unstaffed shop to the same idle guest, once per scan, indefinitely. Rather than
+rebuilding that bookkeeping for a pawn that can't carry it, `HospitalityBridge` keeps one small,
+deliberately unpersisted `(pawn, shop) → tick` cooldown: once a pair has been dispatched —
+bought something, or found nothing — that shop is off the table for that guest for one of the
+shop's own `customerPatienceTicks`. It's a blunter instrument than the real thing: a guest who
+successfully buys from a good, staffed shop is throttled from immediately buying there again
+too, which a native customer never is. Accepted as the honest cost of a targeted fix over a
+parallel bookkeeping system that would only imitate, and could drift from, the one it's copying.
+`causedTrouble` gets no equivalent stand-in at all — a bridged guest who tips a saloon into a
+disturbance can, in principle, be offered another round later in the same stay. Left as-is
+deliberately: nothing in the existing scoring loop gates a *native* customer on rowdiness before
+they cross into `causedTrouble` either, so a bridge-only gate would make bridged guests behave
+more conservatively than native ones for no principled reason — and the natural slow climb back
+up (`TroubleUtility` zeroes the hediff the instant a disturbance fires) already keeps a repeat
+rare in practice.
+
+**Whether the guest carries any silver at all is deliberately not guessed either way.** Rather
+than assume Hospitality guests do or don't already carry spending money, the bridge's silver
+top-up reuses `IncidentWorker_ShopCustomers.GivePurse` completely unmodified — the identical
+formula and settings scaling a native customer's arrival purse already gets. `GivePurse` only
+ever tops up a shortfall, so if guests turn out to already carry plenty, this simply adds
+nothing. A settings checkbox (`hospitalityGuestsCarrySilver`) lets a cautious player turn it off
+regardless.
+
+**The one place the player can tell any of this actually worked** is a single one-time message,
+the first time in a save that the bridge successfully hands a guest a job — the in-fiction
+confirmation that the entire unverified detection chain above matched at least once. Everything
+else about detection state is available on request rather than announced: an always-visible
+settings-window status line (`OWT_HospitalityDetected` / `OWT_HospitalityNotDetected`), and —
+this mod's first `[DebugAction]`, kept to exactly that one exception to its otherwise
+zero-`Log.Message` history — a Dev Mode diagnostic that dumps every pawn's detection result,
+`Lord`/`LordJob` type and full comp list, for whoever eventually corrects the guesses above
+against a real Hospitality install.
+
+### Gambling hall: a till that pays out
+
+Every transaction before this one moves silver exactly one way: into a till. A wager is the first
+that can send it back out, which meant re-examining an assumption `ShopTransaction` had never had
+to question — that money only ever enters — rather than routing around it. The answer is a mirror
+primitive next to the existing one: `CompBusiness.TakeFromTill` walks the till's own silver stacks
+the same way `ShopTransaction`'s private `TakeSilver` already walks a customer's purse, and
+`ShopTransaction.PayOutFromTill` hands the result to the winner the same way `TrySell`/`TryServe`
+already hand goods to a buyer. Neither can return more than the till physically holds — the loop
+bound *is* the till's own contents — which is what makes "the house can't pay" a reachable, legible
+outcome rather than a bug to guard against separately. A shortfall closes the table and costs more
+reputation and standing than anything else in the mod, on purpose: reneging on a paid bet is a
+sharper trust break than slow service, a walkout, or even a saloon disturbance.
+
+**House edge** is `Markup`'s structural twin — same lazy-init-from-kind-default, same
+clamp-to-kind-range setter, same slider gizmo — because it answers the identical question a price
+does: how much of this transaction does the house keep. The maths is deliberately simple enough to
+state exactly: win chance is `(1 - HouseEdge) / payoutMultiplier`, so a player's expected return
+per silver wagered comes out to exactly `-HouseEdge`, for any payout multiple. That's not tuned to
+be *approximately* the edge; it falls out of the algebra, which is what makes the slider mean what
+its label says.
+
+A wager also has to answer to `Desirability` the same way `Drink` does: `NeedDesirability` scores
+it against the customer's own Joy need, floored the same 2.5×→1× way a round of drinks is, so a
+bored gambler wants another hand more than a satisfied one does. That scoring only means anything
+if playing a hand actually moves Joy, though — `ApplyEffect` grants a flat `joyGainPerHand`
+regardless of win, loss or shortfall, the same unconditional shape `ServiceWorker_Ingest` already
+uses for nutrition. Without it, a wager would be the one service in the mod whose Desirability
+input never responds to the need it's supposedly satisfying, and nothing would ever taper a bored
+customer back off the table on its own.
+
+The per-hand algebra above is only half the check a wager needs — the other half is throughput,
+since a customer can be dealt back-to-back for as long as the table stays their best option,
+unlike a one-shot purchase. A hand takes `serveTicks` (200) once a dealer's working the table, so
+one continuously-played customer can run at most 12.5 hands an hour (2,500 ticks to the hour). At
+the shipped defaults — 20 silver ante, 15% edge — that's an expected 3 silver a hand, or about
+37.5 silver an hour in house profit from that one customer alone, before the till or their own
+purse runs dry. No shop counter can match that: a customer's whole purse for the visit starts at
+only 120–450 silver (`BasePurse`, see economy.md), spent once across however many shelves they
+visit — a shop has no mechanic that lets it sell to the same customer twice for the same item.
+That asymmetry is the tempting half by design. It's also the self-defeating half: the same odds
+mean more hands lose than win, and a loss is what feeds `OWT_Rowdy` — an unsupervised, unskilled
+dealer's table pushes one unlucky customer from calm to a disturbance in five losses, roughly 40
+minutes of continuous play, well before that table would drain even an average purse (~340 silver
+at the gambling hall's own 1.3 appeal weight, or ~9 hours at 37.5 silver an hour). Anger closes a
+greedy table's account long before money does.
+
+Fitting a wager into `ServiceWorker` rather than inventing a new business primitive meant widening
+`ApplyEffect` twice: it now receives the price `TryServe` already charged (so a payout is
+computed against the same number that was actually taken, not a value recomputed a moment later
+and trusted to agree), and it now returns the round's rowdiness instead of `TryServe` reading a
+fixed `RowdinessPerUse` — because a wager's rowdiness is outcome-dependent (a win adds none; a
+loss, or worse, a shortfall, adds more) in a way no single constant can express. Every worker from
+before this stage simply echoes its own `RowdinessPerUse` back through the new parameter, so
+nothing about Drink, Meal, Haircut or Lodging's behavior changed.
+
+None of this touches the non-synchronising-loops rule. The dealer is read exactly once, for their
+Social skill, by a call that cannot block or fail — if the table is unattended, `TryServe` has
+already refused the round before `ApplyEffect` ever runs, so there is no path where a wager's
+payout waits on a specific pawn. A shortfall force-closing the table is the same shape a shop
+running out of stock already has: a plain flag another pawn's own `FailOn` notices on its own next
+tick, never a message sent to anyone.
+
+The building itself is the stage-6 faro table, promoted rather than duplicated: same defName, same
+art, a `CompProperties_Business` where a `CompGatherSpot` used to be, and a one-time silver cost
+that seeds the till a wager's first customer needs to exist at all — an empty till and a coin-flip
+win chance would otherwise make the very first bet ever placed at a fresh table the likeliest one
+to be shorted.
+
+### Outlaws and the law: a third visitor to the same till
+
+The roadmap named three things for this expansion — a stickup incident, a wanted board with
+bounty quests, and a jail that converts prisoners into silver or reputation. Only the first
+shipped. The other two were cut deliberately, for reasons specific to each rather than a single
+"keep it small" instinct: a wanted board needs a recurring, *named* outlaw leader, which needs a
+kind of state this codebase has never had — an identity that survives across incidents and saves,
+unlike `CustomerRecord`, which is deliberately built to die with the visit it belongs to — sitting
+on top of RimWorld's quest system, a large, effectively invisible surface from this sandbox
+(reference-assembly metadata carries no Def content and no IL) with no graceful failure mode the
+way this mod's other guesses have one. A bespoke jail turned out to need nothing built at all: the
+moment `LordJob_Stickup.GuiltyOnDowned` returns true, a downed raider is an ordinary hostile-
+faction humanlike pawn, already capturable, holdable and ransomable through completely unmodified
+vanilla prisoner mechanics. Writing a parallel comp that also converts prisoners to silver on a
+schedule would have duplicated a decision space vanilla's own prisoner interface already owns.
+
+The incident itself leans on vanilla raid machinery as hard as it can, rather than re-deriving
+faction selection, pawn generation and gear from scratch the way an earlier draft of this feature
+considered. `IncidentWorker_Stickup` subclasses `IncidentWorker_RaidEnemy` and touches five hooks
+— `CanFireNowSub`, `ResolveRaidPoints`, `ResolveRaidStrategy`, `ResolveRaidArriveMode`, and the
+letter pair — leaving `base.TryExecuteWorker` to do everything else, unmodified. Two of those five
+overrides turned out to need a different access modifier than a first pass guessed
+(`ResolveRaidStrategy` and `ResolveRaidArriveMode` are `public` on `IncidentWorker_Raid`, not
+`protected`) — caught immediately by the compiler as a `CS0507`, not silently, which is exactly
+why this codebase leans on "does it compile as `override`" as a cheap, real check on an assumption
+`refdump` cannot make: reference-assembly metadata reports a member's existence and signature, but
+never its accessibility or virtual/override modifiers. What compiling clean still can't confirm —
+because reference assemblies carry no IL — is whether `IncidentWorker_Raid`'s own internal call
+order actually consults these overrides before generating the raid's pawns and gear, so the values
+this file sets land on the same raid rather than a later one. See [known
+risks](architecture.md#known-risks) for the honest account of what's confirmed and what's still
+inferred.
+
+Sizing the crew off silver actually at risk (`ResolveRaidPoints`, clamped small at both ends)
+rather than off colony wealth is the concrete answer to the brief's own worry about turning a
+shopkeeper sim into a combat mod: a stickup is small and focused by construction, whatever the
+colony is worth. `RaidStrategyWorker_Stickup.MakeLordJob` is the one place a custom `LordJob` is
+genuinely needed — a stickup's state machine (rob, flee on being harmed, leave once the clock or
+the tills run out) doesn't fit any existing vanilla strategy — and `LordJob_Stickup`/
+`LordToil_Stickup` are close enough to `LordJob_ShopVisit`/`LordToil_Shop`'s own shape that the
+customer visit's flat-graph reasoning above applies here verbatim, just with a hostile duty in
+place of a shopping one.
+
+The sheriff's entire contribution to this mechanic is two passive reads of
+`TroubleUtility.AnySheriffOnDuty` — once inside `StickupWatch`'s own clock tick, halving how often
+it rolls, and once inside `RaidStrategyWorker_Stickup.MakeLordJob` at raid creation, halving the
+raid's duration. Neither is a job, a reference, or a wait; it's the identical mechanism that
+already suppresses saloon rowdiness, pointed at a second, unrelated bad outcome. That is a
+deliberate answer to the brief's own framing — the sheriff was built to calm drunks, not shoot
+outlaws, and a toothless combat job would have been worse than none. Self-defense against a
+stickup crew is entirely vanilla's own `JobGiver_AIFightEnemies`, run ahead of `JobGiver_RobTill`
+in the crew's duty think tree; this mod contributes zero coordination code between "a raider" and
+whoever is shooting at them. `JobDriver_RobTill` deliberately does not implement
+`IBusinessPatron` — the one place this feature actively *prevents* a synchronisation the business
+layer would otherwise fall into, since without that guard `WorkGiver_ManShop` would dispatch an
+unarmed colonist to staff the very counter being robbed.
+
+A robber is a third kind of visitor to a primitive two others already share safely: `TillSilver`,
+moved through `CompBusiness.TakeFromTill`. A gambling hall's payout, the player's own Collect
+gizmo, and `ShopTransaction.RobTill` can all touch the same till in overlapping windows, and all
+three already degrade the same way — `TakeFromTill` re-reads the till fresh on every call, so it
+can never be over-drawn or duplicated, only found emptier than a given caller expected. Adding a
+robber to that mix needed no new discipline, only `ShopTransaction.RobTill`'s own re-validate-
+immediately-before-taking check, mirroring the same rule the rest of this file already lives by.
+### Stagecoach line: a ceiling, not a second clock
+
+The roadmap named three things for this expansion — guaranteed high-budget arrivals, outgoing
+mail contracts, and an occasional VIP passenger, framed either as a quest-giver or as "a shopper
+with a 5× budget." Two of the three shipped; the third is cut outright, and the reasoning is
+worth stating because it's the same reasoning that shapes everything else here.
+
+**Mail contracts don't fit this mod's own shape.** Every transaction that already exists is a
+stranger walking in and `ShopTransaction` moving silver and goods at the point of exchange — a
+pull. A mail contract is a push: the colony commits goods up front, and an abstracted coach pays
+out later, with no pawn on either side of it at all. That isn't a smaller version of the existing
+seam, it's a different mechanic wearing this mod's name — there is no pawn loop for [the one
+rule](#the-one-decision-everything-else-follows-from) to even apply to, and no file this feature
+could plausibly extend (`ShopTransaction`, `ShopPricing`) has any shape for money leaving the
+colony rather than silver arriving in a till. A flat-silver timer with no parcel, no risk and no
+delivery behind it would just be a disguised income tick wearing a mechanic's name; a real one
+needs a commit/deliver/pay lifecycle this single-map mod has no scaffolding for anywhere. Cut,
+not deferred.
+
+**The quest-giver framing is cut; the cheaper alternative in the same sentence of the roadmap is
+not.** The roadmap's own wording already gives an escape hatch — "a quest-giver *or* a shopper
+with a 5× budget" — and the second half costs nothing new to build: one pawn in an
+already-spawned customer group gets a bigger purse and a name-drop in the letter, through
+machinery that already exists. The first half would mean taking on `QuestScriptDef`, `Slate` and
+`QuestNode` — a large, XML-and-code-interleaved surface `tools/refdump` can confirm member
+*existence* on, but not confirm actually generates a working quest, in a mod that has never run
+in a live game (see Known Context in `CLAUDE.md`). Paying that cost for a payoff the roadmap's
+own cheaper option already delivers is not a good trade.
+
+**The guarantee is one incident with an extra way to fire, not a second incident with its own
+clock.** The obvious shape for "no gap longer than N days" is a second `IncidentDef` alongside
+the existing `OWT_ShopCustomers` — its own worker, its own `minRefireDays`, fired on its own
+schedule. That shape was rejected: a second incident's cooldown only ever throttles itself, so
+nothing structurally stops it landing close to an organic arrival — exactly the stacking risk
+this expansion has to answer for. Instead, `TownEconomy.GuaranteedArrivalDue` is a plain `bool`,
+OR'd into the *existing* early-return inside `TryAttractCustomers`:
+
+```
+if (!Rand.MTBEventOccurs(mtbDays, 60000f, ArrivalCheckInterval) && !GuaranteedArrivalDue) return;
+```
+
+Because this is an OR added to an early-return that was already there, it can only ever **add** a
+firing attempt where the organic roll would otherwise have stayed quiet past the active tier's
+own ceiling — never suppress one, never duplicate one, never add a second, independent roll. And
+because both the organic roll and the guarantee fire through the identical `OWT_ShopCustomers`
+incident, the shipped `minRefireDays` (0.6 days) stays a hard structural cap on the *combined*
+rate, not merely an expected-value argument that happens to hold on average. That cap already
+covered two origins of the same incident before this feature existed — the deliberate
+`TryAttractCustomers` call and the incident's own small ambient `baseChance` storyteller roll
+(see [the economy loop](#the-economy-loop) below). The guarantee is a third origin funnelled
+through the identical door, not a new kind of risk.
+
+The ceiling itself lives in data, not in a constant on `TownEconomy`: `CoachTierDef` is one rung
+of the route ladder — `minAppeal`, `arrivalCeilingDays`, `purseMultiplier`, `vipChance` — the same
+"a business or a service is a stanza, not a class" instinct behind `ShopKindDef` and `ServiceDef`,
+applied one level up. `TownEconomy.RouteTier` reads the active tier live off current appeal on
+every call, uncached and non-ratcheting, exactly the way `Appeal` itself is recomputed from
+current stock rather than tracked — so a route can regress the same way appeal can, a legible,
+named consequence (a demotion message) on top of the arrival clock's previously invisible
+slowdown. `CoachTierUtility.CurrentTier`/`NextTier` are the only two places that ranking logic
+lives; the depot's own inspect string and the tier-announcement check both go through them, so
+neither can drift out of sync with the other about which tier is active.
+
+**The math was checked, not assumed.** Modelling organic arrivals as memoryless with mean gap
+`M = mtbDays` — the same approximation `Rand.MTBEventOccurs` itself already leans on — imposing a
+hard ceiling `C` and resetting the clock on every arrival makes each gap `X' = min(X, C)`, and for
+an exponential `X`: `E[X'] = M · (1 − e^(−C/M))`, giving a new rate of `1 / E[X']`. Worked out
+against the shipped MTB curve and the three tiers' own numbers, the uplift peaks at a tier's own
+entry point — biggest right at the weekly-coach tier's threshold, around +30%, the single largest
+engineered number anywhere in this feature — and decays toward single digits by that tier's own
+ceiling, never coming close to doubling footfall at any appeal tested, including the top tier's
+own long-run plateau. That is the number [the town economy](economy.md#a-ceiling-not-a-second-clock)
+states in plain, rounded terms for a player; this is where it came from. Worth confirming against
+real inter-arrival gaps in play — the model is an approximation of `Rand.MTBEventOccurs`'s real
+behaviour, not a proof of it, the same caveat the *existing*, shipped MTB clock already carries.
+
+**The depot is a marker, not a business, and needs no registry.** `CompCoachDepot` overrides
+exactly one member, `CompInspectStringExtra`, and persists nothing — every number it shows is read
+live off `TownEconomy` and `CoachTierUtility` on the tick it's asked. Whether a depot exists at
+all is answered the same way `TroubleUtility.AnySheriffOnDuty` already answers "is there a
+sheriff on duty": a stateless `map.listerThings.ThingsOfDef(...).Any()` scan, read at most twice
+per arrival check, with no `Register`/`Deregister` pair and nothing to rebuild in `FinalizeInit`.
+A `CompProperties_Business` was never on the table for this building — a depot sells nothing, is
+never staffed, and never enters `TownEconomy.Appeal`'s own math, the same "not a business" shape
+the sheriff's office already established for a building whose only job is to change what the
+player sees and how the town's own systems behave around it.
+
+**Nothing here adds a second pawn loop.** The entire mechanism resolves before any pawn job
+exists: `TryAttractCustomers` decides whether to fire, `TryExecuteWorker` decides what the group
+looks like — size from the unmodified `ResolveParmsPoints`, purse from a widened `GivePurse`, one
+pawn possibly flagged VIP for that call only. Once `LordMaker.MakeNewLord` runs, a scheduled or
+VIP customer is spawned into the identical, unmodified `LordJob_ShopVisit` →
+`JobGiver_BuyFromShop` loop every other customer already uses. `CustomerRecord` gains no
+VIP-shaped field, and nothing downstream — `ShopTransaction`, `TroubleUtility`, the standing
+ledger — is touched at all. [The one rule](#the-one-decision-everything-else-follows-from) isn't
+just preserved here; it's structurally inapplicable, because this feature never creates a second
+loop for it to govern.
+
+### Gold rush: one condition, not two clocks
+
+The roadmap named a *strike nearby* event with a boom that triples arrivals and a bust that
+crashes them, a demand basket that makes stocking decisions matter again, and gouging that costs
+more than it usually would. All of it shipped; nothing here was cut for scope the way a mail
+contract or a wanted board were elsewhere in this file. The interesting design choices are how
+the boom and bust share one clock, how the demand basket stays a pure multiplier nothing has to
+special-case, and how a bust that must not become a trap is actually guaranteed not to be one.
+
+**A `GameCondition`, not a hand-rolled `MapComponent` timer.** RimWorld already has the vanilla
+idiom for "the whole map is in a temporary state for a while" — `GameCondition`, created by
+`GameConditionMaker.MakeCondition` and registered with `Map.gameConditionManager`, ticked by the
+engine, shown in the conditions bar with its own live `Description`, and torn down automatically
+once its `Duration` elapses. Every one of those members, plus `IncidentWorker_MakeGameCondition`
+(the base class that fires one) and the `Expired`/`TicksPassed`/`SingleMap` properties this
+feature reads, is confirmed to exist and match this feature's call shapes via `tools/refdump` —
+see [the code map's known risks](architecture.md#known-risks) for exactly what that check does
+and doesn't prove. A bespoke `MapComponent` timer would have reinvented all of that by hand for
+no benefit: no conditions-bar entry, no automatic teardown, and a second, parallel place a save
+has to persist a start tick and a duration that `GameCondition` already owns.
+
+**One condition, self-phasing, rather than two chained conditions or a second incident with its
+own clock.** The obvious shape for "a boom, then a bust" is two `GameConditionDef`s, the first
+handing off to the second when it ends — the same shape [the stagecoach
+line](#stagecoach-line-a-ceiling-not-a-second-clock) rejected for its own guarantee, and rejected
+here for the identical reason: a second condition's own lifecycle only ever answers to itself,
+so nothing stops it drifting out of step with the first, or with the incident that was supposed
+to own the whole event. `GameCondition_GoldRush` is one instance for the event's entire life —
+`bustStarted` is the only state that distinguishes its two phases, read by `GoldRushUtility` and
+by its own `Description` override, never a second `Def` or a second registration. The firing
+`IncidentDef`, `OWT_GoldRushStrike`, only ever runs once, at the very start, the same "one
+incident, one letter, done" shape `IncidentWorker_Stickup` and `IncidentWorker_ShopCustomers`
+both already have; everything after that is the condition ticking itself, not a second incident
+waking up on its own schedule.
+
+**The demand basket is a plain `float` multiplier, gated on the boom alone, wired into every
+place something is already scored.** `GoldRushUtility.DemandFactor(map, thing)` is `1f` — a
+provable no-op — whenever no rush's boom is active, or the `Thing` is `null` (a stock-free
+service, which this mechanic deliberately never touches: prospectors want a full pack mule, not
+a haircut). Otherwise it's `InBasketDemandFactor` (4) for tools, medicine, a meal or a drink, and
+`OutOfBasketDemandFactor` (0.4) for anything else — a 10× spread, chosen because that is also
+exactly the spread `TownEconomy`'s own gouging penalty below has to outweigh (see the next
+section). "Tools" has no confirmed literal category to check against from this sandbox, so
+`InDemandBasket` reads it loosely, the same way the general store's own flavor text already
+does, as `ThingCategoryDefOf.Manufactured` — a guess in the same spirit as `OWT_BatwingDoor`'s
+`ParentName="Door"` assumption elsewhere in this codebase, not a verified fact.
+
+Being a pure multiplier is what let this factor go everywhere a purchase or a service is already
+scored without any of those call sites needing to know a rush exists: `ShopStock.ChoosePurchase`
+and `ShopStock.ChooseService` fold it into the per-item score that decides what a customer picks
+up *inside* a shop, and `JobGiver_BuyFromShop`'s own scoring pass folds it into the score that
+decides *which shop* a customer walks into in the first place, multiplying the specific item (or
+service's consumable) that shop would sell them. Both matter: a demand basket that only steered
+item choice inside a shop a customer had already entered for other reasons wouldn't actually
+reward stocking for the rush the way the roadmap's own framing promises — a shop selling nothing
+prospectors want would still pull exactly as much foot traffic as one that does, and only lose
+out once someone was already standing in it. Folding the same factor into the shop-choice score
+too is what makes a general store that restocked for the rush genuinely outperform a saloon that
+didn't, not merely sell differently to whoever happened to wander in regardless.
+
+**Gouging is relative to a shop's own kind, not a flat number.** `ShopPricing.GougeSeverity`
+reads 0 at a shop's own kind's default markup and 1 at that kind's own configured ceiling — the
+same `Markup`/`markupRange` pair the price slider already clamps against, reused rather than a
+second, parallel "is this too expensive" threshold. That is a deliberate choice: a flat gouging
+threshold would either let an already-dear kind (a saloon, priced to sting a little on purpose)
+gouge for free right up to some arbitrary number, or punish a naturally cheap kind (a general
+store) for charging what a saloon charges every day without anyone calling it gouging. Relative
+severity means gouging is always and only "further above what's normal for *this* business than
+the player usually pushes it" — a judgment that holds regardless of which kind is doing it.
+
+`TownEconomy.RecordSale` applies the penalty — extra reputation and standing cost, scaled by
+severity — only while a boom is active, for a direct, load-bearing reason: the demand basket's
+10× spread structurally overpowers `ShopPricing.ValueAppeal`'s own price sensitivity (a roughly
+2× spread across a kind's normal markup range), so without an explicit extra brake, a rush would
+make price stop mattering to where it's sold at all. The penalty is that brake, sized to roughly
+match the spread it has to outweigh. It also answers the roadmap's own two-sided ask directly:
+gouging has to actually earn well in the short run (it does — the demand basket alone already
+guarantees that shop the traffic) and the cost has to be legible (a per-shop warning message, at
+most once a day, naming the counter, backed by the reputation and standing hit the town ledger
+already shows).
+
+**The bust must not be a trap, and the numbers were checked, not assumed.** Because gouging is
+gated on the boom (`GoldRushUtility.BoomActive`), it structurally cannot apply during the bust —
+whatever damage a boom's gouging did is the most the bust ever has to recover from, and nothing
+during the bust itself can add to it. `TownEconomy.RollOverDay`'s existing daily decay toward
+0.5 reputation (5% of the remaining gap, already shipped for every other feature) then works
+*for* recovery unconditionally once the bust starts, since `BustRecoveryReputation` (0.45) sits
+just under that same resting point. Worked out in days: even from a full crash to 0 reputation,
+`0.5 - 0.5 × 0.95ⁿ ≥ 0.45` first holds at `n ≈ 45` days — comfortably inside the ~55–65 days of
+bust the firing incident's own 70–80-day total duration cap allows before forcing the condition
+closed regardless, and that is the worst case: any ordinary staffed trade during the bust adds
+its own +0.01-per-sale on top of the passive decay, and a town that never gouged hard enough to
+push reputation below 0.45 in the first place clears the bar the very first tick-check after the
+bust begins, since there's nothing to recover from. The hard duration cap exists purely as a
+safety net for a scenario the math above says shouldn't occur in practice, never the intended
+exit — see `Defs/IncidentDefs/Incidents_GoldRush.xml`'s own comment.
+
+That hard cap forces `End()` through vanilla's own automatic expiry, bypassing
+`GameConditionTick` entirely — the same "reached from two places, only one of them earns the
+letter" shape this section's own bug fix exists to get right: `recoveredByReputation` is set only
+by `GameConditionTick`'s own reputation check, immediately before it calls `End()` itself, and
+`End()`'s "recovered" letter is gated on that flag rather than on `bustStarted` alone, which is
+true on both paths. The timeout path gets no letter — an honest silence rather than a claim that
+reputation recovered when the real reason the rush ended was the safety net running out.
+
+**The arrival and purse multipliers ride on top of the existing clocks, never inside the
+stagecoach guarantee's own ceiling.** `GoldRushUtility.ArrivalMtbMultiplier` multiplies straight
+into `TryAttractCustomers`'s own `mtbDays` — the same number the stagecoach guarantee's
+`CeilingTicks` is a ceiling *on top of*, not a value the ceiling itself is computed from. A rush
+speeding up or slowing down the organic roll changes how often the ceiling has anything to do
+(rarely, during a boom that's already faster than most tiers' ceilings; more often, during a
+bust slow enough that a depot's own promise becomes the practical floor under footfall) without
+the two ever multiplying against each other — exactly the "compose, don't multiply" shape the
+roadmap asked for. `GoldRushUtility.PurseMultiplier` is threaded into `GivePurse` itself rather
+than as a third caller-supplied parameter, so it stacks with a stagecoach tier's own purse boost
+or the flat VIP multiplier automatically, and reaches the Hospitality bridge's own reuse of
+`GivePurse` for free — a prospector's purse is a prospector's purse, whichever door they came in.
+
+**Brawls and claim disputes, the roadmap's own other headline, are folded into the trouble
+mechanic that already exists rather than built as a second one.** A rush intensifying trade at a
+saloon or a gambling hall already makes both busier, and both already have their own escalating
+trouble mechanic — `OWT_Rowdy`, the disturbance it fires, the sheriff's suppression — built for
+exactly this "a business getting busier makes it rowdier" shape. A parallel "claim dispute"
+mechanic would need its own building or service to attach to (there is no claims office, and
+inventing one only for this event contradicts "prefer XML to code" by adding a whole new
+business kind to make one event's flavor text literal) and would duplicate machinery that already
+does the job it would be built to do. Deliberately cut, the same way stage 4 named barkeep and
+banker as cut rather than silently dropped, and for the same kind of reason: there was nothing
+left for a second system to do that the first one doesn't already cover.
+### Rival towns: an opponent, not a second town
+
+The roadmap named five things for this expansion — relative appeal, price undercutting, staff
+poaching, saboteurs, and a ghost town you can eventually salvage. Two shipped: relative appeal
+(`RegionalShare`) as a bounded slowdown on the arrival clock, and undercutting, the one mechanic
+that gives a rival something to *do* rather than being a static number. The other three are cut,
+each for its own reason, below.
+
+**A rival is abstract world-state — never a `Faction`, a `Settlement`, a world-tile
+`WorldObject`, or a single pawn.** The same reasoning that cut mail contracts from the stagecoach
+expansion applies here with even more force: every mechanic this mod has ever shipped either is a
+pawn on this map, or a number a pawn on this map reads. A rival town with a real world-tile
+presence would need a faction, a settlement, and eventually caravan-arrival and loot machinery
+this mod has never touched, to answer a question — "does relative appeal change the arrival
+clock?" — that a plain float on a `WorldComponent` already answers completely. `RivalTown` is not
+a place the player can point a caravan at; it is a number that grows, and occasionally undercuts.
+
+**Relative appeal is the whole mechanism, and it lives inside `TownEconomy`, not a second file.**
+`TownEconomy.PriceIndex` is the unweighted mean of `ShopPricing.ValueAppeal` across every open,
+stocked shop on the map — the identical score `JobGiver_BuyFromShop` already computes per shop to
+let a customer pick between yours, now averaged into one town-wide number. That reuse is what
+makes price-sensitivity free rather than a second pricing model to maintain: nothing about a
+rival's own competitiveness, or the player's own, is invented for this feature — both read the
+same `ValueAppeal` convention (`>1` means "pricing under market rate") that has existed since the
+very first stage. `MarketPull` (`Appeal × PriceIndex`) is the player's own score in those units;
+`RivalTown.Pull` (`currentAppeal × PriceIndex`, its own `PriceIndex` a flat 1.0 except while
+undercutting) is a rival's. `RegionalShare` is `MarketPull / (MarketPull + CompetingPull)`,
+clamped to exactly `1f` — "as good as no competition exists" — whenever either side of that ratio
+is non-positive: rivals disabled, no rival has grown past zero yet, or the town itself has no
+appeal yet. That single guard clause is what keeps a brand-new colony untouched (see below) and
+what makes the number safe to show directly in the UI with no separate "is this meaningful yet"
+check anywhere else.
+
+**Price-sensitivity is load-bearing, not decorative — it is the concrete answer to the brief's
+own "makes pricing genuinely competitive rather than solitaire."** A version of this feature that
+compared only *appeal* (kind score × stock, ignoring markup) would be a second, independent
+solitaire game running next to the existing one: a player could out-appeal a rival by building
+more shops without ever having to think about price relative to anyone. Folding
+`ShopPricing.ValueAppeal` into both sides of the comparison is what makes undercutting *this
+mod's own shops* — not just building more of them — the lever that actually moves
+`RegionalShare`.
+
+**The arrival-clock slowdown is a structurally proven bound, not a tuned one.**
+`TryAttractCustomers` multiplies its existing `mtbDays` by `Mathf.Lerp(1f, MaxRegionalSlowdown,
+1f - RegionalShare)`, where `MaxRegionalSlowdown = 1.6f`. `Mathf.Lerp` clamps its own interpolant
+to `[0, 1]` regardless of the magnitude of its inputs, so this multiplier is bounded to `[1.0×,
+1.6×]` for *any* `RegionalShare` a rival configuration could ever produce — not a tuning promise
+checked against the shipped defaults, a consequence of the function itself. Combined with the
+untouched `Appeal < MinAppealForCustomers` early-return that still runs first, a brand-new colony
+is byte-for-byte unaffected by this feature regardless of how many rivals exist or how the
+player's own `rivalStrength` setting is dialed. The multiplier is also one-directional — it can
+only ever stretch `mtbDays`, never shrink it — so no rival configuration, including a broken or
+absent `WorldComponent`, can make arrivals *faster* than today's baseline either. And the
+[stagecoach line](#stagecoach-line-a-ceiling-not-a-second-clock)'s own guarantee is completely
+immune to all of this: `GuaranteedArrivalDue`'s ceiling check runs against
+`TicksSinceLastArrival` and a tier's own `arrivalCeilingDays`, neither of which this feature
+touches, so a coach depot remains exactly the slowdown-proof floor it always was.
+
+**Undercutting is a discrete, MTB-rolled event, deliberately not a continuous drift.** The
+alternative — a rival's price competitiveness randomly walking up and down a little every day —
+was rejected for the reason a wandering, invisible number is rejected everywhere else in this
+mod: it fails "legible... whether they are winning" outright. A player can't point at a smooth
+random walk and say what changed, or when. `RivalTown.Undercutting` is instead a hard on/off
+state with a start message and an end message, sized by `RivalTownDef.undercutMTBDays` and
+`undercutDurationDays` — a named, dated event a player can actually reason about, the same "a
+number becoming a milestone" shift the stagecoach route tiers already made for the arrival clock
+itself.
+
+**One shared `RivalTowns`, not one per colony.** Rivals are regional, not personal — the same two
+NPC towns compete against every player colony that happens to be loaded, which is also the only
+sane answer to "what happens when the player settles a second colony": both colonies read the
+identical rival roster, because a rival town has no reason to know or care how many places the
+player happens to be trading from. What *does* differ per colony is whether, and when, that
+colony's own town has taken the regional lead — and that tracking (`TownEconomy.lastRegionLead`,
+`regionLeadKnown`) deliberately lives on the per-map `TownEconomy`, not on the shared
+`RivalTowns`. A shared boolean there would let two simultaneously-loaded colonies stomp each
+other's lead state and fire spurious "you've fallen behind" messages for a change that happened
+on a map the player wasn't even looking at. Keeping it per-map mirrors `lastAnnouncedTier`'s own
+placement, for the identical reason: two colonies can each have their own opinion about their own
+route tier, and now their own opinion about their own regional standing, without either one able
+to corrupt the other's.
+
+**Four things are cut, each for its own reason.** **Staff poaching** needs per-pawn shopkeeping
+performance — this codebase has only ever recorded sales per-business, never per-colonist — the
+identical missing-state reason this file already used to cut the wanted board from outlaws and
+the law, above. A per-pawn sales or skill record would need to exist first, for its own reasons,
+before a rival's job-offer event could target a specific colonist meaningfully. **Saboteurs** need
+a hostile pawn group on the player's own map — a lord graph, a duty think tree, job drivers — the
+same category of new surface the stickup crew needed, now for a second, independent raid-adjacent
+mechanic layered on top of an already-ambitious world-map feature; out of scope for the smallest
+set of changes that makes competition real. **Literal ghost-town salvage** needs a real
+`Settlement` or world-tile site, plus loot and caravan-arrival machinery this mod has never
+touched — the identical unproven vanilla surface this codebase has consistently declined to take
+on for comparable payoff (mail contracts, the quest-giver VIP passenger). If salvage is ever
+wanted, the decision to keep rivals as pure abstract state — never a `Settlement` — is the thing
+to revisit first; salvage needs a real world-tile presence to salvage. And, beyond what either
+source design considered cutting, **rival decline or concession** is cut too: `RegionalShare`'s
+own ceiling already delivers "out-compete a rival" as a genuine, player-caused state — the
+multiplier bottoms out at exactly `1.0×`, zero rival penalty, the moment a town's own pull is at
+least as large as every rival's combined — without needing a third mechanic, a reactive "observed
+player appeal" tracked the other way, or a letter that could flip-flop against a rival whose own
+undercutting keeps it near parity. The brief asks for "one or two" mechanics beyond relative
+appeal, not three. A future pass could let sustained dominance bias a rival's own `growthPerDay`
+toward zero or negative — cheap to add on top of `RivalTown.currentAppeal` once it's actually
+wanted.
+
+**Nothing here adds a second pawn loop, and the rule is not just preserved but structurally
+inapplicable.** `Rivals/` creates no `Pawn`, no `Job`, no `JobDriver`, no `Lord`, no `Duty`.
+`IncidentWorker_ShopCustomers.cs`, `LordJob_ShopVisit.cs`, and every file under `AI/` are
+untouched. The one place player-visible behavior changes is a single multiplier inside
+`TownEconomy.TryAttractCustomers`, the exact chokepoint both existing pawn loops already treat as
+shared, read-only truth. `Shops/` gains one new, one-directional dependency on `Rivals/`
+(`TownEconomy` and `CompBusiness` read `RivalTowns`/`RivalTown`); `Rivals/` never references
+`Shops/`, `AI/`, or `Incidents/` at all. It does read one setting directly:
+`RivalTowns.WorldComponentTick` checks the rival towns master switch and freezes every rival's
+growth and undercut rolling while it's off, rather than letting disabled days silently pile up
+into a jump when the player re-enables it — the day counter itself still advances either way, so
+there is never a debt to catch up on. The *magnitude* of a rival's effect stays decided in
+exactly one place regardless: `TownEconomy.CompetingPull` is the only site that reads
+rivalStrength, so the world state's own meaning stays independent of any one map's settings, or
+even existence — only whether it's currently ticking at all is settings-dependent.
+
 ## The economy loop
 
 ```

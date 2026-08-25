@@ -130,6 +130,53 @@
     </comps>
   </ThingDef>
 
+  <!-- Promoted from the decorative OWT_FaroTable in Buildings_MainStreet.xml (stage 6), not a
+       new building alongside it — a second faro table in the build menu would be confusing.
+       Keeps that def's own lighter statBases/costStuffCount/stuffCategories rather than
+       inheriting OWT_CounterBase's: turning it into a real business doesn't make the physical
+       object heavier, just staffed. Reuses the same art; nothing about how the table looks
+       changes. No CompGatherSpot — that free idle-gathering pull only made sense while nobody
+       worked the table; now a colonist actually deals there. -->
+  <ThingDef ParentName="OWT_CounterBase">
+    <defName>OWT_FaroTable</defName>
+    <label>faro table</label>
+    <description>Green baize, a dealing box, and a case-keeper's abacus. The cards change hands for real money now. A colonist assigned to Shopkeeping will deal hands to anyone willing to sit down and bet.\n\nStakes follow the price slider like anything else; the house edge decides how often the table wins. Winnings come out of the till — an empty one can't pay a debt it doesn't have, and a table that welches on a bet closes until you reopen it.</description>
+    <graphicData>
+      <texPath>Things/Building/MainStreet/FaroTable</texPath>
+      <graphicClass>Graphic_Multi</graphicClass>
+      <drawSize>(2,1)</drawSize>
+      <damageData>
+        <rect>(0,0.05,2,0.9)</rect>
+      </damageData>
+    </graphicData>
+    <uiIconPath>Things/Building/MainStreet/FaroTable_north</uiIconPath>
+    <!-- Also carried over from the decorative def, alongside the statBases below: 0.4, not
+         OWT_CounterBase's 0.5. Missing this would quietly make the table a half-again heavier
+         piece of cover than it was as street furniture, contradicting "keeps its own lighter
+         stats" for a stat nobody would think to double-check. -->
+    <fillPercent>0.4</fillPercent>
+    <stuffCategories>
+      <li>Woody</li>
+      <li>Stony</li>
+    </stuffCategories>
+    <costStuffCount>70</costStuffCount>
+    <costList>
+      <Silver>300</Silver>
+    </costList>
+    <statBases>
+      <MaxHitPoints>140</MaxHitPoints>
+      <WorkToBuild>900</WorkToBuild>
+      <Flammability>1.0</Flammability>
+      <Beauty>7</Beauty>
+    </statBases>
+    <comps>
+      <li Class="OldWestTown.Shops.CompProperties_Business">
+        <shopKind>OWT_GamblingHall</shopKind>
+        <startingTillSilver>300</startingTillSilver>
+      </li>
+    </comps>
+  </ThingDef>
+
   <!-- Deliberately not parented from a vanilla bed def — this repo has no access to Core's
        Defs to confirm an exact defName, and validate_defs.py does not check ParentName at all,
        so a typo there would surface only as a red error in-game. Built the same way

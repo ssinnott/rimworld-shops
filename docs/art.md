@@ -142,10 +142,35 @@ the rifle rack.
   <span class="swatch" style="background:#23201C"></span><code>#23201C</code> edge
 </div>
 
+### Coach depot
+
+3 × 2 tiles · [details](buildings.md#coach-depot)
+
+<div class="art-row">
+  <figure class="art-tile art-wide"><img src="assets/textures/Stagecoach/CoachDepot_north.png" alt="Coach depot, north facing"><figcaption>north · 384 × 256<br><span class="art-note">also the build-menu icon</span></figcaption></figure>
+  <figure class="art-tile art-wide"><img src="assets/textures/Stagecoach/CoachDepot_east.png" alt="Coach depot, east facing"><figcaption>east · 256 × 384</figcaption></figure>
+  <figure class="art-tile art-wide"><img src="assets/textures/Stagecoach/CoachDepot_south.png" alt="Coach depot, south facing"><figcaption>south · 384 × 256</figcaption></figure>
+  <figure class="art-tile art-wide"><img src="assets/textures/Stagecoach/CoachDepot_west.png" alt="Coach depot, west facing"><figcaption>west · 256 × 384</figcaption></figure>
+</div>
+
+A saddle-leather brown, distinct from every other palette in the set — warmer than the sheriff's
+office's gun-metal grey, redder than any counter's oiled wood — with a dusty road-tan surface
+band and an oxide-red accent stripe standing in for the ticket window's own paintwork.
+
+<div class="swatches">
+  <span class="swatch" style="background:#8C3224"></span><code>#8C3224</code> accent (ticket window)
+  <span class="swatch" style="background:#A89678"></span><code>#A89678</code> surface
+  <span class="swatch" style="background:#60442A"></span><code>#60442A</code> body
+  <span class="swatch" style="background:#342416"></span><code>#342416</code> edge
+</div>
+
 ## Main street
 
-Five decorative pieces, plus one — the false front — with a small mechanical effect. See
-[buildings](buildings.md#main-street) for what each one actually does.
+Four decorative pieces, plus the false front's own small mechanical effect. See
+[buildings](buildings.md#main-street) for what each one actually does. The **faro table** shares
+this palette and these texture files — it was drawn here in stage 6, before it was a business —
+but it's since been promoted into a real gambling hall; see [buildings](buildings.md#faro-table)
+for what it does now.
 
 ### False front
 
@@ -311,12 +336,12 @@ For completeness, the visible surface that isn't a picture file:
 | Build-menu category icon | The game's default for a build category |
 | Research tab entry | The game's default |
 | **Open for business** button | The game's own "unforbid" icon |
+| **Set house edge** button | The game's own power-management icon — a gambling hall's own gizmo, since HouseEdge has no Stock-tab slider of its own the way Markup does |
 | **Collect takings** button | The silver icon |
 | **Town ledger** button | The game's own info icon |
-| Stock tab | The stockpile filter list, unmodified |
+| Stock tab | The stockpile filter list, plus a slider (no dedicated icon) for the markup or asking price above it |
 | Fresh-haircut mood, slept-at-the-hotel mood | No icon; the game draws mood thoughts from text |
 | **Evict guest** button | The game's own "forbid" icon |
-| Faro table's idle-gathering pull | Vanilla's own gather-spot behaviour, unmodified |
 
 Reusing the game's own button icons is a choice, not a shortcut: you already know what the
 unforbid icon means, and a bespoke icon for "open for business" would be one more thing to learn

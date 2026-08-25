@@ -45,14 +45,26 @@ GALLERY = "art.md"
 # The gallery needs the images inside the Jekyll source to serve them, and inside the
 # repo tree to render when someone reads docs/art.md on GitHub. One copy satisfies both;
 # check_art keeps it honest rather than trusting anyone to remember.
-ART_SOURCES = {
-    "Textures/Things/Building/Commerce": "Commerce",
-    "Textures/Things/Building/MainStreet": "MainStreet",
-    "Textures/Things/Building/Roles": "Roles",
-    "Textures/Terrain/Surfaces": "Terrain",
-    "About": None,   # Preview.png only, flattened to the top of the asset folder
-}
+#
+# The building folders are DERIVED, not listed. They were listed once, and every single
+# theme added since — the main street, the sheriff's office, the coach depot — shipped
+# art the gallery could not see, because nobody remembered to add a line here. That
+# failure is silent by construction: an unlisted folder is not stale, it simply isn't
+# checked, so the run goes green and the gallery quietly omits a building. Deriving the
+# list makes the next theme's art covered by existing it.
 ART_DEST = "assets/textures"
+BUILDING_TEXTURES = "Textures/Things/Building"
+
+
+def art_sources():
+    """{source directory: subfolder under ART_DEST}, one entry per building theme on disk."""
+    sources = {}
+    for path in sorted(glob.glob(os.path.join(ROOT, BUILDING_TEXTURES, "*"))):
+        if os.path.isdir(path):
+            sources[os.path.relpath(path, ROOT)] = os.path.basename(path)
+    sources["Textures/Terrain/Surfaces"] = "Terrain"
+    sources["About"] = None   # Preview.png only, flattened to the top of the asset folder
+    return sources
 
 
 failures = []
@@ -213,7 +225,7 @@ def check_changelog(pages):
 def art_files():
     """Every shipped image, as (source path, path of its copy under docs/)."""
     pairs = []
-    for src_dir, sub in ART_SOURCES.items():
+    for src_dir, sub in art_sources().items():
         for src in sorted(glob.glob(os.path.join(ROOT, src_dir, "*.png"))):
             name = os.path.basename(src)
             rel = f"{ART_DEST}/{sub}/{name}" if sub else f"{ART_DEST}/{name}"

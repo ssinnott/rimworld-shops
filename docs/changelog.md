@@ -24,8 +24,8 @@ change itself, and update the [wiki page](contributing.md#the-workflow) it affec
   caught up to it, the same way the batch below did:
   [sheriff's office](buildings.md#sheriffs-office), [sheriffing](shopkeeping.md#sheriffing) and
   how it differs from the Shopkeeping work type, and
-  [trouble at the saloon](customers.md#trouble-at-the-saloon) — the rowdiness hediff, the
-  disturbance it fires, and the two ways to suppress it — plus the matching rows in the
+  [trouble at the saloon](customers.md#trouble-at-the-saloon-and-the-gambling-hall) — the
+  rowdiness hediff, the disturbance it fires, and the two ways to suppress it — plus the matching rows in the
   [reference tables](reference.md), the [code map](architecture.md) and its
   [known risks](architecture.md#known-risks), and a new [gallery](art.md) entry for the sheriff's
   office art. `tools/validate_docs.py`'s `ART_SOURCES` never watched
@@ -63,8 +63,192 @@ change itself, and update the [wiki page](contributing.md#the-workflow) it affec
   every push to `main`.
 - `CLAUDE.md`, recording the repository's layout, commands and conventions — including the rule
   that a change to the mod updates the wiki and this changelog in the same commit.
+- **The Hospitality bridge** (`Compat/`) — the last staged item, and the first one built against
+  a mod this codebase has never had installed, decompiled, or run against even once.
+  `HospitalityInterop` detects a loaded Hospitality install by scanning loaded assemblies for one
+  named `"Hospitality"` (a guess, not a verified fact) and recognizes its guests structurally —
+  by which assembly owns a pawn's `Lord`/`LordJob`, or any of their `ThingComp`s — rather than by
+  naming a single Hospitality type or member. `HospitalityBridge`, a new per-map
+  `MapComponent`, periodically offers one shopping trip (goods, a drink, a meal or a haircut —
+  never a room; Hospitality is already housing them) to an idle Hospitality guest through
+  `Pawn_JobTracker.TryTakeOrderedJob`, the same door a player's own forced order already uses,
+  gated on the guest's own AI having already declared it has nothing better to do. Reuses
+  `JobGiver_BuyFromShop`'s scoring (now `PickShoppingJob`, extracted with a new
+  `lodgingAllowed` parameter) and `IncidentWorker_ShopCustomers.GivePurse` completely unmodified.
+  Two new settings, `hospitalityBridgeEnabled` and `hospitalityGuestsCarrySilver` (both default
+  on, both hidden unless Hospitality is actually detected), and an always-visible settings-window
+  status line reporting detection either way. If the assembly-name guess is wrong, the bridge is
+  permanently and silently inert — indistinguishable from Hospitality not being installed at all.
+  See [Hospitality guests](customers.md#hospitality-guests),
+  [the design notes](DESIGN.md#the-hospitality-bridge) and
+  [the code map's known risks](architecture.md#known-risks) for the full account of what is, and
+  isn't, verified here.
+- **[Outlaws and the law](outlaws.md)** — a rich town becomes a target. `StickupWatch`, a new
+  per-map `MapComponent`, sums every registered business's uncollected till silver and rolls an
+  MTB clock that shortens as that total climbs past 300, firing `OWT_Stickup` through the
+  storyteller exactly the way `TownEconomy` already fires its own arrival incident.
+  `Alert_StickupRisk` shows the risk building well before the clock is even live. `OWT_Stickup`
+  (`IncidentWorker_Stickup`) subclasses `IncidentWorker_RaidEnemy` rather than hand-rolling a
+  raid — faction resolution, pawn generation, gear and the arrival letter's send-off all stay
+  vanilla's own `base.TryExecuteWorker`, untouched — and overrides only what turns an ordinary
+  raid into a stickup: crew size and gear scaled off silver at risk rather than colony wealth
+  (capped small either way), a forced `OWT_StickupStrategy` (`RaidStrategyWorker_Stickup`) and
+  walk-in arrival, and the letter's own copy. `LordJob_Stickup`/`LordToil_Stickup` are a
+  near-twin of `LordJob_ShopVisit`'s own flat graph, hostile instead of paying: `OWT_StickupDuty`
+  runs vanilla's own `JobGiver_AIFightEnemies` ahead of the new `JobGiver_RobTill`/
+  `JobDriver_RobTill` (job `OWT_RobTill`), so self-defense always wins first, and any pawn
+  getting shot at routs the whole crew rather than finishing the job.
+  `ShopTransaction.RobTill` empties a till completely into the thief's inventory, structurally
+  incapable of over-drawing it the same way every other till primitive already is;
+  `CompBusiness` gains a robbery ledger (`robberiesToday`/`lifetimeRobberies`/`stolenToday`/
+  `lifetimeStolen`) alongside its existing sale and shortfall figures.
+  `JobDriver_RobTill` deliberately does **not** implement `IBusinessPatron` — the marker that
+  would otherwise make a colonist get dispatched to staff the very counter being robbed, and
+  make the waiting-customers alert misread an active robbery as an ordinary queue. The
+  step-4 [sheriff](shopkeeping.md#sheriffing) is the mechanic's only counterplay lever beyond
+  ordinary self-defense: being on duty roughly halves both how often a stickup happens
+  (`StickupWatch`'s own clock) and how long one lasts once it starts
+  (`RaidStrategyWorker_Stickup`, read once at raid creation) — two passive reads of the same
+  `TroubleUtility.AnySheriffOnDuty` flag that already suppresses saloon rowdiness, never a new
+  job or a reference to any raider. A downed raider's `LordJob_Stickup.GuiltyOnDowned` is what
+  makes capturing and ransoming one completely ordinary, unmodified vanilla prisoner mechanics —
+  deliberately the entire "jail" story this mechanic tells; a wanted board with bounty quests on
+  a recurring outlaw leader was cut for the same reason RimWorld's quest system was weighed and
+  declined elsewhere in this project. A new `stickupsEnabled` setting (default on) turns the
+  whole mechanic off. See [outlaws and the law](outlaws.md) and
+  [the code map's known risks](architecture.md#known-risks) for what's tuned but untested.
+- **The stagecoach line** — a new **coach depot** (`OWT_CoachDepot`, gated behind its own
+  research, `OWT_StagecoachLine`) that switches on a guarantee, tied to town appeal through a new
+  three-rung route ladder (`CoachTierDef`: irregular freight wagons → weekly coach → daily
+  express), that no gap between customer arrivals — organic or scheduled — ever outruns the
+  active tier's own ceiling. Built as one extra OR'd condition inside the existing
+  `TryAttractCustomers`/`OWT_ShopCustomers` firing path rather than a second `IncidentDef` with
+  its own cooldown, so the shipped `minRefireDays` stays a hard cap on the *combined* rate no
+  matter which condition actually triggers a given group — see [the design
+  notes](DESIGN.md#stagecoach-line-a-ceiling-not-a-second-clock) for the worked math. A scheduled
+  group's ordinary customers carry a tier-scaled purse boost, and from the weekly-coach tier up
+  may include one **VIP passenger** at a flat 5× purse, named in their own letter. Crossing a
+  tier fires a letter on promotion and a quieter message on demotion or loss, read live off
+  `TownEconomy` and a new `CoachTierUtility` — nothing about a route is cached or ratcheted, so
+  it can regress the same way appeal can. Two of the roadmap's three named pieces for this
+  expansion are cut: **outgoing mail contracts**, which have no pull-based transaction shape
+  anywhere in this mod to extend, and the **quest-giver framing of the VIP passenger**, kept only
+  as the roadmap's own cheaper "or" — a shopper with a bigger purse — rather than taking on
+  RimWorld's quest system in a mod that has never run in a live game. See [the stagecoach
+  line](economy.md#the-stagecoach-line), [scheduled coach
+  arrivals](customers.md#scheduled-coach-arrivals) and [the coach depot](buildings.md#coach-depot).
+- **The gold rush** — a map-wide `GameCondition` (`OWT_GoldRushCondition`), fired once by a new
+  `OWT_GoldRushStrike` incident, that self-phases through a boom then a bust rather than chaining
+  two conditions or a second incident with its own clock. During the 15-day boom, arrivals run
+  roughly three times as often and every purse carries an extra 50%, but prospectors are all
+  chasing the same **demand basket** — tools, medicine, meals and drink — worth roughly ten times
+  as much to a customer's scoring as anything outside it; the same factor steers both which shop
+  a customer walks into (`JobGiver_BuyFromShop`) and what they pick up once they're inside
+  (`ShopStock.ChoosePurchase`/`ChooseService`), and reads as a flat `1f` no-op the instant no
+  boom is active. Selling above what's normal for a shop's own kind while the boom lasts —
+  `ShopPricing.GougeSeverity`, relative to that kind's own markup range, never a flat number —
+  costs extra reputation and standing on top of the ordinary sale delta, and draws a per-shop
+  warning message at most once a day; the temptation is real (the demand basket alone already
+  guarantees a well-stocked shop the traffic) and so is the cost. The bust that follows slows
+  arrivals to roughly 2.5× the ordinary gap until town reputation clears a bar just under its own
+  neutral resting point, or the firing incident's own 70–80-day total duration forces it closed
+  regardless — worked out in days, even a reputation crashed to zero by gouging clears that bar
+  through ordinary daily decay alone well inside that window, since gouging is structurally
+  incapable of applying during the bust itself. See [gold rush](economy.md#gold-rush), [the
+  demand basket](customers.md#the-demand-basket) and [the design
+  notes](DESIGN.md#gold-rush-one-condition-not-two-clocks) for the full reasoning and the worked
+  math. A new `goldRushEnabled` setting (default on) turns the whole event off.
+- **Rival towns** — one or two NPC towns as abstract world-map state, this mod's first use of
+  `RimWorld.Planet.WorldComponent`. A new `Rivals/` namespace: `RivalTownDef` (pure data —
+  starting and ceiling appeal, daily growth rate, undercut MTB days, undercut duration and
+  undercut price index) and `RivalTowns`, a world-scoped roster of `RivalTown` instances shared by
+  every loaded map, growing each rival's appeal toward its own ceiling once per world-day and
+  rolling its own MTB clock for a discrete, messaged **undercutting** swing rather than a
+  continuous drift. `TownEconomy` gains `PriceIndex` (the unweighted mean of
+  `ShopPricing.ValueAppeal` across every open, stocked shop — the identical score a customer
+  already uses to pick between your own shops) and `MarketPull` (`Appeal × PriceIndex`), then
+  compares that against every rival's own combined pull (`CompetingPull`, scaled by a new
+  `rivalStrength` setting) to produce `RegionalShare` — your share of regional trade.
+  `RegionalShare` stretches `TryAttractCustomers`'s own `mtbDays`, structurally bounded to `[1.0×,
+  1.6×]` for any rival configuration — `Mathf.Lerp` clamps its own interpolant, so this is a
+  proven bound, not a tuning promise — never faster than today, never more than 60% slower, and
+  completely inert until a rival has actually grown large enough to matter. The stagecoach
+  guarantee's own ceiling is entirely immune to it. A new inspect-pane line (gated on a qualifying
+  rival actually existing) and a new Town ledger section (gated only on the `rivalTownsEnabled`
+  setting, so it can show what a player is up against before their own town even qualifies to
+  compete) make the mechanic legible; a message announces the first time the regional lead
+  actually changes hands on a given map, silent on the very first evaluation so the feature
+  turning on can never itself read as "you've fallen behind." Two new settings,
+  `rivalTownsEnabled` (default on) and `rivalStrength` (default 100%, 25%–300%), mirror every
+  other "new risk" this mod ships. Deliberately cut: **staff poaching** (no per-pawn shopkeeping
+  performance exists anywhere in this codebase to target), **saboteurs** (a second, independent
+  hostile-pawn mechanic — lord graph, duty think tree, job drivers — on top of an
+  already-ambitious world-map feature), **literal ghost-town salvage** (needs a real world-tile
+  settlement and caravan/loot machinery this mod has never touched), and — beyond what either
+  candidate design considered — a **rival decline/concession mechanic** (`RegionalShare`'s own
+  `1.0×` floor, once a town's pull matches or exceeds every rival's combined, already delivers a
+  genuine, player-caused "neutralized" state without one). See [regional
+  competition](economy.md#regional-competition), [the design
+  notes](DESIGN.md#rival-towns-an-opponent-not-a-second-town) and [the code map's known
+  risks](architecture.md#known-risks) for the full account, including the confirmed-vs-inferred
+  breakdown for this mod's first `WorldComponent`.
 
 ### Changed
+
+- `WorkGiver_ManShop.AnyCustomerNear` now also recognizes a customer by the `IBusinessPatron`
+  marker interface, not only by the `OWT_Shop` duty — what a bridged Hospitality guest actually
+  carries, since the bridge never assigns one. `CompBusiness.CellFreeFor` and
+  `Alert_CustomersWaiting` already keyed off `IBusinessPatron` directly and needed no change.
+- `JobGiver_BuyFromShop.TryGiveJob`'s scoring pass is now `PickShoppingJob`, a separate
+  `internal static` method taking a `lodgingAllowed` parameter (default `true`) — so
+  `HospitalityBridge` can reuse the identical scan instead of duplicating it. No behavior change
+  for the duty-driven caller.
+- `IncidentWorker_ShopCustomers.GivePurse` is now `internal` rather than `private`, so
+  `HospitalityBridge` can give a bridged guest the identical arrival top-up a native customer
+  gets. Same formula, same existing callers, same behavior for them.
+
+- **Gambling hall** (`OWT_GamblingHall`) — a fifth business kind, and the first where the customer
+  can walk away with *more* silver than they sat down with. Sells one new service, **wager**
+  (`OWT_Wager`, `ServiceWorker_Wager`, job `OWT_ServeWager`): a hand priced and paid for exactly
+  like a haircut, then resolved as a win, a loss, or — rarely — a shortfall. **House edge**, a new
+  dial on `ShopKindDef`/`CompBusiness` living right next to markup, is exactly the fraction of
+  every silver wagered the house keeps on average, by construction, for any payout multiple. A win
+  pays straight out of the business's own till (`ShopTransaction.PayOutFromTill`,
+  `CompBusiness.TakeFromTill`) — the first place in the mod money leaves a till rather than
+  entering it, structurally capped at whatever the till actually holds. A loss makes that gambler
+  a little rowdier, the same `OWT_Rowdy` hediff a saloon's drink already uses — every rowdiness-
+  capable service is now gated on the new `ServiceWorker.CanCauseTrouble` rather than a fixed
+  `RowdinessPerUse`, since a wager's outcome-dependent rowdiness can't be read off one constant —
+  and an unlucky loss can additionally draw a Social-skill-gated **cheating accusation** against
+  the dealer. A shortfall — the table winning a hand and then not being able to pay it in full —
+  is the worst reputation and standing hit anywhere in the mod, and force-closes the table until
+  reopened by hand. See [businesses](businesses.md#gambling-hall), [services](services.md#wager)
+  and [the till as a bankroll](economy.md#the-till-as-a-bankroll).
+- **A played hand relieves boredom, not just money.** `ServiceWorker_Wager.ApplyEffect` grants a
+  flat `joyGainPerHand` to the customer's Joy need on every hand — win, loss or shortfall — the
+  same unconditional shape `ServiceWorker_Ingest` already uses for nutrition. `Desirability`
+  already scored a wager against Joy; nothing previously satisfied it, so repeat play now tapers
+  off the same way another round at the bar already does.
+- **`OWT_FaroTable` is promoted, not recreated.** The faro table shipped in stage 6 as pure street
+  furniture (`Buildings_MainStreet.xml`, vanilla's own `CompGatherSpot`, no wager); it now lives in
+  `Buildings_Commerce.xml` as a real gambling-hall business, with a new **300-silver** cost on top
+  of its stuff cost that seeds its own till (`startingTillSilver`) so its first customer isn't a
+  coin flip to be shorted. Same defName throughout, same art — one faro table in the build menu,
+  not two.
+
+### Changed
+
+- **The gold rush's gouging penalty now settles once a night, with everything else.** It used to
+  write reputation and faction standing at the moment of an overpriced sale — the exact per-receipt
+  timing the reputation rework above exists to rule out. A gouged customer is now flagged the same
+  way a served or walked-out one is, and the town's name and that customer's own faction both take
+  their hit from the one nightly settlement, scaled by the same `ShopPricing.GougeSeverity` the
+  per-sale version used. The counter-side warning message is unaffected — it is a per-shop notice,
+  not a reputation write, so it still fires the moment a gouged sale happens.
+- `OWT_AlertRowdyPatronsDesc`, `OWT_CmdAssignSheriffDesc` and `OWT_Rowdy`'s description dropped
+  their saloon-specific wording now that a gambling hall can generate the same trouble a saloon
+  does — see [trouble at the saloon and the gambling
+  hall](customers.md#trouble-at-the-saloon-and-the-gambling-hall).
 
 - `docs/DESIGN.md` is now the *why* only. Its component map, roadmap and known-risk list moved
   into the wiki so each has a single home: [code map](architecture.md),
@@ -150,7 +334,72 @@ change itself, and update the [wiki page](contributing.md#the-workflow) it affec
   save — recognisable because it has no patron table — starts again from no opinion, and a week of
   trading settles it honestly. A town that had not pinned keeps what it had.
 - New saved state is additive only: a per-visit record of goods a customer could not afford, and
-  the day's patron table. Older saves load without it.
+  the day's patron table — served/self-served/walked-out/gouged flags plus, now, a per-patron
+  gouge-severity column banking the gold rush's markup penalty for that same nightly settlement
+  (see the gold rush entry below). Older saves load without any of it, the same "an absent column
+  reads as nobody having done that yet" story every other column in this table already tells.
+- **Outlaws and the law** is additive throughout, with a zero-migration precedent already
+  established elsewhere in this codebase for every piece of it. `StickupWatch` is a brand-new
+  `MapComponent` — RimWorld auto-instantiates it on any map, old or new, and it carries no
+  persisted state at all (every value is a live sum), so there's nothing to migrate, not even the
+  "defaults to false" story a stateful comp would need. `CompBusiness` gains four new `int`
+  fields (`robberiesToday`/`lifetimeRobberies`/`stolenToday`/`lifetimeStolen`), each defaulting to
+  `0` on a save with no such node — identical to how `shortfallsToday`/`lifetimePayouts` already
+  behaved for a save from before the gambling hall existed. `LordJob_Stickup` is only ever
+  created going forward, so no old save can have one running. The new `stickupsEnabled` setting
+  defaults to `true`, the same precedent `hospitalityBridgeEnabled` already set.
+- No gameplay change from the documentation work above. Safe to drop into a save in progress.
+- The Hospitality bridge adds exactly one new persisted field: `HospitalityBridge.hasAnnouncedBridge`,
+  a plain `bool` on a brand-new per-map `MapComponent`. An existing save gets a fresh instance
+  with this defaulted to `false`, the same way `TownEconomy` and `FalseFrontRegistry` were both
+  introduced with no migration needed. The bridge's own per-`(pawn, shop)` cooldown table, and
+  its per-guest "already given a silver top-up" set, are both deliberately never persisted at
+  all. Safe to drop into a save in progress either way, with or without Hospitality installed.
+
+- No gameplay change from the wiki and tooling work above. Safe to drop into a save in progress.
+- **Except a save with an `OWT_FaroTable` already placed.** It now loads as a live, staffable
+  gambling-hall business instead of decoration — every `CompBusiness` field it gains initializes
+  to its correct, safe default the same way `Markup` already does for any table that never had one
+  before, but `startingTillSilver` only seeds a *fresh* spawn, not a respawn from a load, so a
+  pre-existing table opens with no bankroll of its own. That's the same "first winner might be
+  shorted" situation seed capital exists to avoid, but only for a table placed before this update.
+  Given the mod has no players yet, accepted as a documented, pre-release-only risk rather than
+  patched with bespoke migration code — see [known risks](architecture.md#known-risks).
+- **The stagecoach line adds exactly two new persisted fields, both on `TownEconomy`, each with a
+  safe default on any save from before this feature.** `lastArrivalTick` reads as `0` when
+  absent, so `TicksSinceLastArrival` reads as the entire elapsed game time on first load — the
+  same "safe, a little eager, never stranded" shape `LordJob_ShopVisit.groupArrivedTick` already
+  ships with, and the very next arrival, organic or guaranteed, re-anchors it immediately.
+  `lastAnnouncedTier` (`Scribe_Defs.Look`) reads as `null` when absent, indistinguishable from
+  "no depot has ever changed tier," so a reload can never spuriously re-announce one. Nothing
+  else needs migrating: depot existence and the active route tier are both computed live off
+  `CoachTierUtility` on every read, never registered or cached. Safe to drop into a save in
+  progress, with or without a coach depot already built.
+- **The gold rush is only ever created going forward**, the same zero-migration story
+  `LordJob_Stickup` already established — no old save can have an `OWT_GoldRushCondition`
+  running, so there is nothing to default or migrate for one. Its own `bustStarted` flag is a
+  plain `bool` on the condition itself; `recoveredByReputation` is deliberately never persisted
+  at all (see [reference](reference.md#saved-state)). The new `goldRushEnabled` setting defaults
+  to `true`, the same precedent `stickupsEnabled` and `hospitalityBridgeEnabled` already set.
+- **Rival towns adds exactly one new `WorldComponent` and two new `TownEconomy` fields, with zero
+  changes to any existing persisted field.** `RivalTowns` is entirely new at the world scope — an
+  old save's world XML has no matching subtree at all, so `World.FillComponents()` instantiates a
+  fresh instance with its field initializers (`rivals` empty), and `FinalizeInit(true)` seeds one
+  `RivalTown` per shipped `RivalTownDef` at its own `baseAppeal` the first time that save loads
+  under this version — the identical "a sparse collection defaults itself, no migration code
+  needed" story `TownEconomy.standings` and `HospitalityBridge.hasAnnouncedBridge` already
+  established, now one level up at the world scope. `TownEconomy.lastRegionLead` (default `true`)
+  and `regionLeadKnown` (default `false`) are absent from an old save's per-map XML the same way,
+  and `regionLeadKnown` reading `false` on first load means `CheckRegionalLeadChange`'s first
+  evaluation on that map silently *records* the current lead rather than announcing one — an
+  upgraded save can never itself produce a spurious "you've fallen behind" message, mirroring
+  `lastArrivalTick`'s own "safe, a little eager, never stranded" precedent by construction, not
+  extra code. `PriceIndex`/`MarketPull`/`RegionalShare` are pure, live-recomputed properties,
+  never cached or stored, matching `Appeal`/`RouteTier`'s own "recompute, never cache" precedent
+  exactly. The two new mod settings (`rivalTownsEnabled` default on, `rivalStrength` default
+  100%) read their coded defaults from a settings file written before this feature existed, like
+  every setting before them. Safe to drop into a save in progress, with or without any rival
+  having grown large enough to matter yet.
 
 ---
 
@@ -173,7 +422,7 @@ suppress before the badge itself could mean anything.
   duty. `WorkGiver_CalmTrouble` / `JobDriver_CalmTrouble` (job `OWT_CalmTrouble`) are the reactive
   half: they target one specific rowdy patron directly and walk the sheriff over to calm them
   down, granting the same 35 Social XP a shopkeeper earns for a served sale.
-- **[Trouble at the saloon](customers.md#trouble-at-the-saloon)**: a new `OWT_Rowdy` hediff that
+- **[Trouble at the saloon](customers.md#trouble-at-the-saloon-and-the-gambling-hall)**: a new `OWT_Rowdy` hediff that
   a round of [drink](services.md#drink) — never a meal — nudges upward, decaying on its own via
   vanilla's own `HediffCompProperties_SeverityPerDay`. Crossing its top stage fires a scripted
   **disturbance** (`TroubleUtility.Notify_ServiceRound`): a message, a reputation hit worse than

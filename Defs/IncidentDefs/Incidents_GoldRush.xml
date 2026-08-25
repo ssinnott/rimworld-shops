@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+
+  <!-- Fires OWT_GoldRushCondition. durationDays is a generous outer safety cap only — the
+       condition's own GameConditionTick() ordinarily ends it much sooner, once reputation
+       recovers from the bust it enters partway through its life. See
+       Incidents/IncidentWorker_GoldRushStrike.cs and
+       docs/DESIGN.md#gold-rush-one-condition-not-two-clocks. -->
+  <IncidentDef>
+    <defName>OWT_GoldRushStrike</defName>
+    <label>gold rush</label>
+    <category>Misc</category>
+    <targetTags>
+      <li>Map_PlayerHome</li>
+    </targetTags>
+    <workerClass>OldWestTown.Incidents.IncidentWorker_GoldRushStrike</workerClass>
+    <gameCondition>OWT_GoldRushCondition</gameCondition>
+    <durationDays>70~80</durationDays>
+    <baseChance>1</baseChance>
+    <minRefireDays>45</minRefireDays>
+    <letterDef>PositiveEvent</letterDef>
+  </IncidentDef>
+
+</Defs>

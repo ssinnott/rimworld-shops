@@ -23,6 +23,12 @@ staffed.
 Serving a customer — goods or a service alike — grants **35 Social XP**, so a dedicated
 shopkeeper trains the skill their job runs on.
 
+The same priority staffs a [gambling hall](businesses.md#gambling-hall)'s faro table with zero new
+mechanics — a dealer is a shopkeeper like any other. Social skill does double duty there: it
+already slows how fast every business's patrons get rowdy, and for a dealer specifically it also
+cuts how often an unlucky loss turns into a [cheating
+accusation](customers.md#trouble-at-the-saloon-and-the-gambling-hall).
+
 ## Sheriffing
 
 Shopkeeping is a *priority* — any colonist who has it can staff any counter. **Sheriffing** is a
@@ -49,10 +55,15 @@ Getting a sheriff on duty is two separate steps:
 | Needs | working hands and the ability to talk |
 
 With both in place, the sheriff patrols their office and steps in to calm down
-[rowdy patrons](customers.md#trouble-at-the-saloon) before they cause a disturbance — walking
+[rowdy patrons](customers.md#trouble-at-the-saloon-and-the-gambling-hall) before they cause a disturbance — walking
 someone down grants **35 Social XP**, the same training a shopkeeper earns for a sale. Reassign
 the post, or take away their Sheriffing priority, and they simply stop — there's no notice to
 give and nothing to undo.
+
+An on-duty sheriff also has a second, unrelated job: they lower how often a
+[stickup](outlaws.md) happens at all, and shorten one that does. That's a passive effect of being
+on duty, not a new patrol or a combat job — the Shopkeeping work type itself is untouched by any
+of this. Staffing a counter, on its own, does nothing to protect its till.
 
 ## When a counter asks for staff
 
@@ -64,7 +75,9 @@ colonist is offered the job when **all** of these are true:
 - the staff side is clear, reachable, and not claimed by another colonist;
 - the business **has something to offer** — stock on the shelf or an available service;
 - there is at least one **visitor within 25 tiles who could still spend something** — awake, not
-  hostile, and with silver left in their purse.
+  hostile, and with silver left in their purse — including a [Hospitality
+  guest](customers.md#hospitality-guests) the bridge has already sent your way, though recognizing
+  one takes a little longer than a native customer since there's no arrival moment to key off.
 
 Somebody who has spent their last coin, or who is having a nap on your floor, does not hold a
 colonist at a counter that cannot make a sale. The exception is anyone already standing at *this*

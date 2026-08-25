@@ -141,6 +141,8 @@ VANILLA_DEFS = {
     "Apparel", "Textiles", "Leathers", "Drugs", "Weapons",
     "ThinkNode_Priority", "JobGiver_WanderNearDutyLocation",
     "Light", "Medium", "Heavy",
+    # Outlaws and the law: OWT_Stickup's <category> (IncidentDef-only) and <letterDef>.
+    "ThreatBig",
 }
 
 
@@ -154,7 +156,8 @@ def collect_own_defnames():
 
 
 # XML elements whose text (or <li> children) are def references this mod makes.
-DEF_REF_ELEMENTS = ["shopKind", "workType", "researchPrerequisites", "defaultStockCategories",
+DEF_REF_ELEMENTS = ["shopKind", "workType", "researchPrerequisites", "prerequisites",
+                    "defaultStockCategories",
                     "defaultStockThings", "stuffCategories", "relevantSkills",
                     "requiredCapacities", "targetTags", "letterDef",
                     "designationCategory", "constructEffect",

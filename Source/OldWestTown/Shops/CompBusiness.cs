@@ -5,6 +5,7 @@ using RimWorld;
 using UnityEngine;
 using Verse;
 using Verse.AI;
+using OldWestTown.Rivals;
 
 namespace OldWestTown.Shops
 {
@@ -17,6 +18,13 @@ namespace OldWestTown.Shops
         /// Indoors the shop's floor is its room, which is what a real storefront wants.
         /// </summary>
         public float openAirRadius = 9.9f;
+
+        /// <summary>Silver seeded into a freshly built counter's till, once, on first spawn.
+        /// Zero for every kind but the gambling hall — an ordinary shop's till legitimately
+        /// starts empty, since nothing it does can ever owe a customer more than they handed
+        /// over. A wager can, so its table needs a bankroll before its first customer ever sits
+        /// down; see CompBusiness.PostSpawnSetup.</summary>
+        public int startingTillSilver = 0;
 
         public CompProperties_Business()
         {
@@ -66,10 +74,34 @@ namespace OldWestTown.Shops
         private bool open = true;
         private float markup = -1f;
 
+        private float houseEdge = -1f;
+
         private int lastStaffedTick = -99999;
         private Pawn lastShopkeeper;
         private int lastWalkoutMessageTick = -99999;
+        private int lastAccusationMessageTick = -99999;
+        private int lastRobberyMessageTick = -99999;
+        private int lastGougeMessageTick = -99999;
         private int lastBusyMessageTick = -99999;
+
+        /// <summary>A much shorter window than TryClaimWalkoutMessage's own patience-length
+        /// one, deliberately: at a meaningful accusation chance and a wager's much shorter
+        /// round length, a walkout-length throttle would flatten "this table produces constant
+        /// accusations" down to one message per window — exactly the Social-skill-driven
+        /// frequency swing this mechanic exists to make visible. This only collapses a genuine
+        /// multi-patron burst, not the signal itself.</summary>
+        private const int AccusationMessageCooldownTicks = 400;
+
+        /// <summary>Same window as AccusationMessageCooldownTicks — collapses only a genuine
+        /// same-tick multi-raider race on one till, not the signal itself.</summary>
+        private const int RobberyMessageCooldownTicks = 400;
+
+        /// <summary>Unlike an accusation or a robbery, gouging isn't a discrete burst of events —
+        /// the same markup is still gouging on the next sale, and the one after that, for as long
+        /// as the player leaves the slider there. A day-long window keeps the warning a periodic
+        /// reminder for as long as it stays true, rather than repeating on every single sale in a
+        /// busy rush or, at the other extreme, ever firing only once.</summary>
+        private const int GougeMessageCooldownTicks = 60000;
 
         /// <summary>Everyone standing at this counter, in the order they got here. Index 0 is being
         /// served; the rest are waiting their turn.
@@ -94,6 +126,20 @@ namespace OldWestTown.Shops
         public int walkoutsToday;
         public int disturbancesToday;
         public int lifetimeDisturbances;
+
+        // Gambling-only, but kept here rather than on a bespoke type — the same reasoning
+        // disturbancesToday already follows for every other kind-agnostic counter.
+        public int shortfallsToday;
+        public int lifetimeShortfalls;
+        public int payoutsToday;
+        public int lifetimePayouts;
+
+        // Any counter can be robbed, unlike the gambling-only figures above — a stickup doesn't
+        // care what a business sells, only what's sitting in its till.
+        public int robberiesToday;
+        public int lifetimeRobberies;
+        public int stolenToday;
+        public int lifetimeStolen;
 
         private List<Thing> cachedStock = new List<Thing>();
 
@@ -130,6 +176,25 @@ namespace OldWestTown.Shops
                 return markup;
             }
             set => markup = Mathf.Clamp(value, MarkupRange.min, MarkupRange.max);
+        }
+
+        /// <summary>The house's average take, as a fraction of every silver wagered — Markup's
+        /// twin dial for a business whose services include a wager. Structurally identical
+        /// getter/setter to Markup on purpose: same lazy-init-from-kind-default, same
+        /// clamp-to-kind-range shape, so this dial costs nothing new to maintain. Inert for
+        /// every kind but the gambling hall.</summary>
+        public float HouseEdge
+        {
+            get
+            {
+                if (houseEdge < 0f) houseEdge = Kind?.defaultHouseEdge ?? 0.15f;
+                return houseEdge;
+            }
+            set
+            {
+                FloatRange range = Kind?.houseEdgeRange ?? new FloatRange(0f, 0.5f);
+                houseEdge = Mathf.Clamp(value, range.min, range.max);
+            }
         }
 
         public ThingFilter StockFilter
@@ -365,6 +430,30 @@ namespace OldWestTown.Shops
             }
         }
 
+        /// <summary>The service-side equivalent of StockValue, for town appeal. Only counts
+        /// non-stock-backed services (Haircut) — a stock-backed one (Drink, Meal) is already
+        /// reflected in StockValue via the item it would consume, and double-counting it here would
+        /// inflate appeal from the same physical stack twice.</summary>
+        public int ServiceValue
+        {
+            get
+            {
+                int total = 0;
+                foreach (ServiceDef sd in AvailableServices)
+                {
+                    if (sd.worker.ConsumesStock) continue;
+                    total += ShopPricing.PriceForService(this, sd);
+                }
+                return total;
+            }
+        }
+
+        /// <summary>True if this business offers a wager specifically — gates the House Edge
+        /// gizmo, the shortfall/payout ledger lines, and the Collect-takings description swap,
+        /// the same way Kind.services.Any(... is ServiceWorker_Lodging) already gates the
+        /// Rooms line for a hotel.</summary>
+        public bool HasWager => Kind != null && Kind.services.Any(sd => sd.worker is ServiceWorker_Wager);
+
         public void ResetStockFilterToDefault()
         {
             stockFilter = new ThingFilter();
@@ -532,6 +621,36 @@ namespace OldWestTown.Shops
             till.TryAdd(silver, true);
         }
 
+        /// <summary>Moves up to <paramref name="amount"/> silver out of the till and returns the
+        /// stacks taken — AddToTill in reverse, for a wager's payout. Structurally cannot
+        /// return more than the till holds: the till's own contents are the only bound on the
+        /// loop, so a payout can never draw silver that doesn't exist.</summary>
+        public List<Thing> TakeFromTill(int amount)
+        {
+            List<Thing> taken = new List<Thing>();
+            if (amount <= 0 || till == null) return taken;
+
+            // Copy first: taking from the container mutates it while we iterate — the same
+            // guard ShopTransaction.TakeSilver already uses for the customer's purse.
+            List<Thing> coins = new List<Thing>();
+            for (int i = 0; i < till.Count; i++)
+            {
+                if (till[i].def == ThingDefOf.Silver) coins.Add(till[i]);
+            }
+
+            int remaining = amount;
+            foreach (Thing coin in coins)
+            {
+                if (remaining <= 0) break;
+                int take = Mathf.Min(remaining, coin.stackCount);
+                Thing stack = till.Take(coin, take);
+                if (stack == null) continue;
+                taken.Add(stack);
+                remaining -= stack.stackCount;
+            }
+            return taken;
+        }
+
         /// <summary>Drops the till's contents at the counter for a hauler to pick up.</summary>
         public void CollectEarnings()
         {
@@ -561,6 +680,39 @@ namespace OldWestTown.Shops
             lifetimeDisturbances++;
         }
 
+        /// <summary>The house winning a hand for the customer and then not being able to pay
+        /// it out — the worst outcome the mechanic has. Counter-only here, the same shape as
+        /// RecordDisturbance; the reputation/standing math lives on
+        /// TownEconomy.RecordShortfall, matching the existing split between the two.</summary>
+        public void RecordShortfall()
+        {
+            shortfallsToday++;
+            lifetimeShortfalls++;
+        }
+
+        /// <summary>Counter-only, same reasoning as RecordShortfall. No TownEconomy-side
+        /// counterpart: unlike a shortfall, a payout is money leaving the till exactly as
+        /// intended, not a failure, so it has no town-wide reputation consequence of its own.</summary>
+        public void RecordPayout(int amount)
+        {
+            payoutsToday += amount;
+            lifetimePayouts += amount;
+        }
+
+        /// <summary>A stickup emptying this till. Counter-only, mirroring RecordShortfall's own
+        /// shape — no reputation or standing consequence lives here: a robbery isn't something
+        /// the shop or the town did wrong, so it costs nothing the way a shortfall or a walkout
+        /// does. Silver already taken stays gone regardless; this is bookkeeping, not a
+        /// consequence.</summary>
+        public void RecordRobbery(int amount)
+        {
+            if (amount <= 0) return;
+            robberiesToday++;
+            lifetimeRobberies++;
+            stolenToday += amount;
+            lifetimeStolen += amount;
+        }
+
         /// <summary>
         /// At most one walkout message per counter per patience-window, so a whole group
         /// giving up at once reads as one event in the log, not a flood.
@@ -574,12 +726,49 @@ namespace OldWestTown.Shops
             return true;
         }
 
+        /// <summary>At most one cheating-accusation message per counter per
+        /// AccusationMessageCooldownTicks — mirrors TryClaimWalkoutMessage's own shape, but
+        /// against a much shorter window; see AccusationMessageCooldownTicks for why.</summary>
+        public bool TryClaimAccusationMessage()
+        {
+            int now = Find.TickManager.TicksGame;
+            if (now - lastAccusationMessageTick < AccusationMessageCooldownTicks) return false;
+            lastAccusationMessageTick = now;
+            return true;
+        }
+
+        /// <summary>At most one robbery message per counter per RobberyMessageCooldownTicks —
+        /// mirrors TryClaimAccusationMessage's own shape. Collapses only a genuine same-tick
+        /// multi-raider race on one till, never the signal itself.</summary>
+        public bool TryClaimRobberyMessage()
+        {
+            int now = Find.TickManager.TicksGame;
+            if (now - lastRobberyMessageTick < RobberyMessageCooldownTicks) return false;
+            lastRobberyMessageTick = now;
+            return true;
+        }
+
+        /// <summary>At most one gouging warning per shop per GougeMessageCooldownTicks — see
+        /// that constant's own doc comment for why a full day, not the short burst-collapsing
+        /// window TryClaimAccusationMessage/TryClaimRobberyMessage use.</summary>
+        public bool TryClaimGougeMessage()
+        {
+            int now = Find.TickManager.TicksGame;
+            if (now - lastGougeMessageTick < GougeMessageCooldownTicks) return false;
+            lastGougeMessageTick = now;
+            return true;
+        }
+
         public void RollOverDay()
         {
             salesToday = 0;
             revenueToday = 0;
             walkoutsToday = 0;
             disturbancesToday = 0;
+            shortfallsToday = 0;
+            payoutsToday = 0;
+            robberiesToday = 0;
+            stolenToday = 0;
         }
 
         // ---------------------------------------------------------------- lifecycle
@@ -594,6 +783,21 @@ namespace OldWestTown.Shops
         {
             base.PostSpawnSetup(respawningAfterLoad);
             if (stockFilter == null) ResetStockFilterToDefault();
+
+            // A freshly built table needs a bankroll before its first customer ever sits down:
+            // at default odds a win is close to a coin flip, and a win needs the payout
+            // multiple of a till that would otherwise hold nothing but this round's own ante.
+            // respawningAfterLoad excludes a reload (which would otherwise re-seed an
+            // already-played table's till every time a save loads) and, as a side effect, a
+            // pre-existing placed table from before this comp gained startingTillSilver — see
+            // docs/economy.md for that one.
+            if (!respawningAfterLoad && Props.startingTillSilver > 0)
+            {
+                Thing seed = ThingMaker.MakeThing(ThingDefOf.Silver);
+                seed.stackCount = Props.startingTillSilver;
+                AddToTill(seed);
+            }
+
             RefreshStock();
             parent.Map?.GetComponent<TownEconomy>()?.Register(this);
         }
@@ -628,6 +832,15 @@ namespace OldWestTown.Shops
             Scribe_Values.Look(ref walkoutsToday, "walkoutsToday");
             Scribe_Values.Look(ref disturbancesToday, "disturbancesToday");
             Scribe_Values.Look(ref lifetimeDisturbances, "lifetimeDisturbances");
+            Scribe_Values.Look(ref houseEdge, "houseEdge", -1f);
+            Scribe_Values.Look(ref shortfallsToday, "shortfallsToday");
+            Scribe_Values.Look(ref lifetimeShortfalls, "lifetimeShortfalls");
+            Scribe_Values.Look(ref payoutsToday, "payoutsToday");
+            Scribe_Values.Look(ref lifetimePayouts, "lifetimePayouts");
+            Scribe_Values.Look(ref robberiesToday, "robberiesToday");
+            Scribe_Values.Look(ref lifetimeRobberies, "lifetimeRobberies");
+            Scribe_Values.Look(ref stolenToday, "stolenToday");
+            Scribe_Values.Look(ref lifetimeStolen, "lifetimeStolen");
             Scribe_References.Look(ref lastShopkeeper, "lastShopkeeper");
 
             if (Scribe.mode == LoadSaveMode.PostLoadInit)
@@ -677,20 +890,43 @@ namespace OldWestTown.Shops
                 int total = ShopStock.CountBeds(this, out int vacant);
                 sb.AppendLine("OWT_RoomsLine".Translate(vacant, total));
             }
-            if (Kind != null && Kind.services.Any(sd => sd.worker.RowdinessPerUse > 0f))
+            if (Kind != null && Kind.services.Any(sd => sd.worker.CanCauseTrouble))
             {
                 sb.AppendLine("OWT_DisturbanceLine".Translate(disturbancesToday));
             }
             sb.AppendLine("OWT_MarkupLine".Translate(Markup.ToStringPercent()));
-            sb.Append("OWT_TillLine".Translate(((float)TillSilver).ToStringMoney(), ((float)revenueToday).ToStringMoney()));
+            if (HasWager)
+            {
+                sb.AppendLine("OWT_HouseEdgeLine".Translate(HouseEdge.ToStringPercent()));
+            }
+            sb.AppendLine("OWT_TillLine".Translate(((float)TillSilver).ToStringMoney(), ((float)revenueToday).ToStringMoney()));
+            if (HasWager)
+            {
+                sb.AppendLine("OWT_PayoutLine".Translate(((float)payoutsToday).ToStringMoney()));
+                sb.AppendLine("OWT_ShortfallLine".Translate(shortfallsToday));
+            }
+            if (lifetimeStolen > 0)
+            {
+                sb.AppendLine("OWT_RobberyLine".Translate(((float)lifetimeStolen).ToStringMoney(), lifetimeRobberies));
+            }
 
             TownEconomy econ = parent.Map?.GetComponent<TownEconomy>();
             if (econ != null)
             {
-                sb.AppendLine();
                 sb.Append("OWT_TownLine".Translate(econ.Appeal.ToString("0.0"), econ.Reputation.ToStringPercent()));
+                // RegionalShare only collapses to exactly 1f once MarketPull is non-positive --
+                // Appeal literally zero, not merely under the threshold that gates arrivals at
+                // all -- so it can't carry "does this town qualify to compete yet" on its own.
+                // Gate on that threshold explicitly, mirroring CheckRegionalLeadChange's own
+                // guard, so a brand-new shop stays silent about regional trade the way the
+                // ledger's comment below already promises the inspect line does.
+                if (econ.Appeal >= TownEconomy.MinAppealForCustomers && econ.RegionalShare < 1f)
+                {
+                    sb.AppendLine();
+                    sb.Append("OWT_RegionalShareLine".Translate(econ.RegionalShare.ToStringPercent()));
+                }
             }
-            return sb.ToString();
+            return sb.ToString().TrimEndNewlines();
         }
 
         public override IEnumerable<Gizmo> CompGetGizmosExtra()
@@ -706,12 +942,38 @@ namespace OldWestTown.Shops
                 toggleAction = () => open = !open
             };
 
+            if (HasWager)
+            {
+                // Markup has its own dial on the Stock tab (ITab_ShopStock) now, not a gizmo — but
+                // that tab only ever grew a Markup slider, not a HouseEdge one, so HouseEdge keeps
+                // its dial here as a gizmo: same Command_Action/Dialog_Slider shape Markup's used
+                // to, same icon (there is no dedicated one, and "the markup slider's twin" is
+                // exactly what this is), just pointed at HouseEdge and its own kind-configured
+                // range instead.
+                yield return new Command_Action
+                {
+                    defaultLabel = "OWT_CmdHouseEdge".Translate(),
+                    defaultDesc = "OWT_CmdHouseEdgeDesc".Translate(),
+                    icon = TexCommand.DesirePower,
+                    action = () =>
+                    {
+                        FloatRange range = Kind?.houseEdgeRange ?? new FloatRange(0f, 0.5f);
+                        Find.WindowStack.Add(new Dialog_Slider(
+                            pct => "OWT_HouseEdgeSlider".Translate((pct / 100f).ToStringPercent()),
+                            Mathf.RoundToInt(range.min * 100f),
+                            Mathf.RoundToInt(range.max * 100f),
+                            pct => HouseEdge = pct / 100f,
+                            Mathf.RoundToInt(HouseEdge * 100f)));
+                    }
+                };
+            }
+
             if (TillSilver > 0)
             {
                 yield return new Command_Action
                 {
                     defaultLabel = "OWT_CmdCollect".Translate(((float)TillSilver).ToStringMoney()),
-                    defaultDesc = "OWT_CmdCollectDesc".Translate(),
+                    defaultDesc = HasWager ? "OWT_CmdCollectDescWager".Translate() : "OWT_CmdCollectDesc".Translate(),
                     icon = ThingDefOf.Silver.uiIcon,
                     action = CollectEarnings
                 };
@@ -867,6 +1129,35 @@ namespace OldWestTown.Shops
                 }
             }
 
+            // Gated on the setting alone, deliberately not also on econ.Appeal -- the ledger is
+            // the opt-in "show me everything" tier, so a player who opens it can usefully see
+            // what they're up against before their own town even qualifies to compete. The
+            // always-visible inspect line and every push message stay silent until it does.
+            if (OldWestTownMod.Settings.rivalTownsEnabled)
+            {
+                RivalTowns rivalsComp = Find.World?.GetComponent<RivalTowns>();
+                if (rivalsComp != null && rivalsComp.Rivals.Count > 0)
+                {
+                    sb.AppendLine();
+                    sb.AppendLine("OWT_LedgerRivalsHeader".Translate());
+                    foreach (RivalTown rival in rivalsComp.Rivals)
+                    {
+                        if (rival.def == null) continue;   // orphaned instance from a since-removed def; nothing to show
+                        if (rival.Undercutting)
+                        {
+                            sb.AppendLine("OWT_LedgerRivalLineUndercutting".Translate(
+                                rival.def.LabelCap, rival.currentAppeal.ToString("0.0")));
+                        }
+                        else
+                        {
+                            sb.AppendLine("OWT_LedgerRivalLine".Translate(
+                                rival.def.LabelCap, rival.currentAppeal.ToString("0.0")));
+                        }
+                    }
+                    sb.AppendLine("OWT_LedgerRegionalShareLine".Translate(econ.RegionalShare.ToStringPercent()));
+                }
+            }
+
             sb.AppendLine();
             sb.AppendLine("OWT_LedgerTodayLine".Translate(
                 econ.PatronsToday, econ.UnservedToday, ((float)econ.revenueToday).ToStringMoney()));
@@ -891,9 +1182,19 @@ namespace OldWestTown.Shops
                     int total = ShopStock.CountBeds(shop, out int vacant);
                     sb.AppendLine("OWT_RoomsLine".Translate(vacant, total));
                 }
-                if (shop.Kind != null && shop.Kind.services.Any(sd => sd.worker.RowdinessPerUse > 0f))
+                if (shop.Kind != null && shop.Kind.services.Any(sd => sd.worker.CanCauseTrouble))
                 {
                     sb.AppendLine("OWT_DisturbanceLine".Translate(shop.disturbancesToday));
+                }
+                if (shop.HasWager)
+                {
+                    sb.AppendLine("OWT_HouseEdgeLine".Translate(shop.HouseEdge.ToStringPercent()));
+                    sb.AppendLine("OWT_PayoutLine".Translate(((float)shop.payoutsToday).ToStringMoney()));
+                    sb.AppendLine("OWT_ShortfallLine".Translate(shop.shortfallsToday));
+                }
+                if (shop.lifetimeStolen > 0)
+                {
+                    sb.AppendLine("OWT_RobberyLine".Translate(((float)shop.lifetimeStolen).ToStringMoney(), shop.lifetimeRobberies));
                 }
                 sb.AppendLine();
             }

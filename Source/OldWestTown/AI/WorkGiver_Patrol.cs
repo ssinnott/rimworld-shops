@@ -13,7 +13,7 @@ namespace OldWestTown.AI
     /// suppression: CompRolePost.OnDuty is all any other code ever reads, the same "write a flag,
     /// let someone else read it" shape WorkGiver_ManShop already uses for staffing. Only asks for
     /// a patrol while the town actually has something worth patrolling for, so a sheriff assigned
-    /// in a town with no rowdiness-capable saloon doesn't stand around for nothing.
+    /// in a town with no rowdiness-capable business doesn't stand around for nothing.
     /// </summary>
     public class WorkGiver_Patrol : WorkGiver_Scanner
     {
@@ -32,7 +32,7 @@ namespace OldWestTown.AI
             TownEconomy econ = pawn.Map?.GetComponent<TownEconomy>();
             if (econ == null) return true;
             return !econ.OpenShops().Any(s =>
-                s.Kind != null && s.Kind.services.Any(sd => sd.worker.RowdinessPerUse > 0f));
+                s.Kind != null && s.Kind.services.Any(sd => sd.worker.CanCauseTrouble));
         }
 
         public override bool HasJobOnThing(Pawn pawn, Thing t, bool forced = false)

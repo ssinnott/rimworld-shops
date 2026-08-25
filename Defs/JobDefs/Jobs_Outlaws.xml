@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+
+  <JobDef>
+    <defName>OWT_RobTill</defName>
+    <driverClass>OldWestTown.AI.JobDriver_RobTill</driverClass>
+    <reportString>cracking the till at TargetB.</reportString>
+    <casualInterruptible>false</casualInterruptible>
+  </JobDef>
+
+</Defs>

@@ -1,3 +1,4 @@
+using OldWestTown.GoldRush;
 using OldWestTown.Lords;
 using OldWestTown.Shops;
 using RimWorld;
@@ -26,16 +27,25 @@ namespace OldWestTown.AI
         /// counter holds ceil(6000 / serveTicks), which is 34 at a shelf and 40 at a saloon bar —
         /// no line anyone will ever see — and exactly 3 at the barber's 2200-tick chair, the one
         /// counter in this mod where a queue is a real thing. Depth is therefore tuned by serve time,
-        /// in XML that already exists, and not by a new def field.</summary>
-        /// <summary>The longest wait a customer will commit to when they choose a counter. Also
-        /// read by the patron driver, whose backstop clock has to outlast any queue this permits.</summary>
+        /// in XML that already exists, and not by a new def field. Also read by the patron driver,
+        /// whose backstop clock has to outlast any queue this permits.</summary>
         internal const int MaxQueueWaitTicks = 6000;
 
         /// <summary>How much more a customer is drawn to a counter somebody is standing at. Written as
         /// 1 + this rather than 1.5 because a crowd eats into exactly this term and nothing else.</summary>
         private const float StaffDrawBonus = 0.5f;
 
-        protected override Job TryGiveJob(Pawn pawn)
+        protected override Job TryGiveJob(Pawn pawn) => PickShoppingJob(pawn);
+
+        /// <summary>
+        /// The scoring pass itself, pulled out of TryGiveJob so Compat/HospitalityBridge.cs can
+        /// force-start the identical job on an idle Hospitality guest via
+        /// Pawn_JobTracker.TryTakeOrderedJob, rather than duplicating this ~80-line scan.
+        /// <paramref name="lodgingAllowed"/> defaults to true, so the duty-driven caller above
+        /// is byte-for-byte unchanged; the bridge passes false, since Hospitality is already
+        /// housing its own guests — see docs/DESIGN.md.
+        /// </summary>
+        internal static Job PickShoppingJob(Pawn pawn, bool lodgingAllowed = true)
         {
             if (pawn.Map == null || pawn.Downed || pawn.InMentalState) return null;
 
@@ -83,7 +93,12 @@ namespace OldWestTown.AI
 
                 // Goods candidate. Anything that already failed to sell here would fail again
                 // identically, so it is excluded from the pick — the customer moves on to the
-                // next-best stack at this counter rather than writing the whole shop off.
+                // next-best stack at this counter rather than writing the whole shop off. A gold
+                // rush's demand basket (a no-op outside an active boom) is folded into the score
+                // here too, not just into ShopStock.ChoosePurchase's own item pick — otherwise a
+                // shop stocked entirely with what prospectors want would never pull a customer
+                // through the door any harder than one stocked with none of it, even though
+                // picking an item within a shop already favours it once they're inside.
                 Thing goods = ShopStock.ChoosePurchase(shop, pawn, purse, out int count,
                     record?.RefusedGoodsAt(shop.parent));
                 if (goods != null && count > 0)
@@ -97,7 +112,8 @@ namespace OldWestTown.AI
                     }
                     else
                     {
-                        float score = ShopPricing.ValueAppeal(shop) * staffBonus / distanceFactor;
+                        float score = ShopPricing.ValueAppeal(shop) * staffBonus / distanceFactor
+                                      * GoldRushUtility.DemandFactor(pawn.Map, goods);
                         if (score > bestScore)
                         {
                             bestScore = score;
@@ -114,6 +130,23 @@ namespace OldWestTown.AI
                 {
                     if (service.worker is ServiceWorker_Lodging)
                     {
+                        // A bridged Hospitality guest is never offered a room at all —
+                        // Hospitality is already housing them. See Compat/HospitalityBridge.cs
+                        // and docs/DESIGN.md for why the two mods can't end up fighting over the
+                        // same guest even without this guard.
+                        if (!lodgingAllowed) continue;
+
+                        // Unconditional, independent of lodgingAllowed above: nothing downstream
+                        // of a Lodging job (ServiceWorker_Lodging, ShopStock.ChooseVacantBed,
+                        // CompRentableBed) ever consults CustomerRecord, so this scoring loop is
+                        // the ONLY thing standing between a Lord-less pawn and a real bed claim —
+                        // and a pawn with no LordJob_ShopVisit has no CustomerRecord for
+                        // JobGiver_SleepInRentedBed to ever find later, so it would never run the
+                        // job that checks them back out. A caller who forgets lodgingAllowed:false
+                        // (the default is true) must not be able to strand a bed this way, so this
+                        // is checked regardless of that parameter, not instead of it.
+                        if (lordJob == null) continue;
+
                         // An already-housed guest is never offered a second room, and nobody is
                         // offered a *new* stay once the visit's base duration has elapsed —
                         // goods and every other service are unaffected by either guard.
@@ -148,7 +181,11 @@ namespace OldWestTown.AI
                         continue;
                     }
 
-                    float score = ShopPricing.ValueAppeal(shop) * service.worker.Desirability(pawn) * staffBonus / distanceFactor;
+                    // consumable is null for a stock-free service (Haircut, Lodging, Wager);
+                    // DemandFactor treats a null Thing as neutral by design, so this only ever
+                    // moves the score for a Drink or a Meal actually pouring an in-demand item.
+                    float score = ShopPricing.ValueAppeal(shop) * service.worker.Desirability(pawn) * staffBonus / distanceFactor
+                                  * GoldRushUtility.DemandFactor(pawn.Map, consumable);
                     if (score > bestScore)
                     {
                         bestScore = score;

@@ -203,8 +203,10 @@ namespace OldWestTown.AI
                 // stranger's visit and a neighbour's have in common, and it is the only thing that
                 // happens here. The shop and the service go in because a worker that claims
                 // something for longer than the transaction says so through its return — nothing a
-                // colonist can be ordered into does, so the return is deliberately dropped.
-                worker.ApplyEffect(Shop, Service, pawn, null);
+                // colonist can be ordered into does, so the return is deliberately dropped. Price
+                // is 0 for the same "no price" reason, and the round's rowdiness delta is dropped
+                // with it — a colonist has no CustomerRecord for it to accumulate against.
+                worker.ApplyEffect(Shop, Service, pawn, null, 0, out _);
             };
             return toil;
         }

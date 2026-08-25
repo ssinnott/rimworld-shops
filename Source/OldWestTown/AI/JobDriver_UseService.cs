@@ -91,8 +91,8 @@ namespace OldWestTown.AI
                     return;
                 }
 
-                ShopTransaction.Result result =
-                    ShopTransaction.TryServe(shop, pawn, service, consumed, out int price, out Thing claimed);
+                ShopTransaction.Result result = ShopTransaction.TryServe(
+                    shop, pawn, service, consumed, out int price, out Thing claimed, out float roundRowdiness);
 
                 if (result != ShopTransaction.Result.Sold)
                 {
@@ -111,7 +111,10 @@ namespace OldWestTown.AI
                     if (claimed is Building_Bed bed) record.rentedBed = bed;
                 }
 
-                TroubleUtility.Notify_ServiceRound(pawn, shop, service.worker.RowdinessPerUse);
+                // Outcome-dependent for a wager (a win adds none, a loss adds RowdinessPerUse-
+                // shaped severity of its own) and identical to the old RowdinessPerUse read for
+                // every other service, since their ApplyEffect now just echoes it straight back.
+                TroubleUtility.Notify_ServiceRound(pawn, shop, roundRowdiness);
             };
             return toil;
         }

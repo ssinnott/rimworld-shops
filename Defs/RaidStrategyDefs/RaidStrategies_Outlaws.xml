@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+
+  <!-- The strategy IncidentWorker_Stickup force-assigns (parms.raidStrategy) for every stickup
+       it fires — see IncidentWorker_Stickup.ResolveRaidStrategy, which sets this directly and
+       never rolls a weighted pick over it. The curves below are set defensively flat/neutral
+       rather than left to their own defaults, and RaidStrategyWorker_Stickup.CanUseWith
+       additionally returns false — belt and suspenders against an unrelated ordinary raid ever
+       randomly selecting a non-combat strategy that only makes sense for this mod's own forced
+       firing. -->
+  <RaidStrategyDef>
+    <defName>OWT_StickupStrategy</defName>
+    <label>stickup</label>
+    <workerClass>OldWestTown.Incidents.RaidStrategyWorker_Stickup</workerClass>
+    <arriveModes>
+      <li>EdgeWalkIn</li>
+    </arriveModes>
+    <!-- Inert for our own firing (ResolveRaidArriveMode/ResolveRaidStrategy force both directly)
+         — flat at zero purely so an unrelated ordinary raid could never pick this strategy on
+         its own either. -->
+    <selectionWeightPerPointsCurve>
+      <points>
+        <li>(0, 0)</li>
+        <li>(10000, 0)</li>
+      </points>
+    </selectionWeightPerPointsCurve>
+    <!-- IncidentWorker_Stickup.ResolveRaidPoints already sets parms.points directly, scaled off
+         silver at risk rather than colony wealth — neutral (x1) so nothing here rescales it a
+         second time. -->
+    <pointsFactorCurve>
+      <points>
+        <li>(0, 1)</li>
+        <li>(10000, 1)</li>
+      </points>
+    </pointsFactorCurve>
+  </RaidStrategyDef>
+
+</Defs>

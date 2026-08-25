@@ -3,6 +3,7 @@ using RimWorld;
 using UnityEngine;
 using Verse;
 using Verse.AI;
+using OldWestTown.GoldRush;
 
 namespace OldWestTown.Shops
 {
@@ -116,8 +117,12 @@ namespace OldWestTown.Shops
                 if (!customer.CanReach(t, PathEndMode.ClosestTouch, Danger.Deadly)) continue;
 
                 // Prefer things that are worth the walk, then break ties randomly so a queue of
-                // customers doesn't all converge on the single most expensive item.
-                float score = ShopPricing.UnitValue(t) * wanted * Rand.Range(0.6f, 1.4f);
+                // customers doesn't all converge on the single most expensive item. A gold
+                // rush's demand basket rides on top of that preference (1f, a no-op, whenever
+                // no boom is active) rather than replacing it — this is what makes tools,
+                // medicine, meals and booze the shelf that actually empties during a rush.
+                float score = ShopPricing.UnitValue(t) * wanted * Rand.Range(0.6f, 1.4f)
+                              * GoldRushUtility.DemandFactor(shop.parent.Map, t);
                 if (score > bestScore)
                 {
                     bestScore = score;
@@ -176,8 +181,13 @@ namespace OldWestTown.Shops
 
                 // Same tie-break as ChoosePurchase: without it, every customer scoring this
                 // service against the same shelf snapshot picks the identical first-qualifying
-                // stack and queues for it instead of spreading across equally good ones.
-                float score = ShopPricing.UnitValue(t) * Rand.Range(0.6f, 1.4f);
+                // stack and queues for it instead of spreading across equally good ones. Same
+                // demand-basket factor too, for the same reason — a no-op for Drink/Meal today
+                // (both are unconditionally in-basket, so every candidate here gets it equally),
+                // but the honest, general version of the same rule rather than one that happens
+                // to only ever run for ChoosePurchase's own candidates.
+                float score = ShopPricing.UnitValue(t) * Rand.Range(0.6f, 1.4f)
+                              * GoldRushUtility.DemandFactor(shop.parent.Map, t);
                 if (score > bestScore)
                 {
                     bestScore = score;

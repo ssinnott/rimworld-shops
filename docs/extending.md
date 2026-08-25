@@ -44,6 +44,8 @@ pricing, appeal and ledger are all kind-agnostic.
 | `defaultStockThings` | list of `ThingDef` | empty | Individual defs switched on beyond those categories. |
 | `defaultMarkup` | float | 1.35 | Markup a fresh counter starts at. |
 | `markupRange` | `FloatRange` | 0.5~3.0 | The band the player's price slider may move within. |
+| `defaultHouseEdge` | float | 0.15 | Markup's twin dial for a kind offering a wager: the house's average take. Inert unless the kind's `services` includes one. |
+| `houseEdgeRange` | `FloatRange` | 0.0~0.5 | The band the player's house-edge slider may move within. |
 | `appeal` | float | 1.0 | How much one open, stocked business of this kind adds to town [appeal](economy.md#appeal). |
 | `customerNoun` | string | "customer" | Reserved. Nothing in the UI reads it yet — set it if you like, but it will not show up anywhere. |
 | `customerPatienceTicks` | int | 2500 | How long a customer waits at an unattended counter before [walking out](customers.md#walkouts). |
@@ -169,6 +171,7 @@ new service usually needs no new code at all — just XML pointing at one of the
 | `ServiceWorker_Ingest` | yes | Consumes one matching item off the display and resolves its effect through that item's own vanilla ingestion outcome. Filtered by `foodType` and/or `requireMeal`; scored against a `needHook` of `Food`, `Joy` or `None`. Ships parameterized twice: [drink](services.md#drink) (Liquor / Joy) and [meal](services.md#meal) (any meal / Food). |
 | `ServiceWorker_Thought` | no | Grants a thought, and refuses anyone who already carries it — so the rate limit lives on the thought's own `durationDays`, in XML. Reusable by any future stock-free service. |
 | `ServiceWorker_Haircut` | no | `ServiceWorker_Thought` plus a visible hair change, using the same helper vanilla's own automatic styling uses. |
+| `ServiceWorker_Wager` | no | Rolls a win/loss against the shop's own house edge, pays a winner straight out of the till (never more than it holds), and rolls a rowdiness/cheating-accusation outcome on a loss. The one worker whose `ApplyEffect` moves silver *out* rather than in — see [the wager](services.md#wager). |
 
 An ingest worker's `Desirability` is `Lerp(2.5, 1, need%)`: a hungry customer is likelier to
 order, but the value is **floored above zero**, so a satisfied one still occasionally will.
@@ -187,11 +190,93 @@ Write a new `ServiceWorker` subclass only when the *effect* is genuinely new. Ov
 | `ConsumesStock` | Return true if the service eats an item off the shelf. Changes pricing, appeal accounting and whether the customer fetches anything. |
 | `CanUse(Thing)` | Required if `ConsumesStock` is true — which shelf items qualify. |
 | `Desirability(Pawn)` | If demand should vary by pawn state. Return zero only when the service genuinely would do nothing for this pawn — that is the answer that takes the shop off their list and greys out the colonist order. Where it is a want that never quite goes away, floor it above zero so a satisfied customer still occasionally buys. |
-| `ApplyEffect(Pawn, Thing)` | Always. The `Thing` is null for a stock-free service. |
+| `ApplyEffect(Pawn, Thing, int, out float)` | Always. The `Thing` is null for a stock-free service; the `int` is the price already charged, so a worker whose effect depends on the stake never has to recompute it; the `out float` is how much this round should nudge the customer's rowdiness — echo back `RowdinessPerUse` unless the outcome genuinely varies, the way `ServiceWorker_Wager` does. |
 
 > Do not start a new job from inside `ApplyEffect`. It runs inside the service job's own toil,
 > and starting a second job tears the current driver down mid-toil. Apply the effect directly, as
 > `ServiceWorker_Ingest` does with `Thing.Ingested`.
+
+## Add a coach tier
+
+A rung of the [stagecoach line](economy.md#the-stagecoach-line)'s route ladder is pure data, the
+same shape as a [business kind](#add-a-business-kind). Add it to
+`Defs/CoachTierDefs/CoachTiers.xml`:
+
+```xml
+<OldWestTown.Stagecoach.CoachTierDef>
+  <defName>OWT_RouteOvernightMail</defName>
+  <label>overnight mail run</label>
+  <minAppeal>2.5</minAppeal>
+  <arrivalCeilingDays>3</arrivalCeilingDays>
+  <purseMultiplier>1.8</purseMultiplier>
+  <vipChance>0.12</vipChance>
+</OldWestTown.Stagecoach.CoachTierDef>
+```
+
+That's the whole addition — **no building change is needed**. Any [coach
+depot](buildings.md#coach-depot) already standing on a map picks up a new tier automatically once
+the town's appeal reaches it: `CoachTierUtility.CurrentTier` reads the full set of loaded tiers
+live on every check, never a fixed list baked into the depot itself.
+
+**The fields.**
+
+| Field | Type | Default | What it does |
+| --- | --- | --- | --- |
+| `minAppeal` | float | 0 | Appeal at or above which this tier can be the active one. |
+| `arrivalCeilingDays` | float | 7 | Longest gap, in days at 1.0× Customer volume, this tier lets pass between arrivals of any kind — organic or scheduled — before forcing one. |
+| `purseMultiplier` | float | 1.25 | Multiplies every ordinary customer's purse in a group this tier's ceiling forced into being. Inert for an organically-rolled group. |
+| `vipChance` | float | 0 | Chance, once this tier forces an arrival, that one pawn in that group is a VIP carrying a much larger purse. The purse multiplier itself is a flat constant shared by every tier — see the [reference tables](reference.md). |
+
+**Tuning notes.** Tiers don't have to be evenly spaced, and nothing requires exactly three of
+them — the active tier is always whichever loaded `CoachTierDef` has the highest `minAppeal` at
+or below current appeal, whatever else happens to be defined. A tier's own `arrivalCeilingDays`
+only ever adds a firing attempt where the ordinary [arrival clock](economy.md#the-arrival-clock)
+would otherwise have stayed quiet past it — see [a ceiling, not a second
+clock](economy.md#a-ceiling-not-a-second-clock) for why that structurally can't double up with,
+or land on top of, an organic arrival, however aggressively a tier gets tuned.
+
+## Add a rival town
+
+A rival town is pure data too, the same shape as a [coach tier](#add-a-coach-tier). Add it to
+`Defs/RivalTownDefs/RivalTowns.xml`:
+
+```xml
+<OldWestTown.Rivals.RivalTownDef>
+  <defName>OWT_RivalTown_Redrock</defName>
+  <label>Redrock</label>
+  <description>A dusty crossroads town that's never quite decided what it wants to be.</description>
+  <baseAppeal>0.2</baseAppeal>
+  <maxAppeal>1.6</maxAppeal>
+  <growthPerDay>0.0025</growthPerDay>
+  <undercutMTBDays>12</undercutMTBDays>
+  <undercutDurationDays>4</undercutDurationDays>
+  <undercutPriceIndex>1.4</undercutPriceIndex>
+</OldWestTown.Rivals.RivalTownDef>
+```
+
+That's the whole addition — **no code change is needed**. `RivalTowns.EnsureRivalRoster` walks
+the full set of loaded `RivalTownDef`s every time it runs — on a fresh game and on the first load
+of an existing save alike — and seeds one live `RivalTown` for any it hasn't seen before, the same
+"read the full loaded set live" idiom `CoachTierUtility.CurrentTier` already uses for route tiers.
+
+**The fields.**
+
+| Field | Type | Default | What it does |
+| --- | --- | --- | --- |
+| `baseAppeal` | float | 0.2 | Starting value — and floor — for a freshly seeded rival's live appeal. |
+| `maxAppeal` | float | 2.0 | Ceiling the rival's live appeal grows toward and never exceeds. |
+| `growthPerDay` | float | 0.003 | How much the rival's live appeal advances toward `maxAppeal` per world-day. |
+| `undercutMTBDays` | float | 14 | Mean days between this rival entering an undercutting swing, while it isn't already in one. |
+| `undercutDurationDays` | float | 4 | How many days an undercutting swing lasts once triggered. |
+| `undercutPriceIndex` | float | 1.3 | This rival's price-competitiveness number while undercutting — see [regional competition](economy.md#regional-competition). Not-undercutting is a flat, hardcoded 1.0; there's no field for the honest case. |
+
+**Tuning notes.** A rival's own appeal never declines on its own — there is no decline mechanic,
+deliberately (see [the design notes](DESIGN.md#rival-towns-an-opponent-not-a-second-town)) — so
+`maxAppeal` is the real ceiling on how much regional pull this rival can ever contribute, and
+`growthPerDay` decides how quickly a fresh save's early game turns into a genuine rivalry. A
+higher `undercutPriceIndex` or a lower `undercutMTBDays` makes a rival's price wars sting harder
+or land more often; neither number does anything at all to a player who has turned the **Rival
+towns** setting off, or dialed **Rival strength** all the way down.
 
 ## Add a new kind of business entirely
 
@@ -213,6 +298,46 @@ a bank — reuse the seam rather than routing around it:
   what stops a sale being torn up one tick from the till.
 
 The [roadmap](roadmap.md) sketches several of these.
+
+## Bridging to another mod
+
+The [Hospitality bridge](DESIGN.md#the-hospitality-bridge) (`Compat/`) is this mod's first soft
+dependency on another mod, and the pattern is worth reusing rather than reinventing if a future
+bridge needs the same shape: recognizing and lightly interacting with pawns another mod's own
+`Lord` governs, without a hard reference to that mod's assembly.
+
+- **No hard or `MayRequire`-gated reference, no compiled stub, no XML patch, no Harmony —
+  reflection only.** A reference needs a second `.csproj` and a `loadFolders.xml` this mod has
+  never shipped, for a guarantee an in-process boolean already gives for free. A stub typed
+  against recalled signatures *looks* verified when it isn't. An XML patch has nothing to patch
+  unless the other mod's own Defs genuinely need changing. Harmony is the one this mod has never
+  taken on at all — see [the design notes](DESIGN.md#the-hospitality-bridge) for why the one
+  thing it would buy here isn't worth its cost.
+- **Detect the other mod by assembly simple name, once, behind a single cached bool.** A
+  `private static readonly` field, initialized by a method that wraps the whole lookup in
+  `try/catch` and returns `null` on any failure — see `HospitalityInterop.FindHospitalityAssembly`.
+  C#'s own static-initialization guarantee gives "compute once, safely" for free; there is no
+  separate `Init()` to remember to call.
+- **Recognize the other mod's pawns structurally, never by a guessed type or member name.**
+  `HospitalityInterop.IsHospitalityGuest` never calls a member the other mod declares — it only
+  ever compares `System.Type.Assembly` against the assembly resolved above, on this mod's own
+  already-proven vanilla API (`GetLord()`, `LordJob`, `AllComps`). A rename or restructure on the
+  other side degrades this to "never matches," not a crash.
+- **Act through a generic vanilla door, gated on idle, never a duty or an interrupt.**
+  `HospitalityBridge` hands out a job with `Pawn_JobTracker.TryTakeOrderedJob` — the same
+  mechanism a player's own forced order already uses — and only when the pawn's own
+  `Pawn_MindState.IsIdle` is already true. It never touches the pawn's `Lord` or `PawnDuty`.
+  That's what keeps a bridge from becoming a second version of
+  [the one thing](architecture.md#the-one-rule) this mod's whole architecture exists to avoid —
+  two pawn loops synchronizing with each other — now against a partner whose code can't even be
+  inspected.
+- **Ship a `[DebugAction]` that dumps what detection actually saw.** This mod's first one
+  (`HospitalityInterop.LogDetectionState`) — the tool whoever eventually tests against a real
+  copy of the other mod needs to correct the guesses above, without decompiling anything blind.
+- **Say, in the wiki, exactly which facts are guesses and how confident each one is.** See
+  [the code map's known risks](architecture.md#known-risks) for the shape this took for
+  Hospitality — a bridge with no assembly to test against is only as trustworthy as its own
+  honesty about what it couldn't check.
 
 ## Before you commit
 

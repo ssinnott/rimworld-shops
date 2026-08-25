@@ -97,16 +97,90 @@
 
   <!-- Sheriff's office: assignment gizmo and inspect panel -->
   <OWT_CmdAssignSheriff>Assign sheriff</OWT_CmdAssignSheriff>
-  <OWT_CmdAssignSheriffDesc>Assign a colonist to hold this post as sheriff. While they're on duty here, saloon patrons town-wide get rowdy more slowly, and the sheriff can step in to calm a specific patron down before they cause a disturbance.</OWT_CmdAssignSheriffDesc>
+  <OWT_CmdAssignSheriffDesc>Assign a colonist to hold this post as sheriff. While they're on duty here, patrons town-wide get rowdy more slowly, and the sheriff can step in to calm a specific patron down before they cause a disturbance.</OWT_CmdAssignSheriffDesc>
   <OWT_PostAlreadyFilled>This post is already filled. Unassign its current holder first.</OWT_PostAlreadyFilled>
   <OWT_PostVacant>No sheriff assigned</OWT_PostVacant>
   <OWT_PostOnDuty>Sheriff: {0} (on duty)</OWT_PostOnDuty>
   <OWT_PostOffDuty>Sheriff: {0} (off duty)</OWT_PostOffDuty>
 
-  <!-- Saloon trouble -->
+  <!-- Trouble (saloon and gambling hall alike) -->
   <OWT_SaloonTrouble>{0} caused a scene at {1}. Word of the disturbance spreads, and they've had enough for one visit.</OWT_SaloonTrouble>
   <OWT_DisturbanceLine>Disturbances today: {0}</OWT_DisturbanceLine>
   <OWT_AlertRowdyPatrons>Rowdy patrons ({0})</OWT_AlertRowdyPatrons>
-  <OWT_AlertRowdyPatronsDesc>A patron is getting loud at a saloon. If nothing steps in, it will turn into a disturbance — losing you their custom for the rest of their visit and hurting the town's reputation. An assigned, on-duty sheriff can calm them down first.</OWT_AlertRowdyPatronsDesc>
+  <OWT_AlertRowdyPatronsDesc>A patron is getting loud. If nothing steps in, it will turn into a disturbance — losing you their custom for the rest of their visit and hurting the town's reputation. An assigned, on-duty sheriff can calm them down first.</OWT_AlertRowdyPatronsDesc>
+
+  <!-- Gambling hall -->
+  <OWT_CmdHouseEdge>Set house edge</OWT_CmdHouseEdge>
+  <OWT_CmdHouseEdgeDesc>Set how much of every wager the house expects to keep on average. A low edge keeps the table fair and patrons happy; a high one wins the house more per hand but pays out less often, and angers losers faster.</OWT_CmdHouseEdgeDesc>
+  <OWT_HouseEdgeSlider>House edge {0}</OWT_HouseEdgeSlider>
+  <OWT_HouseEdgeLine>House edge: {0}</OWT_HouseEdgeLine>
+  <OWT_ShortfallLine>Shortfalls today: {0}</OWT_ShortfallLine>
+  <OWT_PayoutLine>Payouts today: {0}</OWT_PayoutLine>
+  <OWT_CheatingAccusation>{0} accuses the dealer at {1} of cheating after a bad hand.</OWT_CheatingAccusation>
+  <OWT_HouseCantCover>{0} won big at {1}, but the house can only cover {2} of the {3} owed. The table closes its doors until someone reopens it.</OWT_HouseCantCover>
+  <OWT_CmdCollectDescWager>Empty the till onto the floor beside the counter. This till also backs every future payout — emptying it can leave the house unable to cover the next win.</OWT_CmdCollectDescWager>
+
+  <!-- Hospitality bridge -->
+  <OWT_HospitalityDetected>Hospitality detected — idle guests may wander off to shop or drink while they're here.</OWT_HospitalityDetected>
+  <OWT_HospitalityNotDetected>Hospitality not detected — nothing to bridge.</OWT_HospitalityNotDetected>
+  <OWT_SettingHospitalityEnabled>Let Hospitality guests shop</OWT_SettingHospitalityEnabled>
+  <OWT_SettingHospitalityEnabledDesc>An idle Hospitality guest may patronize an open business the same way a travelling customer does. They never rent one of your hotel rooms — Hospitality is already housing them.</OWT_SettingHospitalityEnabledDesc>
+  <OWT_SettingHospitalitySilver>Give Hospitality guests spending money</OWT_SettingHospitalitySilver>
+  <OWT_SettingHospitalitySilverDesc>Top up a Hospitality guest's purse the same way an arriving customer's is, if they aren't already carrying enough to buy anything. Turn this off to only let guests spend silver they already have.</OWT_SettingHospitalitySilverDesc>
+  <OWT_HospitalityBridgeEngaged>{0} wandered over from where they're staying and did business at {1}.</OWT_HospitalityBridgeEngaged>
+
+  <!-- Outlaws and the law: the stickup incident -->
+  <OWT_LetterStickupLabel>Stickup</OWT_LetterStickupLabel>
+  <OWT_LetterStickupText>A band from {0} is riding in on the tills, led by someone going by {1}.\n\nThey aren't here to browse. They'll head straight for whatever silver is sitting uncollected and clear out once it's gone — unless somebody gives them a reason to think twice first.</OWT_LetterStickupText>
+  <OWT_TillRobbed>{0} cracked the till at {1} and got away with {2}.</OWT_TillRobbed>
+  <OWT_StickupResisted>The stickup turns into a gunfight — the {0} are cutting their losses and running.</OWT_StickupResisted>
+  <OWT_StickupDeparted>The outlaws from {0} have cleared out of town.</OWT_StickupDeparted>
+  <OWT_AlertStickupRisk>Stickup risk ({0})</OWT_AlertStickupRisk>
+  <OWT_AlertStickupRiskDesc>Uncollected silver is piling up in your tills. The richer they get, the likelier an armed band comes to empty them. Collect your takings, or keep a sheriff on duty to slow the risk.</OWT_AlertStickupRiskDesc>
+  <OWT_RobberyLine>Stolen: {0} ({1}× robbed)</OWT_RobberyLine>
+  <OWT_SettingStickupsEnabled>Outlaw stickups</OWT_SettingStickupsEnabled>
+  <OWT_SettingStickupsEnabledDesc>Rich, uncollected tills draw armed robbers who empty them and leave unless resisted. Turn this off to remove the risk entirely.</OWT_SettingStickupsEnabledDesc>
+  <!-- Stagecoach line: scheduled arrivals, VIP passengers, route-tier announcements -->
+  <OWT_LetterCoachLabel>The coach is in</OWT_LetterCoachLabel>
+  <OWT_LetterCoachText>The stagecoach kept to its route: {0} customers from {1}, right on schedule for a {2} line.</OWT_LetterCoachText>
+  <OWT_LetterCoachVIPLabel>A VIP passenger</OWT_LetterCoachVIPLabel>
+  <OWT_LetterCoachVIPText>{0} stepped off the coach from {1} carrying considerably more silver than the rest of the party.</OWT_LetterCoachVIPText>
+  <OWT_RouteTierUpLabel>The route is upgraded</OWT_RouteTierUpLabel>
+  <OWT_RouteTierUpText>The town's name has earned it a better route: {0} is running through here now.</OWT_RouteTierUpText>
+  <OWT_RouteTierDownMessage>The route has slipped back to {0} — the town's name isn't what it was.</OWT_RouteTierDownMessage>
+  <OWT_RouteTierLostMessage>The stagecoach line has stopped running here — appeal has fallen too far to hold a route at all.</OWT_RouteTierLostMessage>
+
+  <!-- Coach depot inspect panel -->
+  <OWT_DepotTierLine>Route: {0}</OWT_DepotTierLine>
+  <OWT_DepotNextArrivalLine>Next guaranteed coach due within {0}</OWT_DepotNextArrivalLine>
+  <OWT_DepotNextTierLine>Next tier: {0} at {1} appeal (currently {2})</OWT_DepotNextTierLine>
+  <OWT_DepotMaxTierLine>Running at the top of the line.</OWT_DepotMaxTierLine>
+  <OWT_DepotNoRoute>No scheduled route yet — needs {0} appeal to start one.</OWT_DepotNoRoute>
+  <OWT_DepotNoTiers>No route tiers are defined.</OWT_DepotNoTiers>
+
+  <!-- Gold rush: a temporary map-wide boom, then bust -->
+  <OWT_LetterGoldRushLabel>Gold rush</OWT_LetterGoldRushLabel>
+  <OWT_LetterGoldRushText>Word of a strike nearby is spreading fast, and prospectors are already pouring into town. Expect roughly three times the usual custom for the next while, carrying fatter purses too — but nearly all of them are after the same handful of things: tools, medicine, meals, and a stiff drink.\n\nStock the right shelves and the boom pays for itself several times over. Push prices past what's reasonable while it lasts, though, and word travels just as fast — customers remember being gouged long after the vein runs dry.</OWT_LetterGoldRushText>
+  <OWT_GoldRushBustBegins>The vein is drying up. Prospectors are thinning out, and the ones still buying expect ordinary prices again.</OWT_GoldRushBustBegins>
+  <OWT_GoldRushBoomStatus>Prospectors are pouring in, chasing tools, medicine, meals and drink above everything else on the shelf. {0} days left before the vein starts to dry up.</OWT_GoldRushBoomStatus>
+  <OWT_GoldRushBustStatus>The rush has moved on, and custom has slowed to a trickle. It picks back up once the town's reputation climbs to {1} — it's {0} now.</OWT_GoldRushBustStatus>
+  <OWT_GoldRushGougeWarning>{0} is gouging the rush, and word is getting around. It's costing the town's good name.</OWT_GoldRushGougeWarning>
+  <OWT_LetterGoldRushRecoveredLabel>The rush is behind you</OWT_LetterGoldRushRecoveredLabel>
+  <OWT_LetterGoldRushRecoveredText>The town's name has recovered from the rush. Trade is back to its ordinary pace.</OWT_LetterGoldRushRecoveredText>
+  <OWT_SettingGoldRushEnabled>Gold rush events</OWT_SettingGoldRushEnabled>
+  <OWT_SettingGoldRushEnabledDesc>A nearby strike floods the town with prospectors for a season, then leaves trade quiet until the town's name recovers. Turn this off to remove the event entirely.</OWT_SettingGoldRushEnabledDesc>
+  <!-- Rival towns: regional competition -->
+  <OWT_RegionalShareLine>Regional trade: {0}</OWT_RegionalShareLine>
+  <OWT_LedgerRivalsHeader>Regional competition:</OWT_LedgerRivalsHeader>
+  <OWT_LedgerRivalLine>  {0} — appeal {1}</OWT_LedgerRivalLine>
+  <OWT_LedgerRivalLineUndercutting>  {0} — appeal {1} (undercutting prices right now)</OWT_LedgerRivalLineUndercutting>
+  <OWT_LedgerRegionalShareLine>Your share of regional trade: {0}</OWT_LedgerRegionalShareLine>
+  <OWT_RivalUndercutStartMessage>{0} has slashed its prices to pull trade your way.</OWT_RivalUndercutStartMessage>
+  <OWT_RivalUndercutEndMessage>{0}'s price war has ended; their prices are back to normal.</OWT_RivalUndercutEndMessage>
+  <OWT_RegionalLeadGainedMessage>Your town is now the region's biggest draw.</OWT_RegionalLeadGainedMessage>
+  <OWT_RegionalLeadLostMessage>A rival town has pulled ahead of you in regional trade.</OWT_RegionalLeadLostMessage>
+  <OWT_SettingRivalTownsEnabled>Rival towns</OWT_SettingRivalTownsEnabled>
+  <OWT_SettingRivalTownsEnabledDesc>One or two NPC towns compete for the same regional trade — your share of it slows your own arrival clock.</OWT_SettingRivalTownsEnabledDesc>
+  <OWT_SettingRivalStrength>Rival strength ({0})</OWT_SettingRivalStrength>
 
 </LanguageData>

@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Defs>
 
-  <!-- Ticks up on every round of drinks a saloon serves — see ServiceWorker_Ingest.rowdinessPerServing
-       and TroubleUtility.Notify_ServiceRound — and decays on its own via vanilla's own
+  <!-- Ticks up on every round of drinks a saloon serves (ServiceWorker_Ingest.rowdinessPerServing)
+       and every hand lost at a gambling hall's table (ServiceWorker_Wager) — both through
+       TroubleUtility.Notify_ServiceRound — and decays on its own via vanilla's own
        HediffCompProperties_SeverityPerDay: no custom HediffComp needed anywhere in this. Crossing
        the top stage fires a scripted disturbance and resets Severity to 0 in the same call, so
        that stage is never observable from a WorkGiver scan; the sheriff's reactive job targets
@@ -10,7 +11,7 @@
   <HediffDef>
     <defName>OWT_Rowdy</defName>
     <label>rowdy</label>
-    <description>Getting louder, looser with their money, and a lot less patient. A saloon left to its own devices makes its patrons like this; an on-duty sheriff, or a skilled barkeep, slows it down.</description>
+    <description>Getting louder, looser with their money, and a lot less patient. A saloon or a gambling hall left to its own devices makes its patrons like this; an on-duty sheriff, or a skilled shopkeeper, slows it down.</description>
     <hediffClass>HediffWithComps</hediffClass>
     <isBad>true</isBad>
     <!-- Without this, HediffDef's own default (0.5) applies instead: every freshly-created

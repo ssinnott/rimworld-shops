@@ -9,4 +9,20 @@
     <researchViewX>1.0</researchViewX>
     <researchViewY>4.4</researchViewY>
   </ResearchProjectDef>
+
+  <!-- The mod's first research-tree branch: putting a whole town on a scheduled route is a
+       bigger commitment than one more counter, and it needs a town already worth a coach
+       line stopping for. -->
+  <ResearchProjectDef>
+    <defName>OWT_StagecoachLine</defName>
+    <label>stagecoach line</label>
+    <description>A standing arrangement with a coach line that already runs this stretch of road — someone else's horses, someone else's schedule, and a promise that a big-spending group won't miss the town for long. Nobody signs a stagecoach contract with a town that has nothing worth stopping for.</description>
+    <baseCost>800</baseCost>
+    <techLevel>Medieval</techLevel>
+    <prerequisites>
+      <li>OWT_FrontierCommerce</li>
+    </prerequisites>
+    <researchViewX>2.2</researchViewX>
+    <researchViewY>4.4</researchViewY>
+  </ResearchProjectDef>
 </Defs>

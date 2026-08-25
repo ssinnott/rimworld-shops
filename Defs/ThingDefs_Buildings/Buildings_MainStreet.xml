@@ -95,34 +95,10 @@
     <uiIconPath>Things/Building/MainStreet/Gallows_north</uiIconPath>
   </ThingDef>
 
-  <ThingDef ParentName="OWT_StreetFurnitureBase">
-    <defName>OWT_FaroTable</defName>
-    <label>faro table</label>
-    <description>Green baize, a dealing box, and a case-keeper's abacus. Off-duty hands and passing strangers alike will drift over to it when there's nothing more pressing to do — though for now the cards never actually change hands for money. Yet.</description>
-    <size>(2,1)</size>
-    <fillPercent>0.4</fillPercent>
-    <statBases>
-      <MaxHitPoints>140</MaxHitPoints>
-      <WorkToBuild>900</WorkToBuild>
-      <Flammability>1.0</Flammability>
-      <Beauty>7</Beauty>
-    </statBases>
-    <costStuffCount>70</costStuffCount>
-    <graphicData>
-      <texPath>Things/Building/MainStreet/FaroTable</texPath>
-      <graphicClass>Graphic_Multi</graphicClass>
-      <drawSize>(2,1)</drawSize>
-    </graphicData>
-    <uiIconPath>Things/Building/MainStreet/FaroTable_north</uiIconPath>
-    <!-- Vanilla's own idle-gathering comp: an idle colonist will drift over on their own, the
-         same free tie-in a gather spot gives any recreational furniture. No wager, no payout —
-         that is the reserved Gambling Hall (see docs/DESIGN.md's "Beyond the staged plan"). -->
-    <comps>
-      <li Class="CompProperties">
-        <compClass>RimWorld.CompGatherSpot</compClass>
-      </li>
-    </comps>
-  </ThingDef>
+  <!-- OWT_FaroTable used to live here, purely decorative (vanilla's own CompGatherSpot, no
+       wager, no payout). It has been promoted into a real business — see
+       Buildings_Commerce.xml — rather than duplicated, so there is exactly one faro table in
+       the build menu, not two confusingly similar ones. -->
 
   <!-- A reskin of vanilla's own door, not street furniture — everything not listed below
        (thingClass, statBases, passability, rotatable, size, ...) is inherited unchanged. -->

@@ -3,8 +3,9 @@ title: Roadmap
 summary: What is built, what is next, and the larger directions that build on top of it.
 ---
 
-The plan is staged so each step is playable on its own. Stages 1 through 6 are shipped; stage 7
-is designed, not built, and is the only staged item left.
+The plan is staged so each step is playable on its own. All seven stages are shipped, and so is
+every thematic expansion below — the gambling hall, outlaws and the law, the stagecoach line, the
+gold rush, and rival towns.
 
 For the reasoning behind the shipped stages, see the [design notes](DESIGN.md).
 
@@ -59,51 +60,131 @@ batwing doors, a faro table and a gallows — mostly content rather than code, d
 that steps 1–5 already made *function*. The one exception is the **false front**: standing near a
 shop, it gives that shop's prices a small, capped edge in how appealing they look to a passing
 customer — enough to win a close call between two similarly-priced rivals, never enough to sell a
-shop that's genuinely overpriced. The faro table deliberately does *not* gamble; a real wager
-waits for the gambling hall below.
+shop that's genuinely overpriced. The faro table shipped purely decorative in this stage; the
+gambling hall below is what promotes it into a real business.
 
-**7. Hospitality bridge (optional).** An optional add-on that sends Hospitality's guests shopping
-too, so one group can both lodge and spend.
+**7. Hospitality bridge — done.** Hospitality is not installed anywhere this mod has ever been
+built or tested, so this stage is narrower than "guests shop too" might suggest, and honest about
+where its edges are. Roughly every six in-game minutes, on a map where Hospitality is actually
+running, an idle Hospitality guest — one whose own AI has already decided it has nothing better
+to do right now — may be handed a single shopping trip: buy something off a shelf, get a drink, a
+meal or a haircut. Never a room; Hospitality is already housing them, and the two mods can't end
+up fighting over the same guest, [by construction](DESIGN.md#the-hospitality-bridge). Nothing
+about a guest's stay with Hospitality — their bed, their duty, their `Lord` — is ever touched.
+Hospitality itself is recognized without ever naming one of its types: by which assembly a
+guest's governing `Lord` or any of their `ThingComp`s belongs to, a guess this mod's own sandbox
+has no way to check against a real install. If that guess is wrong, the bridge stays
+permanently and silently switched off — indistinguishable from Hospitality never having been
+there at all. See [Hospitality guests](customers.md#hospitality-guests) for what this looks like
+in play, and the [code map's known risks](architecture.md#known-risks) for the full account of
+what is, and isn't, verified here.
 
 ## Beyond the staged plan — thematic expansions
 
 Larger directions that build on the finished stages rather than slotting between them. Each is
 listed with what it reuses, roughly cheapest first.
 
-**Gambling hall.** A faro/poker table as the first business where the "transaction" is a wager
-rather than a purchase: patrons buy in, and a player-set house edge (the markup slider's twin)
-determines the expected take. Set it greedy and patrons lose fast, get angry, and reputation
-drops; set it fair and they stay all evening buying drinks. Colonist dealers work it through the
-Shopkeeping work type, with Social skill reducing cheating accusations. Mechanically it is a
-step-2 service plus a payout roll — it reuses the queueing and the till wholesale, and adds the
-first income that isn't driven by stock.
+**Gambling hall — done.** The first business where the "sale" is a wager rather than a
+purchase: a patron buys in at the [faro table](buildings.md#faro-table), and everything past that
+is a win, loss or shortfall roll, resolved entirely inside the same service seam every other
+business already uses — no new queueing, no new till primitive beyond a payout. **House edge**, a
+second slider living right next to markup, is exactly the fraction of every silver wagered the
+house keeps on average, whatever the payout or the odds behind it: set it low and a table pays out
+almost as often as it takes, keeping gamblers around all evening; set it high and it pays rarely
+but keeps far more per hand — genuinely tempting, and genuinely self-defeating, since the same
+angrier losers who fund that richer take are also the ones who stop sticking around. Losing a hand
+feeds the same rowdiness the saloon's drink already does, and an unlucky loss can additionally draw
+a Social-skill-gated cheating accusation against the dealer — the one place in the mod a dealer's
+skill visibly changes something round to round, not just a background rate. The one genuinely new
+piece of plumbing is the payout itself: a win pays straight out of the same till every sale already
+fills, hard-capped at whatever silver it actually holds, and a table that can't cover a win closes
+its doors until reopened by hand — the worst reputation and standing hit anywhere in the mod, and
+the reason a freshly built table is seeded with a bankroll of its own rather than opening with an
+empty till. The stage-6 faro table is promoted into this, not duplicated alongside it: there is
+exactly one faro table in the build menu, not two confusingly similar ones.
 
-**Outlaws and the law.** A rich town becomes a target: the more silver sitting in tills
-(already tracked per counter), the higher the chance of a *stickup* — a small raider band that
-heads for counters instead of colonists, empties tills, and leaves unless resisted.
-Counterplay is the step-4 sheriff, plus a wanted board (bounty quests on recurring outlaw
-leaders) and a jail that converts captured outlaws into silver or reputation. Turns "collect the
-takings" from a chore into a real risk-management decision. A new event and a new kind of raid,
-both built on shapes the mod already has.
+**Outlaws and the law — done.** A rich town becomes a target: the more silver sitting
+uncollected across every till, the higher the chance of a *[stickup](outlaws.md)* — a small,
+capped raider band that heads straight for counters instead of colonists, empties whatever it can
+reach, and leaves unless resisted. Sized off the silver actually at risk, not colony wealth, so a
+very rich town's stickup stays a small, focused hit rather than an ordinary raid scaled to
+everything the colony owns. An [alert](outlaws.md#how-the-risk-builds) shows the risk climbing
+well before the clock behind it is even live, so "collect the takings" stops being a chore with no
+downside to postponing it and becomes a genuine risk-management call. Counterplay is the step-4
+[sheriff](shopkeeping.md#sheriffing): being on duty roughly halves both how often a stickup
+happens and how long one lasts — still a passive presence, not a new combat job, since the sheriff
+was built to calm drinkers, not shoot outlaws. Everything past that is ordinary, unmodified
+vanilla raid and prisoner machinery: self-defense is entirely vanilla's own, a downed raider is
+capturable and ransomable exactly like any other guilty hostile, and resisting routs the crew but
+never recovers silver they've already gotten away with. Deliberately cut, the same way stage 4
+named barkeep and banker as cut rather than silently dropping them: a **wanted board** with bounty
+quests on a recurring outlaw leader (there is no persistent outlaw identity anywhere in this mod,
+and RimWorld's own quest system is a large, thinly documented surface not worth the risk for what
+it would add), and a **bespoke jail** (vanilla's own prisoner mechanics already convert a captured
+outlaw into silver, reputation, or a recruit — there was nothing left for a second system to do).
 
-**Stagecoach line.** A coach depot that puts the town on a scheduled route: guaranteed
-high-budget customers every few days, outgoing mail contracts (deliver parcels for silver),
-and the occasional VIP passenger — a quest-giver or a shopper with a 5× budget. Appeal raises the
-route's tier, from irregular freight wagons up to a daily express, giving the compounding economy
-a visible ladder of milestones on top of the quietly shortening arrival clock.
+**Stagecoach line — done.** A [coach depot](buildings.md#coach-depot) puts the town on a
+scheduled route: a guarantee, layered onto the existing arrival clock as a ceiling rather than a
+second roll, that a big-spending group won't be more than a few days apart. Appeal raises the
+route through three tiers — irregular freight wagons, a weekly coach, then a daily express —
+each with its own arrival ceiling, purse boost, and chance of a VIP passenger carrying five times
+an ordinary purse, giving the compounding economy a visible milestone ladder on top of what used
+to be a quietly shortening, invisible clock; the depot's own inspect pane always names the
+current tier and what the next one needs. Of the two other ideas this entry once named, **mail
+contracts are cut outright** — every transaction this mod already has is a stranger walking in
+and paying at the counter, and a contract that pays out later for goods committed up front has no
+pawn on either side of it for [the one architectural
+rule](DESIGN.md#the-one-decision-everything-else-follows-from) to even apply to. **The
+quest-giver framing of the VIP passenger is cut too**, keeping only the cheaper alternative this
+entry's own original wording already offered — "a shopper with a 5× budget" — since that delivers
+the payoff for zero new subsystems, where a real quest would mean taking on a large, effectively
+unverifiable API surface in a mod that has never run in a live game. See [the stagecoach
+line](economy.md#the-stagecoach-line) for how it plays, and [the design
+notes](DESIGN.md#stagecoach-line-a-ceiling-not-a-second-clock) for the reasoning and the worked
+math behind the ceiling.
 
-**Gold rush.** A map-wide *strike nearby* event that floods the town with prospectors for a
-quadrum: arrivals triple and budgets rise, but they only want a specific demand basket (tools,
-meals, booze, medicine) and they bring brawls and claim disputes. Price-gouging during the
-boom decays reputation faster; when the vein dries up, arrivals crash below baseline until
-reputation recovers. Exercises the markup slider and the breadth-over-depth appeal math
-dramatically, and gives long saves a narrative arc.
+**Gold rush — done.** A map-wide *strike nearby* [event](economy.md#gold-rush) that floods the
+town with prospectors for a quadrum: arrivals roughly triple and every purse carries an extra
+50%, but they're all chasing the same [demand basket](customers.md#the-demand-basket) — tools,
+medicine, meals and drink — worth roughly ten times as much to a customer's own scoring as
+anything outside it, steering both which shop they enter and what they buy once they're inside.
+Gouging a shop's prices past what's normal for its own kind while the boom lasts costs extra
+reputation and standing on top of the ordinary sale delta — the demand basket alone already
+makes gouging genuinely profitable, so this is what keeps it from being free money, and it's
+gated to the boom specifically, never the bust that follows. When the vein dries up, arrivals
+crash to roughly 2.5× their ordinary gap until the town's reputation clears a bar just under its
+own resting point, or a very long safety net ends things regardless — sanity-checked so that
+even a reputation crashed all the way to zero by gouging clears that bar through ordinary daily
+decay alone, comfortably inside the safety net's own window, since gouging can't happen again
+during the bust to keep undoing the recovery. One condition self-phases through both halves
+rather than chaining two, or running a second incident on its own clock — the same "a ceiling,
+not a second clock" reasoning the stagecoach line above already used, applied to a single map-
+wide `GameCondition` instead. The roadmap's other named piece, **brawls and claim disputes**, is
+folded into the trouble mechanic the saloon and gambling hall already have rather than built as a
+parallel one — a rush making both businesses busier already makes both rowdier through the
+mechanic step 4 built for exactly that, and there's no claims office for a bespoke dispute system
+to attach to. See [the design notes](DESIGN.md#gold-rush-one-condition-not-two-clocks) for the
+full reasoning and the worked math.
 
-**Rival towns.** One or two NPC towns as world-map neighbours with their own abstract appeal
-score. Customer groups *choose* between towns — your share of regional traffic is your appeal
-relative to theirs, so the arrival clock has an opponent. Rivals undercut prices, poach your
-best shopkeeper with a job-offer event, or send saboteurs; out-compete one long enough and it
-becomes a ghost town you can salvage. The most ambitious of the five, since it adds state to the world map,
-but the one that most directly deepens the pricing-and-appeal loop — it gives your town's appeal
-something to be measured against, and makes pricing genuinely competitive rather than
-solitaire.
+**Rival towns — done.** One or two NPC towns sit on the wider map with an abstract appeal of
+their own, and your share of regional trade is now your own appeal *relative to theirs* — priced,
+not just counted, since a rival's own competitiveness folds in the identical price-appeal score a
+customer already judges your shops by. That share stretches your arrival clock, provably bounded
+to never more than 60% slower and never faster, for any rival configuration a player or a modder
+could produce. A rival isn't a static number, either: it occasionally undercuts prices for a
+several-day stretch, a named, messaged event rather than an invisible drift. Both a counter's
+inspect pane and the Town ledger show a rival's own numbers and how your share compares, so the
+mechanic is never an invisible multiplier sitting on top of everything else. Of the four other
+ideas this entry once named, all are cut, each for its own reason: **staff poaching** needs
+per-pawn shopkeeping performance this codebase has never tracked, the same missing-state reason
+that already cut the wanted board from outlaws and the law; **saboteurs** would need a second,
+independent hostile-pawn mechanic — a lord graph, a duty think tree, job drivers — layered onto an
+already-ambitious world-map feature; **literal ghost-town salvage** needs a real world-tile
+settlement and caravan or loot machinery this mod has never touched, the same category of
+unproven surface mail contracts and the quest-giver VIP were already declined for; and **rival
+decline or concession** turned out to need no dedicated mechanic at all — the arrival-clock
+multiplier's own floor of exactly `1.0×`, once a town's own pull matches or exceeds every rival's
+combined, is already a real, player-caused "you've neutralized them" state. See [regional
+competition](economy.md#regional-competition) for how it plays, and [the design
+notes](DESIGN.md#rival-towns-an-opponent-not-a-second-town) for the reasoning, the worked bound,
+and the multi-colony answer.

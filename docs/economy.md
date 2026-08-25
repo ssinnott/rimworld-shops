@@ -73,14 +73,27 @@ At midnight the town averages those verdicts and moves its name toward the avera
 **fifth** of the gap, and less on a thin day, six callers counting as a full day's evidence. On a
 day when nobody came to a counter at all, it drifts **5%** back toward 0.5 instead.
 
-A [disturbance](customers.md#trouble-at-the-saloon) is charged on top, at **5%** of the town's name
-for each one, and it is charged the same night rather than as the brawl happens — an unpoliced
-saloon is the fastest way to burn through a good name.
+Two things are charged on top of that average, the same night rather than as they happen:
 
-Two things follow. Volume never enters into it: a customer who opened their purse six times is one
-satisfied customer, not six, so what moves the number is how many *people* you looked after, not
-how much they spent. And no single afternoon settles the question — a busy main street earns a
-strong name over about a week, and a bad day at one counter is one verdict among the day's callers.
+- A [disturbance](customers.md#trouble-at-the-saloon-and-the-gambling-hall) — a saloon or
+  gambling-hall brawl breaking loose — costs **5%** of the town's name, for each one that day.
+- Selling above your usual markup while a [gold rush](#gold-rush) is booming costs a share of that
+  same 5%, scaled by how hard you gouged that day — a counter charging far over the odds costs the
+  town more than one charging only a little. The gouged customer's own faction takes a matching hit
+  to its standing; see [standing with a faction](#standing-with-a-faction) below.
+
+Worse than either is a [gambling-hall shortfall](#the-till-as-a-bankroll) — the table winning a bet
+for a customer and then not being able to pay it out. That one is charged at once, not banked for
+the night: **−0.08**, the single worst reputation hit the mod has, because reneging on a paid bet is
+a sharper trust break than anything that can wait until midnight to matter.
+
+Two things follow from the nightly model. Volume never enters into it: a customer who opened their
+purse six times is one satisfied customer, not six, so what moves the number is how many *people*
+you looked after, not how much they spent. And no single afternoon settles the question — a busy
+main street earns a strong name over about a week, and a bad day at one counter is one verdict
+among the day's callers. And because reputation decays toward neutral on a day nobody trades at
+all, a town has to keep earning its name — a burst of good trade a quadrum ago doesn't hold the
+number up on its own.
 
 Reputation feeds two things:
 
@@ -102,6 +115,7 @@ sitting quietly alongside the town-wide number.
 | --- | --- |
 | A staffed sale or service | rises **sharply** |
 | A customer walks out, or a hotel guest is evicted | falls **sharply** |
+| A gambling-hall shortfall | falls **hardest of all** — twice as hard as a walkout |
 | A self-service sale | no effect — nobody chose to serve *this* customer in particular |
 | Every day | drifts back toward the town's own reputation |
 
@@ -171,6 +185,60 @@ customer either affords the drink or doesn't.
 A single shopper also can't strip a shelf: purchases are capped at a quarter of the item's stack
 limit, or one unit for anything that doesn't stack.
 
+## The till as a bankroll
+
+Every business's till only ever fills up — a customer's silver goes in, and nothing but the
+player's own **Collect takings** button ever takes it back out. A
+[gambling hall](businesses.md#gambling-hall) is the one exception: a win pays straight out of that
+same till, so for the first time in the mod, money leaves a till because a customer earned it, not
+because the player collected it.
+
+**The stake.** A hand's ante is priced exactly like a haircut — a flat base price, then the
+table's own markup and the town's reputation — and recorded as a sale the moment it's paid, win or
+lose. What happens to it afterward is a separate roll.
+
+**The odds.** [House edge](businesses.md#gambling-hall) is exactly the fraction of every silver
+wagered the house keeps on average — not an approximation; the maths behind it comes out exact
+however big a win pays. At the table's default settings, a hand is close to even odds, tipped just
+enough toward the house to give it its edge. Wind the slider up toward its greedy end and wins get
+rarer while the house's average take per hand climbs sharply — genuinely tempting, and genuinely
+self-defeating, since the same angrier losers who fund that take are also the ones who stop
+sticking around to lose more. Wind it down toward zero and the table is genuinely fair: no expected
+profit for the house at all, just variance — which means even a perfectly fair table can run cold
+and empty its own till over a long enough losing streak, not just an unfair one.
+
+**The throughput.** A hand only takes a few seconds, so a table that's never sitting idle can run
+one gambler through a dozen or so hands in a single hour. At the table's default settings that
+adds up to an expected house profit on the order of 35–40 silver an hour from that one gambler alone
+— a rate no ordinary shop can match, since nothing about a shelf sale repeats: a customer's whole
+stake for the visit is spent once, split across however many counters they visit, never handed
+over twice for the same thing. That's exactly what makes a greedy table tempting. It's also what
+makes it self-defeating: those same odds mean more hands lose than win, and a short losing streak
+is enough to tip a gambler into a
+[disturbance](customers.md#trouble-at-the-saloon-and-the-gambling-hall) well before the table
+could ever actually work through a typical gambler's whole purse — so in practice, anger closes a
+greedy table's account long before its own till does.
+
+**The payout.** A win is hard-capped at whatever silver the till actually holds: it can never go
+negative, and it can never conjure silver that was never there. If the till comes up short, the
+gambler gets whatever's actually in it, the shortfall that follows is the single worst reputation
+and standing hit anywhere in the mod — worse than a [saloon
+disturbance](customers.md#trouble-at-the-saloon-and-the-gambling-hall) — and the table **closes its
+doors** until reopened by hand, the same legible "something's wrong here" signal a business already
+gives for running out of stock to sell.
+
+**Starting capital.** A freshly built [faro table](buildings.md#faro-table) is seeded with its own
+bankroll rather than opening with an empty till, paid for once, up front, as part of what the table
+costs to build. Without it, the very first bet ever placed at a brand-new table would have a real
+chance of winning a payout the till has no way to cover — not a rare accident, close to a coin flip,
+on transaction one.
+
+**Letting it sit is a risk, too.** A till only ever fills up on its own — collecting it is still
+entirely up to you, and nothing before this forced the question. Leave enough silver sitting
+uncollected across your tills for long enough, though, and it starts drawing armed attention: see
+[outlaws and the law](outlaws.md) for how that risk builds, what it targets, and what actually
+slows it down.
+
 ## What counts as stock
 
 The sales floor is a **room**, not a zone you paint. A shop is defined by walls you already
@@ -221,6 +289,173 @@ How rich a traveller is, is a different question from how many of them come. Eac
 the *Customer wealth* setting. That reads the goods on offer and nothing else: not the town's
 breadth, not its name, not your markup. Stock a rack of rifles and you don't get more customers,
 you get customers who can afford a rifle.
+
+## The stagecoach line
+
+A **coach depot** puts the town on a scheduled route: a promise that a big-spending group won't
+be too many days apart, layered on top of everything the arrival clock above already does on its
+own. It needs its own research past Frontier commerce — see [buildings](buildings.md#coach-depot)
+— and does nothing at all unless one is actually standing on the map.
+
+### The ladder
+
+The route climbs through three tiers as appeal grows, and the depot's own inspect pane always
+shows which one is active, what the next one needs, and a rough countdown to the next guaranteed
+coach:
+
+| Tier | Needs this much appeal | Longest gap between arrivals | Extra on every scheduled purse | Chance of a VIP passenger |
+| --- | --- | --- | --- | --- |
+| Irregular freight wagons | **0.5** | **8 days** | **+25%** | — |
+| Weekly coach | **1.5** | **4 days** | **+60%** | **8%** |
+| Daily express | **3.5** | **2 days** | **double** | **20%** |
+
+Appeal decides the tier the same way it decides everything else about arrivals: climb past a
+threshold and the route visibly upgrades, with a letter naming the new tier; slip back below one
+and it visibly demotes instead, with a quieter message. Unlike the arrival clock's own quiet
+slowdown, a route change is a milestone the game actually tells you about.
+
+### A ceiling, not a second clock
+
+The guarantee doesn't run a second dice roll alongside the arrival clock above — it puts a
+ceiling on the one the town already has. Once the active tier's own longest-gap number has
+passed with no group of any kind showing up, organic or scheduled, the very next check forces
+one, through the identical event the ordinary clock already fires. The minimum gap between
+groups still applies no matter which condition caused a given group to turn up, so a scheduled
+arrival can never land on top of an organic one, or double up the town's total footfall.
+
+In practice the ceiling rarely has anything to do — the ordinary clock is already faster than it
+at any appeal a tier is active for. Where it does contribute, it's a top-up, not a flood: right
+as a town first qualifies for a tier, expect something like 10–30% more groups than the clock
+alone would have given it that day, biggest at the weekly-coach tier's own threshold; that
+uplift tapers toward the single digits the longer a town sits comfortably inside a tier, and it
+never comes close to doubling how many customers show up, at any tier, at any appeal.
+
+Scheduled groups also carry more silver — the purse boost in the table above, stacked on top of
+the appeal scaling every arrival already gets — and, from the weekly-coach tier up, occasionally
+include one passenger carrying a great deal more than the rest of the party. See [scheduled
+coach arrivals](customers.md#scheduled-coach-arrivals) for what that looks like from the
+customer's side of the counter.
+
+## Gold rush
+
+A **gold rush** is a map-wide event, not a building: a strike nearby floods the town with
+prospectors for a while, then leaves it quiet again. It runs in two phases, and the game always
+tells you which one you're in and roughly how much of it is left — a status line on the event
+itself, readable the same way you'd check the weather. A settings-menu switch (`Gold rush
+events`, on by default) turns the whole thing off if you'd rather not have it.
+
+### The boom
+
+For a quadrum (15 days) after the letter arrives:
+
+| | |
+| --- | --- |
+| Arrivals | roughly **three times** as often as [the arrival clock](#the-arrival-clock) would otherwise give the same appeal |
+| Purses | an extra **50%** on top of everything else that already scales a customer's silver |
+| What they want | tools, medicine, meals and drink, above everything else on the shelf — see [the demand basket](customers.md#the-demand-basket) |
+
+The boom doesn't replace the ordinary arrival clock or [the stagecoach guarantee](#the-stagecoach-line)
+— it speeds up the same clock the guarantee is already a ceiling on top of. A coach depot's own
+promise is completely unaffected either way: it's a floor, not something a rush multiplies
+against, so a scheduled route keeps the exact guarantee it always had, boom or bust.
+
+### Gouging the rush
+
+The demand basket above is strong enough to swing which shop a customer walks into by roughly
+ten to one, which is what makes stocking for the rush pay off — but it also means the ordinary
+"customers avoid pricey shops" pressure that [keeps prices honest](#how-price-wins-customers)
+gets badly outweighed: a shop selling what prospectors want can charge nearly anything and still
+have a line out the door. So there's a second brake, active only during the boom: sell above
+what's normal for *your kind* of business, and every gouged customer that day costs you a little
+of the town's name and their own faction's standing — nothing extra at your kind's own usual
+markup, the most at your kind's own ceiling. Like every other reputation cost, this is settled
+once at midnight rather than sale by sale — it just adds a new input to that same nightly verdict
+rather than writing reputation on the spot. A shop that keeps doing it draws a warning message
+naming it, at most once a day, so it never comes as a surprise.
+
+The temptation is genuine — gouging a well-stocked shop during a boom earns well in the short
+run, since almost nobody walks away over price while the rush is on. The reputation cost is what
+keeps that from being free money.
+
+### The bust
+
+Once the boom ends, the average gap between customer groups stretches to roughly **two and a
+half times** what [the arrival clock](#the-arrival-clock) would otherwise give the same
+appeal — a real dip below what your town's appeal alone would predict, not just a return to
+normal. That lasts until the town's reputation climbs back to a point just
+under its own resting level, or, failing that, a very long backstop (on the order of two months
+from the rush's very start) ends it regardless.
+
+That backstop is a safety net, not something meant to bite: gouging only ever happens during the
+boom above, never during the bust, so nothing during the slow period can keep pushing reputation
+back down. A town that didn't push its prices up during the boom is typically already past the
+recovery bar the moment the bust begins — there's nothing to recover from. A town that gouged
+hard enough to crash its reputation all the way to the floor still clears the bar in roughly a
+month and a half of ordinary daily drift alone, comfortably inside the backstop above, and
+sooner still with any ordinary staffed trade on top of that drift. Either way, the bust is a
+genuine slowdown, not a hole you can fall into and never climb back out of.
+
+When it ends, a message tells you so — a letter if reputation genuinely earned its way back, a
+quieter word if the backstop was what actually closed it out. Either way, arrivals return to
+whatever the ordinary arrival clock and any stagecoach guarantee already give the town on their
+own.
+## Regional competition
+
+You aren't the only trade in the region. One or two rival towns sit out on the wider map with an
+appeal of their own, and your share of who actually sets out for *your* street, rather than
+theirs, depends on how the two compare — not on your own numbers in isolation any more.
+
+```
+       your town's own appeal
+         ×  the average price-appeal score across every open, stocked shop you run
+                    =  your market pull
+
+       a rival's own appeal
+         ×  1.0, or higher while it's undercutting
+                    =  that rival's pull
+
+       your market pull  ÷  (your market pull + every rival's combined pull)
+                    =  your share of regional trade
+```
+
+The price half of your own pull is the identical score a customer already uses to [pick between
+your own shops](#how-price-wins-customers) — a shop pricing at market value scores 1.0, one
+pricing double scores about 0.5 — just averaged across every open shop you run instead of judged
+one at a time. Undercutting your own prices raises it, and your share along with it; let your
+markup drift up and a rival's flat, honest pricing starts to look better by comparison, even if
+its own appeal never changes at all.
+
+**Your share only ever slows your own arrival clock — it never speeds it up.** With no rival
+grown large enough to matter yet, or with the setting switched off, your share reads as a clean
+100% and nothing about arrivals changes. As it falls, the average gap between customer groups
+stretches — worked out, not assumed, this can never stretch things by more than **60%**, for any
+rival, any number of them, any strength setting a player dials in. A [coach depot's own
+guarantee](#the-stagecoach-line) is completely immune to it: the ceiling on how long a gap can run
+counts down exactly the way it always has, regional competition or none.
+
+### Undercutting
+
+A rival doesn't sit at one flat number forever. Every so often — on the order of a couple of
+weeks, though it varies rival to rival — one of them cuts prices hard for several days: a message
+names it when the price war starts, and another when it ends. While it's running, that rival
+pulls noticeably harder than its appeal alone would suggest — the same price-shopping logic a
+customer already applies to your own shops, just pointed outward at a competitor instead.
+
+### Who's ahead
+
+The first time your own appeal clears the threshold that lets customers set out for you at all,
+*and* a rival has grown large enough to actually compare against, the game starts watching who's
+ahead — your own market pull, or the combined pull of every rival. It stays quiet about that
+first comparison; from then on, a message tells you whenever the lead actually changes hands.
+
+Any counter's inspect pane shows your current share once there's a rival worth comparing against
+at all. The [Town ledger](#the-daily-ledger) goes further: open it, and it names every known
+rival by its own appeal and whether it's mid-price-war right now, even before your own town
+qualifies to compete — so you can see what you're up against early, not just once it's already
+costing you.
+
+Turn the whole mechanic off, or dial back how much a rival's own numbers count for, from
+**Options → Mod settings → Old West Town**.
 
 ## The daily ledger
 

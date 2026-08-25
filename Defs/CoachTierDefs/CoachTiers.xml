@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+
+  <!-- The stagecoach route ladder. Ceilings, purse multipliers and VIP chances are all
+       first-pass tuning guesses, in the same spirit as this mod's other untested constants —
+       see docs/architecture.md#known-risks. Names for the two endpoints are the roadmap's own
+       wording; "weekly coach" is the new middle rung. -->
+
+  <OldWestTown.Stagecoach.CoachTierDef>
+    <defName>OWT_RouteFreightWagons</defName>
+    <label>irregular freight wagons</label>
+    <description>A wagon comes through when it comes through — no fixed day, just a promise that one eventually will. The loosest guarantee the line offers: a big-spending group won't be more than about eight days behind whatever the ordinary arrival clock is already doing.</description>
+    <minAppeal>0.5</minAppeal>
+    <arrivalCeilingDays>8</arrivalCeilingDays>
+    <purseMultiplier>1.25</purseMultiplier>
+    <vipChance>0</vipChance>
+  </OldWestTown.Stagecoach.CoachTierDef>
+
+  <OldWestTown.Stagecoach.CoachTierDef>
+    <defName>OWT_RouteWeeklyCoach</defName>
+    <label>weekly coach</label>
+    <description>A real schedule now, even if it's chalked on a board that changes every so often. The gap between guaranteed arrivals tightens, the coach's own passengers carry noticeably more silver, and every so often one of them is worth a second look.</description>
+    <minAppeal>1.5</minAppeal>
+    <arrivalCeilingDays>4</arrivalCeilingDays>
+    <purseMultiplier>1.6</purseMultiplier>
+    <vipChance>0.08</vipChance>
+  </OldWestTown.Stagecoach.CoachTierDef>
+
+  <OldWestTown.Stagecoach.CoachTierDef>
+    <defName>OWT_RouteDailyExpress</defName>
+    <label>daily express</label>
+    <description>The top of the line: a coach through here most days, running well-heeled custom on the tightest guarantee the route offers and the best odds anywhere of a passenger worth naming in the letter.</description>
+    <minAppeal>3.5</minAppeal>
+    <arrivalCeilingDays>2</arrivalCeilingDays>
+    <purseMultiplier>2.0</purseMultiplier>
+    <vipChance>0.20</vipChance>
+  </OldWestTown.Stagecoach.CoachTierDef>
+
+</Defs>
