@@ -183,4 +183,11 @@
   <OWT_SettingRivalTownsEnabledDesc>One or two NPC towns compete for the same regional trade — your share of it slows your own arrival clock.</OWT_SettingRivalTownsEnabledDesc>
   <OWT_SettingRivalStrength>Rival strength ({0})</OWT_SettingRivalStrength>
 
+  <!-- Dev tools: opt-in telemetry logging, and the sliders behind three debug-action levers -->
+  <OWT_SettingTelemetryEnabled>Telemetry logging</OWT_SettingTelemetryEnabled>
+  <OWT_SettingTelemetryEnabledDesc>Logs one line per customer arrival, nightly settlement and stickup roll to the player log — the real numbers this mod's own tuning constants are still guesses about. Off by default; meant for testing, not ordinary play.</OWT_SettingTelemetryEnabledDesc>
+  <OWT_DevFillTillSlider>Add {0} silver to {1}'s till</OWT_DevFillTillSlider>
+  <OWT_DevPurseMultiplierSlider>Purse multiplier: {0}%</OWT_DevPurseMultiplierSlider>
+  <OWT_DevReputationSlider>Set town reputation to {0}%</OWT_DevReputationSlider>
+
 </LanguageData>

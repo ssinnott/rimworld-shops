@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using OldWestTown.DevTools;
 using OldWestTown.Roles;
 using RimWorld;
 using UnityEngine;
@@ -79,7 +80,9 @@ namespace OldWestTown.Shops
                 Mathf.Clamp01((silver - MinSilverAtRisk) / MtbCurveRange));
             if (TroubleUtility.AnySheriffOnDuty(map)) mtbDays *= SheriffOnDutyMtbFactor;
 
-            if (!Rand.MTBEventOccurs(mtbDays, 60000f, ArrivalCheckInterval)) return;
+            bool fired = Rand.MTBEventOccurs(mtbDays, 60000f, ArrivalCheckInterval);
+            Telemetry.LogStickupRoll(map, silver, mtbDays, fired);
+            if (!fired) return;
 
             // Mirrors TownEconomy.TryAttractCustomers exactly: fire through the storyteller so
             // OWT_Stickup's own minRefireDays still applies, rather than this clock forcing a

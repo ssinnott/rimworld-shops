@@ -4,6 +4,7 @@ using RimWorld;
 using RimWorld.Planet;
 using UnityEngine;
 using Verse;
+using OldWestTown.DevTools;
 using OldWestTown.GoldRush;
 using OldWestTown.Rivals;
 using OldWestTown.Stagecoach;
@@ -208,6 +209,12 @@ namespace OldWestTown.Shops
         public TownEconomy(Map map) : base(map) { }
 
         public float Reputation => Mathf.Clamp01(reputation);
+
+        /// <summary>Dev Mode lever: writes reputation directly, bypassing the nightly verdict
+        /// that ordinarily settles it. Unlocks route-tier promotion, gold-rush bust recovery and
+        /// a regional-lead flip from one slider rather than three narrow ones — see
+        /// DevTools/DebugActions.cs.</summary>
+        internal void DebugSetReputation(float pct01) => reputation = Mathf.Clamp01(pct01);
 
         /// <summary>Distinct people who did business today, or tried to and gave up.</summary>
         public int PatronsToday => patronIds.Count;
@@ -725,6 +732,20 @@ namespace OldWestTown.Shops
         /// guarantee clock reflects reality no matter which condition actually fired it.</summary>
         public void NotifyArrival() => lastArrivalTick = Find.TickManager.TicksGame;
 
+        /// <summary>Dev Mode lever: expires the guarantee clock so the very next arrival reads
+        /// <see cref="GuaranteedArrivalDue"/> as true. Relative to the current tick rather than a
+        /// flat sentinel — at the customerVolume floor of 0.25 the largest tier ceiling is
+        /// 1,920,000 ticks, and a fixed negative constant is only guaranteed sufficient once
+        /// TicksGame has already passed roughly that many ticks itself, a real gap very early in
+        /// a session that computing this relative to "now" closes at zero extra cost.</summary>
+        internal void DebugExpireArrivalClock() => lastArrivalTick = Find.TickManager.TicksGame - 999_000_000;
+
+        /// <summary>Dev Mode lever: rolls the day over on demand — the same RollOverDay a real
+        /// midnight calls. Doesn't touch lastDayRolled: the day-of-year gate in MapComponentTick
+        /// changes at the next real midnight regardless of what this writes mid-day, so there is
+        /// nothing here that could make that gate double-fire.</summary>
+        internal void DebugForceSettlement() => RollOverDay();
+
         /// <summary>
         /// Announces a change in <see cref="RouteTier"/> the moment <see cref="TryAttractCustomers"/>
         /// notices one: a promotion gets a letter, a demotion or an outright loss of the route
@@ -845,8 +866,11 @@ namespace OldWestTown.Shops
         {
             for (int i = 0; i < shops.Count; i++) shops[i]?.RollOverDay();
 
-            // Judge the day before its evidence is swept up.
+            // Judge the day before its evidence is swept up. Captured ahead of JudgeTheDay so the
+            // telemetry line below can report how far it moved, not just where it landed.
+            float reputationBefore = reputation;
             JudgeTheDay();
+            Telemetry.LogSettlement(map, PatronsToday, UnservedToday, ServiceScoreToday, reputationBefore, reputation);
 
             revenueToday = 0;
             disturbancesToday = 0;
