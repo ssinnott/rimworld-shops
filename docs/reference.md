@@ -195,7 +195,7 @@ where it lives in C# it is a `const` in the named file.
 | `AdRadius` | 7 tiles | How far a false front's bonus reaches from a shop's customer-facing side |
 | Curb-appeal bonus | +0.10 (one qualifying facade), +0.15 (two or more) | Folded into `ValueAppeal`; diminishing, capped at two |
 
-### Customers — `AI/`, `Incidents/`
+### Customers — `AI/`, `Incidents/`, `Lords/LordJob_ShopVisit.cs`
 
 | Name | Value | Where |
 | --- | --- | --- |
@@ -215,6 +215,8 @@ where it lives in C# it is a `const` in the named file.
 | Points | `clamp(appeal × 60 × volume, 40, 900)` | " |
 | Max units per purchase | `stackLimit / 4`, or 1 if unstackable | `ShopStock` |
 | Item choice tie-break | `× random(0.6, 1.4)` | " |
+| `MinUnspentSilverToReport` | 150 | `LordJob_ShopVisit` — floor below which held silver is ordinary change, not a signal |
+| `MinAffectedForVerdict` | 2 | " — floor + at-least-half-the-group test shared by the never-bought and gave-up-waiting clauses in the [departure message](customers.md#the-visit) |
 
 ### Lodging — `Shops/ServiceWorker.cs`, `AI/JobGiver_SleepInRentedBed.cs`, `AI/JobDriver_SleepInRentedBed.cs`
 
@@ -271,7 +273,8 @@ where it lives in C# it is a `const` in the named file.
 | `MinSilverAtRisk` (`StickupWatch`) | 300 | Below this much silver at risk — till and sales-floor combined — the stickup clock never rolls at all |
 | MTB curve (`StickupWatch`) | `lerp(6, 0.75, clamp01((silver - 300) / 2000))` days, ×2 with a sheriff on duty | How the average gap between attempts shortens as silver at risk climbs |
 | `ArrivalCheckInterval` (`StickupWatch`) | 600 ticks | How often the clock is consulted — same cadence as `TownEconomy`'s own arrival clock |
-| `AlertThreshold` (`Alert_StickupRisk`) | 150 | Deliberately below `MinSilverAtRisk` — the alert fires before the risk itself is even live |
+| `AlertThreshold` (`Alert_StickupRisk`) | 150 | Deliberately below `MinSilverAtRisk` — the alert fires before the risk itself is even live. Compared against each shop's till *above its own declared starting capital* (`TillSilverAboveCapital`) plus floor silver, summed per shop across the map |
+| `TillSilverAboveCapital` (`CompBusiness`) | `max(0, TillSilver − startingTillSilver)` | What `Alert_StickupRisk` treats as a shop's own actionable exposure — `StickupWatch`'s own clock is unaffected and still counts every till silver, capital included |
 | Points scaling (`IncidentWorker_Stickup.ResolveRaidPoints`) | `clamp(silver × 0.6, 80, 400)` | Crew size and gear, scaled off silver at risk (till and sales-floor combined) rather than colony wealth |
 | `baseChance` / `minRefireDays` (`OWT_Stickup`) | 2 / 1.0 | The small background trickle on top of `StickupWatch`'s own clock |
 | Duration cap (`RaidStrategyWorker_Stickup`) | 20000 ticks, 10000 with a sheriff on duty | Fixed once at raid creation; a sheriff coming on or off duty mid-raid can't retroactively change it |
@@ -327,6 +330,7 @@ themselves were left alone rather than retuned alongside the logic.
 | `MarketPull` (`TownEconomy`) | `Appeal × PriceIndex` | This town's own pull — the player-side half of `RegionalShare` |
 | `CompetingPull` (`TownEconomy`) | `RivalTowns.TotalRivalPull × max(0, rivalStrength)`; 0 if rivals disabled or no `RivalTowns` component | Every rival's combined pull, at the player's own strength setting |
 | `RegionalShare` (`TownEconomy`) | `1` if `MarketPull ≤ 0` or `CompetingPull ≤ 0`; else `MarketPull / (MarketPull + CompetingPull)` | This town's share of regional trade — feeds `TryAttractCustomers`'s `mtbDays *= Lerp(1, MaxRegionalSlowdown, 1 − RegionalShare)` |
+| `CheckRegionalLeadChange` cadence (`TownEconomy`) | Same `ArrivalCheckInterval` (600 ticks) as `CheckRouteTierChange`, inside `TryAttractCustomers` | Reads only live `MarketPull`/`CompetingPull` — never needed a day's patron evidence, so it isn't tied to the nightly settlement pass `SettleStandings` runs on |
 | `baseAppeal` / `maxAppeal` / `growthPerDay` / `undercutMTBDays` / `undercutDurationDays` / `undercutPriceIndex` (`RivalTownDef`) | see [rival town kinds](#rival-town-kinds) | One archetype of rival — pure data, per rival |
 | `Undercutting` / `PriceIndex` / `Pull` (`RivalTown`) | `undercutEndDay ≥ 0 && GenDate.DaysPassed < undercutEndDay`; `def.undercutPriceIndex` while undercutting else 1; `currentAppeal × PriceIndex` | One rival's own live, computed state |
 | `TotalRivalPull` (`RivalTowns`) | Sum of every rival's `Pull` | Deliberately settings-agnostic — `rivalStrength` is applied once, on the `TownEconomy` side, only |
@@ -362,7 +366,7 @@ otherwise.
 | Town ledger | `OWT_LedgerTitle`, `OWT_LedgerAppealLine`, `OWT_LedgerAppealBusinessesLine`, `OWT_LedgerAppealGoodsLine`, `OWT_LedgerAppealStandingLine`, `OWT_LedgerAppealMissingLine`, `OWT_LedgerPurseLine`, `OWT_LedgerReputationLine`, `OWT_LedgerTodayLine`, `OWT_LedgerServiceLine`, `OWT_LedgerQuietLine`, `OWT_LedgerLifetimeLine`, `OWT_LedgerShopLine`, `OWT_LedgerShopWalkouts`, `OWT_LedgerRegularLine`, `OWT_LedgerColdLine` |
 | Stock tab | `OWT_TabStock`, `OWT_TabStockShelves`, `OWT_TabStockEmpty`, `OWT_TabStockShelvesTip`, `OWT_MarkupSlider`, `OWT_MarkupSliderTip`, `OWT_TabStockReputation`, `OWT_TabStockServices`, `OWT_TabStockServiceFixed`, `OWT_TabStockServiceStock`, `OWT_ResetStock` |
 | Sending a colonist | `OWT_OrderService`, `OWT_OrderServiceDisabled`, `OWT_ReasonClosed`, `OWT_ReasonRecently`, `OWT_ReasonReserved`, `OWT_ReasonBusy`, `OWT_ReasonUnreachable` |
-| Events | `OWT_LetterCustomersLabel`, `OWT_LetterCustomersText`, `OWT_CustomersLeaving`, `OWT_CustomersScared`, `OWT_CustomerWalkedOut`, `OWT_CustomerWalkedOutService`, `OWT_ColonistGaveUp`, `OWT_ColonistNotReached`, `OWT_CounterBusy`, `OWT_GuestEvicted` |
+| Events | `OWT_LetterCustomersLabel`, `OWT_LetterCustomersText`, `OWT_CustomersLeaving`, `OWT_CustomersScared`, `OWT_VisitFigures`, `OWT_VisitNeverBought`, `OWT_VisitWalkouts`, `OWT_CustomerWalkedOut`, `OWT_CustomerWalkedOutService`, `OWT_ColonistGaveUp`, `OWT_ColonistNotReached`, `OWT_CounterBusy`, `OWT_GuestEvicted` |
 | Alerts | `OWT_AlertUnattended`, `OWT_AlertUnattendedDesc` |
 | Rentable bed inspect panel and gizmo | `OWT_BedVacant`, `OWT_BedOccupiedBy`, `OWT_CmdEvictGuest`, `OWT_CmdEvictGuestDesc` |
 | False front | `OWT_FalseFrontAdvertising`, `OWT_FalseFrontIdle` |
@@ -393,12 +397,12 @@ What survives a save/load, and where it lives.
 | Per-customer records | `LordJob_ShopVisit` | Saves and dies with the visiting group |
 | The line at a counter | *(not saved)* | Rebuilds within a tick of loading, from the patrons' own jobs |
 | Per-faction standing | `TownEconomy` | Sparse `Dictionary<Faction, float>`; a save with no `standings` node reads every faction as `Reputation`, exactly like the untracked case |
-| Per-customer records, including a checked-in guest's rented bed | `LordJob_ShopVisit` | Saves and dies with the visiting group |
+| Per-customer records, including a checked-in guest's rented bed and which desk sold it (`rentedBed`/`rentedFrom`) | `LordJob_ShopVisit` | Saves and dies with the visiting group |
 | Stickup crew state (faction, town center, duration, arrival tick) | `LordJob_Stickup` | Only ever created going forward — no old save can have one running |
 | Silver-at-risk total | `StickupWatch` | Not persisted at all — a live sum over `TownEconomy.Shops` on every read: each shop's till silver read directly, plus each shop's loose floor silver read from its own un-persisted, `RefreshStock`-cadence cache (`CompBusiness.cachedFloorSilver`, exactly like `cachedStock`), deduplicated across a shared sales floor the same way `TownEconomy.TakeStock` already dedupes appeal |
 | Wait/serve progress | `JobDriver_PatronizeBusiness` | So a mid-sale save resumes correctly |
 | Sleep progress (`ticksAsleep`) | `JobDriver_SleepInRentedBed` | So a mid-stay save resumes correctly |
-| Current guest, selling desk | `CompRentableBed` | References only; released if the guest is dead on load |
+| Current guest | `CompRentableBed` | Reference only; released if the guest is dead on load. Which desk sold the stay lives on the guest's own `CustomerRecord.rentedFrom` instead — see the `LordJob_ShopVisit` row above |
 | Sheriff assignment | `CompRolePost` (vanilla `CompAssignableToPawn`) | Persisted by the base class itself; `CompRolePost` adds no `ExposeData` of its own |
 | On-duty flag (`lastOnDutyTick`/`lastOnDutyPawn`) | `CompRolePost` | Deliberately **not** persisted, mirroring `CompBusiness`'s own staff flag — re-established within moments once the sheriff's patrol job re-ticks after a reload |
 | Whether the bridge has announced itself yet (`hasAnnouncedBridge`) | `HospitalityBridge` | One per map. Absent (reads `false`) on any save from before this stage — the same "a new sparse field just reads as the honest default" story `TownEconomy`'s per-faction standing already tells |

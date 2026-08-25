@@ -142,6 +142,50 @@ out and knocks off on the same idle timer as always. Neither pawn waits on the o
 Under fire none of this applies: the violence transition still ends every job after the duty swap,
 mid-serve included.
 
+### The departure report
+
+`CreateGraph()`'s pre-actions are built once, whenever the graph is (re)built — which is why the
+plain `OWT_CustomersLeaving` and `OWT_CustomersScared` strings only ever named the faction. Spend
+and held silver are only knowable at the moment the group actually leaves, so the sentence
+reporting them has to be composed inside `DoAction`, at fire time, not baked into the `Transition`
+object at graph-build time. `TransitionAction_Custom` is the vanilla primitive built for exactly
+that: no new subclass, no Harmony — "prefer XML and vanilla over code" applied one level further
+than usual, since even the mechanism here is borrowed rather than written.
+
+`AnnounceDeparture` reads four numbers off `lord.ownedPawns` and each pawn's `CustomerRecord`:
+what the group spent, what they still hold, how many bought nothing, how many gave up waiting
+somewhere. Two of `CustomerRecord`'s other fields were deliberately left out, and both exclusions
+answer the same attribution-honesty question the brief itself raised. `RefusedGoodsAt` — a
+customer's per-visit memory of what a specific counter turned them down for — traces to exactly
+one call site (`JobDriver_BuyFromShop.CompleteSale`, on a `CannotAfford` result after the price
+already passed a first check against the same purse), and that is a rare shelf-to-counter price
+race, not a general "too expensive" signal; folding it in would tell the player a pricing story the
+data doesn't actually support. `causedTrouble` is excluded for a different reason: it already has
+its own message and its own reputation hit (`OWT_SaloonTrouble`), so it is a behaviour-and-policing
+fact, not a demand signal — and since its only gameplay write site (`TroubleUtility.
+Notify_ServiceRound`, called from `JobDriver_UseService` immediately after a paid service round)
+always follows a purchase, a pawn who caused trouble already has `purchases > 0` in practice, so
+counting them as "never bought" would print something the record itself contradicts. What's left —
+`purchases == 0` and `walkouts > 0` — are the two things the record can actually prove happened to
+a specific pawn, which is the bar this report holds itself to throughout: say the number and stop
+where the cause isn't provable.
+
+The harmed exit is untouched on purpose. `Trigger_PawnHarmed` can fire minutes into a
+40,000-tick visit, and held-versus-spent at that point measures how early the interruption landed,
+not whether the shelf satisfied demand — exactly the confident-wrong-explanation the brief warns
+against, on the single most frequent departure path in a rough game. A raid that cuts a visit short
+after two sales and one that cuts it short after twenty look identical to this accounting, and only
+one of those is actually a comment on the shelves.
+
+The report also inherits [closing time](#closing-time)'s own grace, and the one gap that grace has
+always carried. The snapshot runs the instant `timeUp` fires, before `LordToil_CloseUp` spares
+whichever customers are already mid-serve — and since that grace is [per counter, not per
+town](#closing-time), `spent` can under-report by one transaction per counter still serving
+someone at that instant, not by a fixed amount. That is the same timing gap the plain
+`OWT_CustomersLeaving` line has always had; closing it would mean blocking the whole group's
+departure on however many sales are still running, which defeats the point of the grace in the
+first place.
+
 ### Why the sales floor is a room
 
 A shop is defined by walls you already built, not by a zone you have to paint. It reads

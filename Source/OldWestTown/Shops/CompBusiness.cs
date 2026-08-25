@@ -219,6 +219,18 @@ namespace OldWestTown.Shops
         /// <summary>Silver sitting in the till, waiting to be collected.</summary>
         public int TillSilver => till?.TotalStackCount ?? 0;
 
+        /// <summary>What <see cref="Alerts.Alert_StickupRisk"/> treats as this shop's own
+        /// actionable exposure: till silver above this business's own declared starting capital
+        /// (<see cref="CompProperties_Business.startingTillSilver"/>), floored at zero. Identical
+        /// to <see cref="TillSilver"/> for every ordinary shop (startingTillSilver is 0); a
+        /// gambling hall's seeded bankroll is the one case where it differs, because that silver
+        /// has to stay in the till to cover a payout and isn't something the player can safely
+        /// pull out. <see cref="StickupWatch"/>'s own risk clock is deliberately unaffected by
+        /// this property's existence — it keeps counting every till silver, capital included,
+        /// because a robber can still take it even though the player can't safely collect
+        /// it.</summary>
+        public int TillSilverAboveCapital => Mathf.Max(0, TillSilver - Props.startingTillSilver);
+
         /// <summary>Loose silver stacks on this shop's own sales floor right now — refreshed at
         /// the same cadence StockOnDisplay is (RefreshStock), including immediately after
         /// CollectEarnings moves silver out of the till and onto the floor.</summary>

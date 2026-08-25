@@ -24,11 +24,6 @@ namespace OldWestTown.Shops
     {
         private Pawn currentGuest;
 
-        /// <summary>The desk that sold this stay, kept only so an eviction message can name
-        /// the hotel. Never consulted for billing — that already happened, atomically, at
-        /// check-in (ShopTransaction.TryServe). Deliberately outlives Release() — see there.</summary>
-        private Thing deskThing;
-
         /// <summary>Mirrors CompBusiness.Staffed's own dead-shopkeeper guard: a guest who died
         /// mid-stay (of anything — old age, a stray shot from a raid) doesn't hold the room
         /// hostage forever.</summary>
@@ -38,23 +33,14 @@ namespace OldWestTown.Shops
 
         public bool IsRentedBy(Pawn p) => !Vacant && currentGuest == p;
 
-        public CompBusiness Desk => deskThing?.TryGetComp<CompBusiness>();
-
-        public void Claim(Pawn guest, CompBusiness desk)
+        public void Claim(Pawn guest)
         {
             currentGuest = guest;
-            deskThing = desk?.parent;
         }
 
         public void Release()
         {
             currentGuest = null;
-            // deskThing deliberately survives a release: its only reader is
-            // JobDriver_SleepInRentedBed's own AddFinishAction, which runs *after* whatever
-            // triggered this Release() — the evict gizmo, PostDeSpawn on a destroyed bed — has
-            // already fired. Clearing it here would erase the one piece of information that
-            // cleanup needs before it ever gets to read it. The next Claim() overwrites it
-            // regardless, so nothing lingers stale for long.
         }
 
         public override void PostDeSpawn(Map map, DestroyMode mode)
@@ -93,7 +79,6 @@ namespace OldWestTown.Shops
         {
             base.PostExposeData();
             Scribe_References.Look(ref currentGuest, "currentGuest");
-            Scribe_References.Look(ref deskThing, "deskThing");
         }
     }
 }

@@ -157,8 +157,10 @@ goes straight into its till rather than into lumber — see [the till as a
 bankroll](economy.md#the-till-as-a-bankroll).
 
 Sells one [service](services.md#wager): a hand of cards, priced and staffed exactly like any
-other counter, with one dial nobody else has — the table's own **Set house edge** button, right
-next to **Set prices**. See the [gambling hall](businesses.md#gambling-hall) for what it does.
+other counter, with one dial nobody else has — the table's own **Set house edge** button. Every
+other price dial in the mod, including this counter's own markup, lives on the Stock tab now;
+House Edge is the one exception still sitting on a gizmo, since the Stock tab never grew a slider
+for it. See the [gambling hall](businesses.md#gambling-hall) for what it does.
 
 ## Hotel bed
 

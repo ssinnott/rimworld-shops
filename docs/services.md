@@ -100,9 +100,12 @@ once they're up.
 **Eviction.** A booking can end before the guest ever wakes rested: someone deconstructs the bed,
 a colonist climbs into it, or you use the bed's own **Evict guest** button. However it happens,
 the guest loses the room they already paid for — **no refund** — and it costs the town
-[reputation](economy.md#reputation) exactly like any other walkout. A whole customer group won't
-leave town while any of its members is still checked in, so an evicted guest is free to leave with
-the rest of the party rather than being stuck waiting on a room that no longer exists.
+[reputation](economy.md#reputation) exactly like any other [walkout](customers.md#walkouts). Like
+any other walkout, they also won't be sold another room at that hotel while its desk stays
+unattended — the same forgiveness-on-restaffing rule lifts the refusal the moment somebody's back
+behind the desk. A whole customer group won't leave town while any of its members is still checked
+in, so an evicted guest is free to leave with the rest of the party rather than being stuck waiting
+on a room that no longer exists.
 
 ### Wager
 
@@ -119,10 +122,10 @@ A hand at the [gambling hall's](businesses.md#gambling-hall) faro table.
 Wager is the odd one out among the five: every other service moves silver only one way, into the
 till. This one can send it back out again, doubled, straight into the gambler's own purse — the
 first business in the mod where the customer can come away richer than they sat down. What
-decides how often that happens is the table's own **house edge**, a second slider living right
-next to **Set prices** on the same gizmo row. See [the gambling
-hall](businesses.md#gambling-hall) and [the till as a bankroll](economy.md#the-till-as-a-bankroll)
-for exactly what it does and the numbers behind it.
+decides how often that happens is the table's own **house edge**, a second slider — the one price
+dial in the mod still living on a gizmo, rather than the Stock tab every other price control has
+moved to. See [the gambling hall](businesses.md#gambling-hall) and [the till as a
+bankroll](economy.md#the-till-as-a-bankroll) for exactly what it does and the numbers behind it.
 
 Like a round at the bar, a hand also scratches the same recreational itch that pulled the gambler
 to the table in the first place: a bored patron wants another hand more than a contented one

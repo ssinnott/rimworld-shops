@@ -108,7 +108,14 @@ namespace OldWestTown.AI
                     // The one place a Shops-layer output (what ApplyEffect claimed) crosses
                     // into Lords-layer state (whose stay this is) — already the file that
                     // depends on both, so it's the natural seam rather than a new one.
-                    if (claimed is Building_Bed bed) record.rentedBed = bed;
+                    if (claimed is Building_Bed bed)
+                    {
+                        record.rentedBed = bed;
+                        // Captured here, once, rather than read back off the bed's own claim
+                        // later — see CustomerRecord.rentedFrom's own doc comment for why
+                        // eviction billing needs this guest's own copy of "who sold it."
+                        record.rentedFrom = shop.parent;
+                    }
                 }
 
                 // Outcome-dependent for a wager (a win adds none, a loss adds RowdinessPerUse-
