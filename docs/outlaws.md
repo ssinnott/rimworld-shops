@@ -1,50 +1,59 @@
 ---
 title: Outlaws and the law
-summary: A rich, uncollected till is a target — how the risk builds, what a stickup actually does, and what a sheriff changes about it.
+summary: Silver sitting exposed anywhere — in a till, or loose on a sales floor — is a target: how the risk builds, what a stickup actually does, and what a sheriff changes about it.
 ---
 
 Every till in town only ever fills up until you empty it yourself — see [the till as a
-bankroll](economy.md#the-till-as-a-bankroll). Leave it sitting there long enough, on a good
-enough day, and somebody else notices. A **stickup** is a small, armed band that rides in for
-your tills specifically, not your colonists, empties whatever it can reach, and clears out —
-unless you make them regret it.
+bankroll](economy.md#the-till-as-a-bankroll). Leave that silver sitting there long enough, on a
+good enough day, and somebody else notices — and emptying a till onto the floor doesn't make it
+any less noticeable. A **stickup** is a small, armed band that rides in for your silver
+specifically, not your colonists — wherever it's actually sitting, in a till or loose on a sales
+floor — empties whatever it can reach, and clears out — unless you make them regret it.
 
 ## How the risk builds
 
-The town watches its own uncollected silver — every till across every business, added together,
-whether that business is open or closed. Below **300 silver** sitting uncollected, nothing is
-ever at risk at all: a modest shop or two, collected reasonably often, will rarely if ever see
-this. Above it, the risk climbs the longer that silver sits there: the average gap between
-attempts slides from around **six days** near the floor down to well under a single day once
-you're sitting on real money — somewhere north of **2,000 silver** uncollected across your
-tills.
+The town watches every silver piece sitting exposed to a robbery — what's in a till, **and**
+what's loose on any sales floor — across every business, added together, whether that business is
+open or closed. Below **300 silver** exposed this way, nothing is ever at risk at all: a modest
+shop or two, collected *and hauled off* reasonably often, will rarely if ever see this. Above it,
+the risk climbs the longer that silver stays exposed: the average gap between attempts slides
+from around **six days** near the floor down to well under a single day once you're sitting on
+real money — somewhere north of **2,000 silver** exposed across your tills and floors combined.
 
-You can see this coming before it bites. An alert appears once your tills hold **150 silver**
-combined — before the risk itself is even live at 300 — and it names exactly which counters are
-carrying the money, so you know what a collection run would actually clear. There's also a
-small, independent chance of a stickup regardless, the same background trickle every arriving
-customer group already has. Either way, a stickup won't pile onto an existing threat: if
-something else hostile is already active on your map, the clock holds off rather than adding a
-second crisis on top of the first.
+You can see this coming before it bites. An alert appears once your exposed silver totals **150**
+combined — before the risk itself is even live at 300 — and it breaks the total down counter by
+counter, till and floor separately, so you know exactly where the money actually is and what it
+would take to get it to safety. There's also a small, independent chance of a stickup regardless,
+the same background trickle every arriving customer group already has. Either way, a stickup
+won't pile onto an existing threat: if something else hostile is already active on your map, the
+clock holds off rather than adding a second crisis on top of the first.
 
-Collecting your takings resets the clock the honest way — there's nothing left to be at risk
-until it builds back up. A [gambling hall](businesses.md#gambling-hall) is worth watching in
-particular: a single well-stocked table's own starting bankroll alone is enough to clear the
-300-silver floor on its own.
+**Collecting your takings is not the same as clearing the risk.** *Collect takings* empties a
+till onto the floor beside the counter for a hauler to pick up — that's a move from one half of
+this total to the other, not a withdrawal from it. The risk only actually falls once a hauler
+carries that silver off to a stockpile somewhere. Leave it sitting on the floor uncollected —
+whether because nobody's hauling, or because there's nowhere for it to go — and it counts against
+you exactly as much as it did sitting in the till. A [gambling hall](businesses.md#gambling-hall)
+is worth watching in particular: a single well-stocked table's own starting bankroll alone is
+enough to clear the 300-silver floor on its own.
 
 ## What a stickup targets
 
-A stickup crew doesn't browse, and it doesn't care what your sign says. It goes straight for
-whichever till holds the most silver for the distance, weighing every business you've registered
-— open or closed, staffed or not. **Staffing a counter is not a deterrent.** A shopkeeper
-standing at a counter being robbed just keeps working; nothing about the robbery interrupts them,
-and nothing about their presence gives the crew any reason to look elsewhere. The only things
-that actually stop a stickup are an empty till, or somebody making them pay for trying.
+A stickup crew doesn't browse, and it doesn't care what your sign says. It weighs every till
+**and** every loose silver pile sitting on a sales floor, across every business you've registered
+— open or closed, staffed or not — and goes straight for whichever single one holds the most
+silver for the distance. A crew is exactly as willing to grab a pile off the floor as it is to
+crack a till open — the same scoring, side by side, whichever's actually worth the walk. **Staffing
+a counter is not a deterrent.** A shopkeeper standing at a counter being robbed just keeps
+working; nothing about the robbery interrupts them, and nothing about their presence gives the
+crew any reason to look elsewhere. The only things that actually stop a stickup are nothing left
+anywhere to take — every till empty and every floor clear — or somebody making them pay for
+trying.
 
 The crew itself is small and focused on purpose — sized off exactly how much silver is actually
-at risk, not off how wealthy your colony is overall. A very rich colony with a lot uncollected
-still only draws a small, capped band; it never balloons into a colony-wide assault the way an
-ordinary raid scaled to your total wealth would.
+at risk, not off how wealthy your colony is overall. A very rich colony with a lot exposed still
+only draws a small, capped band; it never balloons into a colony-wide assault the way an ordinary
+raid scaled to your total wealth would.
 
 ## What a sheriff changes
 
@@ -58,8 +67,8 @@ What an on-duty sheriff actually changes is the two things that were already the
   doubles.
 - **How long it lasts, once it starts.** A crew that isn't driven off eventually leaves on its
   own — up to roughly **eight in-game hours**, or about **four** with a sheriff on duty when the
-  crew arrives. Either way, they leave sooner than that if there's nothing left in any till to
-  take.
+  crew arrives. Either way, they leave sooner than that if there's nothing left anywhere — till
+  or floor — to take.
 
 Both are passive: nothing about having a sheriff on duty sends them running toward gunfire, and a
 stickup crew never reacts to the sheriff specifically at all. The badge lowers the odds and

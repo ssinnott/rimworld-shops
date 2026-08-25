@@ -729,6 +729,30 @@ three already degrade the same way — `TakeFromTill` re-reads the till fresh on
 can never be over-drawn or duplicated, only found emptier than a given caller expected. Adding a
 robber to that mix needed no new discipline, only `ShopTransaction.RobTill`'s own re-validate-
 immediately-before-taking check, mirroring the same rule the rest of this file already lives by.
+
+**A later correction: the clock and the till drifted apart.** `StickupWatch` was built to read
+`TillSilver`, and `CollectEarnings` was built to empty a till onto the floor for a hauler to carry
+off — each correct in isolation, and wrong together: clicking Collect moved silver from "counted
+by the clock" to "not counted", without moving it one step closer to safety. The clock reset to
+nothing, and the identical silver sat on the shop floor waiting on hauling priorities. The fix
+isn't a mechanic bolted on beside the old one; it's treating "at risk" as a fact about where
+silver is exposed rather than about which container currently holds it.
+`StickupWatch.TotalSilverAtRisk` reads a till and its shop's own floor as one quantity, deduped
+across a shared sales floor the same way `TownEconomy.TakeStock` already dedupes appeal, and
+`JobGiver_RobTill` extends its own existing scoring pass to weigh a floor pile against a till in
+one loop, rather than gaining a second, competing `JobGiver` — `OWT_StickupDuty` is a
+`ThinkNode_Priority`, which takes the first non-null job and never compares scores across
+siblings, so a second job giver would let a small, far till always beat a bigger, closer floor
+pile purely by which one happened to sit first in the XML. The thing deliberately not built
+alongside this fix is any automation of Collect. The gizmo's own description already promised a
+hauler finishes the job — "empty the till onto the floor beside the counter, where a hauler can
+pick it up" — and the bug was never that the second half of that promise was missing as a
+mechanic; vanilla hauling already does exactly that. The bug was that nothing ever checked
+whether the second half had actually happened, so the game silently treated the first half as if
+it were the whole job. Automating collection now would let one spare hauler quietly buy back, in
+code, the exact one-click loophole this pass exists to close. The honest fix teaches the promise
+the tooltip already made; it does not stand a new mechanic in front of it.
+
 ### Stagecoach line: a ceiling, not a second clock
 
 The roadmap named three things for this expansion — guaranteed high-budget arrivals, outgoing

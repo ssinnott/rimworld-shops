@@ -31,17 +31,17 @@ All under `Source/OldWestTown/`, namespace `OldWestTown`.
 | File | Type | Job |
 | --- | --- | --- |
 | `ShopKindDef.cs` | `ShopKindDef` | Data-driven [business type](businesses.md): default stock, price band, appeal, patience, services. Adding a kind is XML, not code. |
-| `CompBusiness.cs` | `CompProperties_Business`, `IBusinessPatron`, `CompBusiness` | Makes a building a business. Owns the till, filter, markup, ledger, staff flag, the staff/customer cell pair, the line waiting at the counter, and the right-click order that sends one of your own colonists to a service. The largest file in the mod, and the hub the two pawn loops meet at. |
+| `CompBusiness.cs` | `CompProperties_Business`, `IBusinessPatron`, `CompBusiness` | Makes a building a business. Owns the till, filter, markup, ledger, staff flag, the staff/customer cell pair, the line waiting at the counter, and the right-click order that sends one of your own colonists to a service. Also caches loose floor silver (`FloorSilverStacks`/`FloorSilver`) at the same cadence as its shelf stock, refreshed immediately after `CollectEarnings` moves silver onto the floor — and `CollectEarnings`'s own drop search is constrained to the shop's own sales floor (`CellOnSalesFloor`), so a cramped counter can't have it land somewhere `ShopStock` itself wouldn't count as the floor. The largest file in the mod, and the hub the two pawn loops meet at. |
 | `ServiceDef.cs` | `ServiceDef` | A [thing a business sells](services.md) that isn't a shelf item. Validates its own required fields at load. |
 | `ServiceWorker.cs` | `ServiceNeedHook`, `ServiceWorker`, `ServiceWorker_Ingest`, `ServiceWorker_Thought`, `ServiceWorker_Haircut`, `ServiceWorker_Lodging`, `ServiceWorker_Wager` | The pluggable behaviour behind a service: what it can act on, how much a customer wants it, what it does once paid for. `ServiceWorker_Lodging` is the first to widen `ApplyEffect`'s return into a `Thing` a service claims for longer than the sale itself — the [hotel bed](buildings.md#hotel-bed) it just booked. `ServiceWorker_Wager` is the first whose "sale" is a bet: `ApplyEffect` now also takes the price already paid and hands back an outcome-dependent rowdiness, both threaded through the widened `ShopTransaction.TryServe`. |
-| `ShopStock.cs` | `ShopStock` | [What's on the shelves](economy.md#what-counts-as-stock), what a given customer would buy, and which item a service can currently consume. |
+| `ShopStock.cs` | `ShopStock` | [What's on the shelves](economy.md#what-counts-as-stock), what a given customer would buy, which item a service can currently consume, and (`LooseSilverOnFloor`) how much loose silver is sitting on the floor waiting to be hauled off. |
 | `ShopPricing.cs` | `ShopPricing` | The only place a [price](economy.md#pricing) is decided, so UI, AI and transaction can't disagree. |
-| `ShopTransaction.cs` | `ShopTransaction` | The single point where silver, goods and service effects move. Re-validates everything. `PayOutFromTill` is the one place money leaves a till instead of entering it — a wager's payout, built on `CompBusiness.TakeFromTill`, which structurally can never hand back more than the till holds. |
+| `ShopTransaction.cs` | `ShopTransaction` | The single point where silver, goods and service effects move. Re-validates everything. `PayOutFromTill` is the one place money leaves a till instead of entering it — a wager's payout, built on `CompBusiness.TakeFromTill`, which structurally can never hand back more than the till holds. `GrabFloorSilver` is a stickup crew's other way in: it takes a loose floor stack directly, never through the till primitives — a floor stack was never inside a `ThingOwner` to begin with. |
 | `CompRentableBed.cs` | `CompProperties_RentableBed`, `CompRentableBed` | A [hotel bed](buildings.md#hotel-bed) a guest has paid to sleep in for one night. Purely passive shared state, mirroring `CompBusiness`'s own staff flag on purpose — the guest's own sleep job is what notices it and acts on it, never a handshake with the desk that sold the stay. |
 | `CompFalseFront.cs` | `CompProperties_FalseFront`, `CompFalseFront` | A [false front](buildings.md#false-front)'s one mechanical hook: `CurbAppealBonus` folds a small, capped bonus for a nearby dressed-up storefront into `ShopPricing.ValueAppeal`. Walks `FalseFrontRegistry` rather than the map, since `ValueAppeal` is a customer-AI hot path. Nothing here is persisted. |
 | `FalseFrontRegistry.cs` | `FalseFrontRegistry` | `MapComponent`. Live roster of spawned `CompFalseFront`s, registered the same way `TownEconomy` registers shops — so curb-appeal scoring never has to scan every Thing on the map. |
 | `TownEconomy.cs` | `TownEconomy` | `MapComponent`: business register, and the two clocks the economy hangs off — the 60-tick survey that re-reads every shop's shelves and prices the town's [appeal](economy.md#appeal), and the nightly settling of [reputation](economy.md#reputation) from the day's callers, banked through the day as per-patron flags (served, self-served, walked out, gouged) and judged once at midnight rather than written sale by sale. `RecordShortfall` is the one write that still happens immediately rather than being banked for the night — the worst single-event reputation and standing hit the mod has, a gambling hall unable to pay out a win. Also keeps, per faction, a sparse [standing](economy.md#standing-with-a-faction) dictionary settled from those same nightly verdicts, and owns the [stagecoach line](economy.md#the-stagecoach-line)'s guarantee clock — `RouteTier`, `TicksSinceLastArrival`, `GuaranteedArrivalDue`, `NotifyArrival` — an OR folded into the existing MTB roll, not a second, independent clock. `TryAttractCustomers` folds a [gold rush](economy.md#gold-rush)'s own arrival multiplier into that same roll, and `RecordGouge` banks its gouging penalty into the same nightly settlement rather than writing reputation at sale time. And [regional competition](economy.md#regional-competition) — `PriceIndex`, `MarketPull`, `CompetingPull`, `RegionalShare` — reads `Rivals/RivalTowns.cs` to stretch the same arrival clock by a provably-bounded 1.0–1.6×, never suppressing or speeding it up. |
-| `StickupWatch.cs` | `StickupWatch` | `MapComponent`: sums every registered business's `TillSilver`, open or closed, into the [stickup](outlaws.md) clock — an MTB roll that shortens as uncollected silver climbs, halved in frequency by an on-duty sheriff, firing `OWT_Stickup` through the storyteller the same way `TownEconomy` fires its own arrival incident. Read-only against `TownEconomy`; carries no persisted state of its own. |
+| `StickupWatch.cs` | `StickupWatch` | `MapComponent`: sums every registered business's `TillSilver` **and** loose floor silver (`TotalSilverAtRisk`), open or closed, into the [stickup](outlaws.md) clock — an MTB roll that shortens as silver at risk climbs, halved in frequency by an on-duty sheriff, firing `OWT_Stickup` through the storyteller the same way `TownEconomy` fires its own arrival incident. Read-only against `TownEconomy`; carries no persisted state of its own. |
 
 ### `AI/` — the pawn loops
 
@@ -60,8 +60,9 @@ All under `Source/OldWestTown/`, namespace `OldWestTown`.
 | `JobDriver_Patrol.cs` | `JobDriver_Patrol` | Stands the post and pings `CompRolePost.NotifyOnDuty` every tick, mirroring `JobDriver_ManShop`. Also polls `TroubleUtility.AnyoneWorthCalming` and breaks the patrol off early when there's someone to calm. |
 | `WorkGiver_CalmTrouble.cs` | `WorkGiver_CalmTrouble` | The reactive half: sends the assigned sheriff to one specific [rowdy patron](customers.md#trouble-at-the-saloon-and-the-gambling-hall) rather than a building. |
 | `JobDriver_CalmTrouble.cs` | `JobDriver_CalmTrouble` | Walks to the target and unilaterally zeroes their rowdiness. A no-op, not a false success, if the target's walked off mid-wait. |
-| `JobGiver_RobTill.cs` | `JobGiver_RobTill` | A [stickup](outlaws.md) raider's own scoring pass: every registered business, open or closed, by `TillSilver` against distance — no staffed bonus, no combat awareness. Runs beneath vanilla's own `JobGiver_AIFightEnemies` in the `OWT_StickupDuty` think tree, so self-defense always wins first. |
+| `JobGiver_RobTill.cs` | `JobGiver_RobTill` | A [stickup](outlaws.md) raider's own scoring pass: every registered business, open or closed, scores its till **and** every loose floor stack against distance in one pass — no staffed bonus, no combat awareness — and dispatches whichever single candidate wins. Runs beneath vanilla's own `JobGiver_AIFightEnemies` in the `OWT_StickupDuty` think tree, so self-defense always wins first. |
 | `JobDriver_RobTill.cs` | `JobDriver_RobTill` | Cracking a till: walk up, a short delay, take everything in it via `ShopTransaction.RobTill`. A plain `JobDriver`, deliberately not `IBusinessPatron` — see [boundaries worth keeping](#boundaries-worth-keeping). |
+| `JobDriver_GrabSilver.cs` | `JobDriver_GrabSilver` | Grabbing a loose floor silver stack: walk up, a shorter delay, take it via `ShopTransaction.GrabFloorSilver`. The floor-silver twin of `JobDriver_RobTill` — same shape, same reason it is deliberately not `IBusinessPatron` either. |
 
 ### `Roles/` — town roles
 
@@ -114,7 +115,7 @@ All under `Source/OldWestTown/`, namespace `OldWestTown`.
 | `Alerts/Alert_CustomersWaiting.cs` | `Alert_CustomersWaiting` | Raised while customers burn patience at an unattended business. |
 | `UI/ITab_ShopStock.cs` | `ITab_ShopStock` | The Stock tab, and the one screen where a price is set: shelf totals, the markup slider and what the services cost, above vanilla's storage-filter widget so the stock list still reads like a stockpile. |
 | `Alerts/Alert_RowdyPatrons.cs` | `Alert_RowdyPatrons` | Raised while a patron is "getting loud" and still calmable — the sheriff's real window before a disturbance fires unattended. Mirrors `Alert_CustomersWaiting`'s shape. |
-| `Alerts/Alert_StickupRisk.cs` | `Alert_StickupRisk` | Raised once a map's uncollected till total crosses a threshold below `StickupWatch.MinSilverAtRisk` itself — the [risk](outlaws.md#how-the-risk-builds) is visible climbing before the clock behind it is even live. |
+| `Alerts/Alert_StickupRisk.cs` | `Alert_StickupRisk` | Raised once a map's silver at risk — till and sales-floor combined — crosses a threshold below `StickupWatch.MinSilverAtRisk` itself — the [risk](outlaws.md#how-the-risk-builds) is visible climbing before the clock behind it is even live. Its explanation names, per shop, how much is in the till and how much is loose on the floor. |
 
 ### Root
 
@@ -473,3 +474,36 @@ anything changes hands.
   competition](economy.md#regional-competition)); whether that 60% actually *feels* like
   meaningful competition, rather than a barely-noticeable tax or an overbearing one, is exactly
   what a playtest would tell that the math alone can't.
+- **Stickup risk now following silver onto the floor (`JobGiver_RobTill`'s widened scoring pass,
+  the new `JobDriver_GrabSilver`) is new pawn AI**, the same unproven-in-a-live-game category as
+  the rest of [Outlaws and the law](outlaws.md).
+- **`StickupWatch.MinSilverAtRisk`, its MTB curve, `Alert_StickupRisk.AlertThreshold` and
+  `IncidentWorker_Stickup`'s points-scaling constant are left numerically unchanged even though
+  they now gate a wider, slower-moving quantity** — till silver plus everything loose on every
+  sales floor, rather than till silver a single click could zero. A playtest should check whether
+  a diligent-but-stockpile-less colony now trips the risk uncomfortably often; any retuning should
+  follow from that data, not from a second guess stacked on top of the first.
+- Silver already sitting collected-but-unhauled on an old save's sales floor counts toward
+  stickup risk immediately on the next load — a behavior change from before this fix, not a
+  save-format break, since nothing new is persisted (`CompBusiness.cachedFloorSilver` is derived,
+  exactly like `cachedStock`, and rebuilds itself before the player can act).
+- **`Alert_StickupRisk.GetExplanation()` now depends on the immediately-preceding `GetReport()`
+  call** having populated its per-shop scratch lists — the same mechanism `GetLabel()` already
+  trusted for its own total. A floor stack on a sales floor two counters share is credited, in the
+  alert's breakdown and the counter's own inspect line, to whichever shop's own scoring happened
+  to enumerate it first — cosmetic only, since the map-wide risk total itself
+  (`StickupWatch.TotalSilverAtRisk`) correctly deduplicates that same stack by physical `Thing`
+  identity before summing it.
+- **Correction to the bullet directly above:** it understated what was actually happening.
+  `GetReport()`'s per-shop loop read each shop's own `FloorSilver`, which already returns a whole
+  shared floor's total — so a floor stack two counters both see was not "credited to whichever
+  shop happened to enumerate it first", it was counted in full by *every* shop that could see it,
+  simultaneously. That let the breakdown's own lines sum to more than the alert's own headline
+  total, which the map-wide, properly-deduplicated `TotalSilverAtRisk` figure never did. Fixed:
+  `Alert_StickupRisk.GetReport()` now applies the identical by-`Thing`-reference dedup
+  `StickupWatch.TotalSilverAtRisk` already used, over each shop's own `FloorSilverStacks`, so only
+  the first shop to claim a given stack counts its value — the breakdown's lines now always sum to
+  the header. `CompBusiness.CompInspectStringExtra`'s own per-counter `Floor:` line is unchanged
+  and still shows a shared floor's full total from every counter standing on it, deliberately: that
+  one is a per-counter view of the same figure `StockOnDisplay` already gives one, not a sum of
+  parts that has to add up to anything.

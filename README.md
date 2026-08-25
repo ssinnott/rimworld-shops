@@ -94,14 +94,17 @@ This mod is standalone. It does not require Hospitality, and is written to sit a
   Hospitality is already housing them. This is the one feature built against a mod that has
   never actually run alongside this one in this sandbox; it degrades to doing nothing at all,
   silently, if its one guess about how Hospitality is put together turns out wrong.
-- **Outlaws and the law.** Leave enough silver sitting uncollected across your tills for long
-  enough and it draws a *stickup* — a small, armed band, sized off the silver actually at risk
-  rather than your colony's total wealth, that heads straight for counters instead of colonists
-  and empties whatever it can reach. An alert shows the risk climbing well before it's live, so
-  collecting your takings goes from a chore to an actual call. Staffing a counter doesn't protect
-  it; a sheriff on duty does — halving both how often a stickup happens and how long one lasts.
-  Fight back and the crew routs, though whatever they've already taken stays gone; a captured
-  raider works through the same ordinary prisoner options any other downed hostile does.
+- **Outlaws and the law.** Leave enough silver sitting exposed — in a till, or loose on a sales
+  floor — for long enough and it draws a *stickup* — a small, armed band, sized off the silver
+  actually at risk rather than your colony's total wealth, that heads straight for counters
+  instead of colonists and takes whatever it can reach, a floor pile as readily as a till. An
+  alert shows the risk climbing well before it's live, and names exactly where the money is:
+  collecting a till only moves its silver onto the floor, so the risk doesn't actually fall until
+  a hauler carries it off to a stockpile — that's the real risk-management call. Staffing a
+  counter doesn't protect it; a sheriff on duty does — halving both how often a stickup happens
+  and how long one lasts. Fight back and the crew routs, though whatever they've already taken
+  stays gone; a captured raider works through the same ordinary prisoner options any other downed
+  hostile does.
 - **A stagecoach line, and the town's first visible milestone ladder.** A **coach depot**, behind
   its own research past Frontier commerce, switches on a guarantee: whatever the ordinary arrival
   clock is doing on its own, no gap between customer groups — organic or scheduled — ever runs

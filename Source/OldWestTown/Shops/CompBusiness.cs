@@ -81,6 +81,7 @@ namespace OldWestTown.Shops
         private int lastWalkoutMessageTick = -99999;
         private int lastAccusationMessageTick = -99999;
         private int lastRobberyMessageTick = -99999;
+        private int lastFloorRobberyMessageTick = -99999;
         private int lastGougeMessageTick = -99999;
         private int lastBusyMessageTick = -99999;
 
@@ -93,7 +94,10 @@ namespace OldWestTown.Shops
         private const int AccusationMessageCooldownTicks = 400;
 
         /// <summary>Same window as AccusationMessageCooldownTicks — collapses only a genuine
-        /// same-tick multi-raider race on one till, not the signal itself.</summary>
+        /// same-tick multi-raider race on one till (or one floor stack; see
+        /// TryClaimFloorRobberyMessage), not the signal itself. Shared by both message-tick
+        /// fields below rather than split into two constants: it's one throttle window used
+        /// twice, not two different policies.</summary>
         private const int RobberyMessageCooldownTicks = 400;
 
         /// <summary>Unlike an accusation or a robbery, gouging isn't a discrete burst of events —
@@ -142,6 +146,12 @@ namespace OldWestTown.Shops
         public int lifetimeStolen;
 
         private List<Thing> cachedStock = new List<Thing>();
+
+        /// <summary>Loose silver stacks sitting on this shop's own sales floor — what Collect
+        /// takings just dropped there, or anything else that ended up there. Same cache shape as
+        /// cachedStock, same cadence (RefreshStock), and just as derived: never scribed, rebuilt
+        /// the instant it's needed. See FloorSilverStacks/FloorSilver.</summary>
+        private List<Thing> cachedFloorSilver = new List<Thing>();
 
         // What the shelves are worth, priced when the answer can change rather than when
         // somebody looks at it. See EnsurePriced.
@@ -208,6 +218,30 @@ namespace OldWestTown.Shops
 
         /// <summary>Silver sitting in the till, waiting to be collected.</summary>
         public int TillSilver => till?.TotalStackCount ?? 0;
+
+        /// <summary>Loose silver stacks on this shop's own sales floor right now — refreshed at
+        /// the same cadence StockOnDisplay is (RefreshStock), including immediately after
+        /// CollectEarnings moves silver out of the till and onto the floor.</summary>
+        public List<Thing> FloorSilverStacks => cachedFloorSilver;
+
+        /// <summary>Total loose silver on the floor, skipping any stack the cache still
+        /// references but that isn't actually there any more — hauled off, or grabbed by a
+        /// raider, since the last refresh. RefreshStock drops it from the list for good on its
+        /// next pass; this getter just has to not count it twice-hauled silver in the
+        /// meantime.</summary>
+        public int FloorSilver
+        {
+            get
+            {
+                int total = 0;
+                for (int i = 0; i < cachedFloorSilver.Count; i++)
+                {
+                    Thing t = cachedFloorSilver[i];
+                    if (t != null && t.Spawned && !t.Destroyed) total += t.stackCount;
+                }
+                return total;
+            }
+        }
 
         /// <summary>True while a colonist is actively working this counter.</summary>
         public bool Staffed =>
@@ -399,6 +433,7 @@ namespace OldWestTown.Shops
         {
             stockVersion++;
             cachedStock = ShopStock.ScanFor(this).ToList();
+            cachedFloorSilver = ShopStock.LooseSilverOnFloor(this).ToList();
         }
 
         // ---------------------------------------------------------------- services
@@ -651,11 +686,39 @@ namespace OldWestTown.Shops
             return taken;
         }
 
-        /// <summary>Drops the till's contents at the counter for a hauler to pick up.</summary>
+        /// <summary>Drops the till's contents at the counter for a hauler to pick up. This moves
+        /// silver from "in the till" to "loose on the floor" — both count toward stickup risk
+        /// (see StickupWatch.TotalSilverAtRisk), so collecting is not the same as clearing it.
+        /// The floor cache is refreshed immediately after the drop, not left for the next
+        /// scheduled survey, so every reader of FloorSilver sees the moved silver the same tick
+        /// it moves rather than reading a stale, momentarily-lower total.
+        ///
+        /// The drop search is constrained to CellOnSalesFloor so it can never land in a cell
+        /// ShopStock.ThingsOnFloor's own room filter would exclude — a doorway tile or a cell
+        /// just past a wall, which a cramped or doorway-adjacent counter could otherwise pick
+        /// with nothing nearer free. Silver that landed there would be just as unhauled and
+        /// exposed as any other floor pile, but invisible to the risk clock, to a robber's own
+        /// scoring, and to the player's own floor-silver reading — a silent hole in the exact
+        /// tracking this fix exists to close.</summary>
         public void CollectEarnings()
         {
             if (till == null || !till.Any) return;
-            till.TryDropAll(parent.Position, parent.Map, ThingPlaceMode.Near);
+            till.TryDropAll(parent.Position, parent.Map, ThingPlaceMode.Near,
+                nearPlaceValidator: CellOnSalesFloor);
+            RefreshStock();
+        }
+
+        /// <summary>Whether <paramref name="c"/> is actually part of this shop's own sales
+        /// floor — the same test ShopStock.ThingsOnFloor applies when deciding what's on it,
+        /// used here to keep CollectEarnings's own placement search from ever landing outside
+        /// it. A narrower nearPlaceValidator can only ever make TryDropAll refuse a candidate
+        /// cell it would otherwise have tried — it cannot make an already-safe drop unsafe, so
+        /// this is a pure tightening of where the silver can land, not a new failure mode.</summary>
+        private bool CellOnSalesFloor(IntVec3 c)
+        {
+            Room room = SalesFloorRoom;
+            if (room != null) return RegionAndRoomQuery.RoomAt(c, parent.Map) == room;
+            return c.InHorDistOf(parent.Position, Props.openAirRadius);
         }
 
         public void RecordSale(int price)
@@ -737,14 +800,30 @@ namespace OldWestTown.Shops
             return true;
         }
 
-        /// <summary>At most one robbery message per counter per RobberyMessageCooldownTicks —
-        /// mirrors TryClaimAccusationMessage's own shape. Collapses only a genuine same-tick
-        /// multi-raider race on one till, never the signal itself.</summary>
+        /// <summary>At most one till-robbery message per counter per
+        /// RobberyMessageCooldownTicks — mirrors TryClaimAccusationMessage's own shape.
+        /// Collapses only a genuine same-tick multi-raider race on one till, never the signal
+        /// itself. On its own clock, separate from TryClaimFloorRobberyMessage: a till crack and
+        /// a floor grab are two distinct thefts of two distinct piles of silver, and a two-raider
+        /// crew can land one of each at the same counter well within one cooldown window — sharing
+        /// a single tick field between them let the second, equally real theft claim the message
+        /// and silently lose it.</summary>
         public bool TryClaimRobberyMessage()
         {
             int now = Find.TickManager.TicksGame;
             if (now - lastRobberyMessageTick < RobberyMessageCooldownTicks) return false;
             lastRobberyMessageTick = now;
+            return true;
+        }
+
+        /// <summary>The floor-grab twin of TryClaimRobberyMessage, on its own tick field — see
+        /// that method's own doc comment for why a till crack and a floor grab must not share
+        /// one throttle.</summary>
+        public bool TryClaimFloorRobberyMessage()
+        {
+            int now = Find.TickManager.TicksGame;
+            if (now - lastFloorRobberyMessageTick < RobberyMessageCooldownTicks) return false;
+            lastFloorRobberyMessageTick = now;
             return true;
         }
 
@@ -900,6 +979,10 @@ namespace OldWestTown.Shops
                 sb.AppendLine("OWT_HouseEdgeLine".Translate(HouseEdge.ToStringPercent()));
             }
             sb.AppendLine("OWT_TillLine".Translate(((float)TillSilver).ToStringMoney(), ((float)revenueToday).ToStringMoney()));
+            if (FloorSilver > 0)
+            {
+                sb.AppendLine("OWT_FloorSilverLine".Translate(((float)FloorSilver).ToStringMoney()));
+            }
             if (HasWager)
             {
                 sb.AppendLine("OWT_PayoutLine".Translate(((float)payoutsToday).ToStringMoney()));

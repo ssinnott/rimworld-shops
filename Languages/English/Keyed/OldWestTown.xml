@@ -136,10 +136,13 @@
   <OWT_StickupResisted>The stickup turns into a gunfight — the {0} are cutting their losses and running.</OWT_StickupResisted>
   <OWT_StickupDeparted>The outlaws from {0} have cleared out of town.</OWT_StickupDeparted>
   <OWT_AlertStickupRisk>Stickup risk ({0})</OWT_AlertStickupRisk>
-  <OWT_AlertStickupRiskDesc>Uncollected silver is piling up in your tills. The richer they get, the likelier an armed band comes to empty them. Collect your takings, or keep a sheriff on duty to slow the risk.</OWT_AlertStickupRiskDesc>
+  <OWT_AlertStickupRiskDesc>Silver counts as at risk wherever it sits exposed — in a till, or loose on a sales floor. Collecting a till only moves its silver onto the floor beside the counter; it stays at risk until a hauler actually carries it off to a stockpile. Keep the floor clear, or keep a sheriff on duty to slow the risk either way.</OWT_AlertStickupRiskDesc>
   <OWT_RobberyLine>Stolen: {0} ({1}× robbed)</OWT_RobberyLine>
   <OWT_SettingStickupsEnabled>Outlaw stickups</OWT_SettingStickupsEnabled>
-  <OWT_SettingStickupsEnabledDesc>Rich, uncollected tills draw armed robbers who empty them and leave unless resisted. Turn this off to remove the risk entirely.</OWT_SettingStickupsEnabledDesc>
+  <OWT_SettingStickupsEnabledDesc>Silver sitting exposed too long — in a till, or loose on a sales floor — draws armed robbers who take what they can reach and leave unless resisted. Turn this off to remove the risk entirely.</OWT_SettingStickupsEnabledDesc>
+  <OWT_FloorSilverLine>Floor: {0} in loose silver</OWT_FloorSilverLine>
+  <OWT_FloorSilverGrabbed>{0} grabbed loose silver at {1} and got away with {2}.</OWT_FloorSilverGrabbed>
+  <OWT_AlertStickupRiskShopLine>{0} — {1} in the till, {2} loose on the floor</OWT_AlertStickupRiskShopLine>
   <!-- Stagecoach line: scheduled arrivals, VIP passengers, route-tier announcements -->
   <OWT_LetterCoachLabel>The coach is in</OWT_LetterCoachLabel>
   <OWT_LetterCoachText>The stagecoach kept to its route: {0} customers from {1}, right on schedule for a {2} line.</OWT_LetterCoachText>

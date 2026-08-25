@@ -7,17 +7,20 @@ using Verse;
 namespace OldWestTown.Incidents
 {
     /// <summary>
-    /// A rich, uncollected till is a target. Built on IncidentWorker_RaidEnemy rather than a
-    /// bespoke worker: base.TryExecuteWorker, left completely untouched, already does faction
-    /// resolution, pawn generation, gear and the arrival letter — everything an ordinary raid
-    /// needs. The five hooks below are what turn that into a stickup instead: a small band,
-    /// sized off the stake rather than colony wealth, that walks in on foot and heads for tills.
+    /// Silver sitting exposed anywhere — in a till, or loose on a sales floor — is a target.
+    /// Built on IncidentWorker_RaidEnemy rather than a bespoke worker: base.TryExecuteWorker,
+    /// left completely untouched, already does faction resolution, pawn generation, gear and
+    /// the arrival letter — everything an ordinary raid needs. The five hooks below are what
+    /// turn that into a stickup instead: a small band, sized off the silver actually at risk
+    /// rather than colony wealth, that walks in on foot and takes whatever it can reach, till
+    /// or floor.
     /// </summary>
     public class IncidentWorker_Stickup : IncidentWorker_RaidEnemy
     {
-        /// <summary>Points scale off the silver actually at risk (see ResolveRaidPoints), not
-        /// colony wealth — hard-capped at both ends so a very rich town's stickup stays a small,
-        /// focused hit rather than ballooning into an ordinary raid's own wealth-scaled size.</summary>
+        /// <summary>Points scale off the silver actually at risk — till and sales-floor
+        /// combined, see StickupWatch.TotalSilverAtRisk (ResolveRaidPoints) — not colony wealth,
+        /// hard-capped at both ends so a very rich town's stickup stays a small, focused hit
+        /// rather than ballooning into an ordinary raid's own wealth-scaled size.</summary>
         private const float MinPoints = 80f;
         private const float MaxPoints = 400f;
         private const float PointsPerSilverAtRisk = 0.6f;
@@ -32,7 +35,7 @@ namespace OldWestTown.Incidents
 
             Map map = parms.target as Map;
             StickupWatch watch = map?.GetComponent<StickupWatch>();
-            if (watch == null || watch.TotalTillSilver < StickupWatch.MinSilverAtRisk) return false;
+            if (watch == null || watch.TotalSilverAtRisk < StickupWatch.MinSilverAtRisk) return false;
 
             // Don't stack a robbery onto an existing crisis — this is meant to be a deliberate
             // risk the player can see coming, not pile-on during an unrelated raid or mech cluster.
@@ -42,7 +45,7 @@ namespace OldWestTown.Incidents
         protected override void ResolveRaidPoints(IncidentParms parms)
         {
             Map map = (Map)parms.target;
-            float silver = map.GetComponent<StickupWatch>()?.TotalTillSilver ?? 0f;
+            float silver = map.GetComponent<StickupWatch>()?.TotalSilverAtRisk ?? 0f;
             parms.points = Mathf.Clamp(silver * PointsPerSilverAtRisk, MinPoints, MaxPoints);
         }
 

@@ -103,14 +103,17 @@ the reason a freshly built table is seeded with a bankroll of its own rather tha
 empty till. The stage-6 faro table is promoted into this, not duplicated alongside it: there is
 exactly one faro table in the build menu, not two confusingly similar ones.
 
-**Outlaws and the law — done.** A rich town becomes a target: the more silver sitting
-uncollected across every till, the higher the chance of a *[stickup](outlaws.md)* — a small,
-capped raider band that heads straight for counters instead of colonists, empties whatever it can
-reach, and leaves unless resisted. Sized off the silver actually at risk, not colony wealth, so a
-very rich town's stickup stays a small, focused hit rather than an ordinary raid scaled to
-everything the colony owns. An [alert](outlaws.md#how-the-risk-builds) shows the risk climbing
-well before the clock behind it is even live, so "collect the takings" stops being a chore with no
-downside to postponing it and becomes a genuine risk-management call. Counterplay is the step-4
+**Outlaws and the law — done.** A rich town becomes a target: the more silver sitting exposed —
+in a till, or loose on a sales floor — the higher the chance of a *[stickup](outlaws.md)* — a
+small, capped raider band that heads straight for counters instead of colonists, takes whatever it
+can reach (a till or a floor pile alike), and leaves unless resisted. Sized off the silver
+actually at risk, not colony wealth, so a very rich town's stickup stays a small, focused hit
+rather than an ordinary raid scaled to everything the colony owns. An
+[alert](outlaws.md#how-the-risk-builds) shows the risk climbing well before the clock behind it is
+even live, and names exactly where the exposed silver is — because collecting a till only moves
+its silver onto the floor, it doesn't clear the risk. Only a hauler actually carrying that silver
+off to a stockpile does, which is what makes "get the takings to safety" the genuine
+risk-management call, not the one-click reflex it first shipped as. Counterplay is the step-4
 [sheriff](shopkeeping.md#sheriffing): being on duty roughly halves both how often a stickup
 happens and how long one lasts — still a passive presence, not a new combat job, since the sheriff
 was built to calm drinkers, not shoot outlaws. Everything past that is ordinary, unmodified

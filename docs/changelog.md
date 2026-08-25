@@ -276,6 +276,10 @@ change itself, and update the [wiki page](contributing.md#the-workflow) it affec
 - Copies of the shipped art under `docs/assets/textures/`, checked byte-for-byte against
   `Textures/` and `About/`. One copy makes the gallery work both on the published site and when
   someone reads `docs/art.md` on GitHub; the check is what stops it going stale.
+- **`Alert_StickupRisk.GetExplanation()` is now a dynamic per-shop till/floor breakdown** rather
+  than a static line — it names, per shop, how much silver is in the till and how much is loose on
+  the floor. The counter's own inspect pane gains a matching `Floor: …` line
+  (`OWT_FloorSilverLine`) whenever it's carrying uncollected floor silver.
 
 ### Fixed
 
@@ -309,6 +313,36 @@ change itself, and update the [wiki page](contributing.md#the-workflow) it affec
   moment.
 - **A counter serves one customer at a time.** Staffing was a property of the shop, so one barber
   cut five heads at once and a second till bought nothing.
+- **Stickup risk now follows the silver, not just the till it started in.**
+  `StickupWatch.TotalSilverAtRisk` (renamed from `TotalTillSilver`) sums till silver **and**
+  everything loose on a shop's own sales floor — exactly where *Collect takings* leaves it — so
+  clicking Collect no longer resets the clock to zero for free. Only a hauler actually carrying
+  that silver off to a stockpile lowers the risk now. A stickup crew is correspondingly just as
+  willing to grab a loose floor pile as to crack a till open (`AI/JobGiver_RobTill.cs`'s widened
+  scoring pass, and a new `JobDriver_GrabSilver`/`OWT_GrabSilver`), so the threat model and the
+  risk model agree again. `Alert_StickupRisk`'s culprit list also no longer silently drops a shop
+  from view the instant its till reads empty while its floor is still fully loaded — a real
+  pre-existing bug in the old filter, not a new one introduced by this fix.
+- **A till crack and a floor grab at the same shop no longer fight over one message.** Both used
+  `CompBusiness.TryClaimRobberyMessage`'s one cooldown, so a two-raider crew that robbed a till
+  and grabbed a floor pile within the same short window could have the second, equally real theft
+  post no message at all — the silver was still gone and the ledger still counted it, but the log
+  stayed silent. A floor grab now claims its own `TryClaimFloorRobberyMessage` on its own tick
+  field, so the two theft types can no longer silence one another.
+- **`Collect takings` can no longer drop silver somewhere the risk it's meant to carry can't see.**
+  The drop search used to be an unconstrained "somewhere near the counter", so a cramped or
+  doorway-adjacent shop could have it land one cell outside the sales floor `ShopStock` itself
+  scans — silver that was still just as unhauled and exposed, but invisible to the stickup clock,
+  to a robber's own scoring, and to the shop's own floor-silver reading. The search is now
+  constrained to the same room (or, outdoors, the same radius) `ShopStock` already treats as the
+  floor.
+- **`Alert_StickupRisk`'s till/floor breakdown no longer double-counts a floor shared by two
+  counters.** Two counters on one sales floor (or two open-air stalls with overlapping radii)
+  each saw the *same* loose silver stack in full, so the breakdown's own per-shop lines could sum
+  to more than the alert's own headline total — exactly the kind of number a player trying to
+  decide where to send a hauler needs to add up. It now dedupes a shared stack by the same
+  physical-`Thing`-identity rule `StickupWatch.TotalSilverAtRisk` already applied to the map-wide
+  total, so the breakdown always sums to the header.
 
 ### Added
 
@@ -348,6 +382,14 @@ change itself, and update the [wiki page](contributing.md#the-workflow) it affec
   behaved for a save from before the gambling hall existed. `LordJob_Stickup` is only ever
   created going forward, so no old save can have one running. The new `stickupsEnabled` setting
   defaults to `true`, the same precedent `hospitalityBridgeEnabled` already set.
+- **Stickup risk following silver onto the floor adds nothing new to persist.**
+  `CompBusiness.cachedFloorSilver` is derived, never scribed, exactly like the pre-existing
+  `cachedStock` — rebuilt by `RefreshStock()` before the player can act on a loaded map.
+  `StickupWatch.TotalSilverAtRisk` (the renamed `TotalTillSilver`) is still fully computed, no new
+  `MapComponent` field. The one real behavior change: silver already sitting
+  collected-but-unhauled on a sales floor, in a save from before this fix, counts toward risk from
+  the very next load — a measurement becoming honest about state that was already there, not a
+  save-format break.
 - No gameplay change from the documentation work above. Safe to drop into a save in progress.
 - The Hospitality bridge adds exactly one new persisted field: `HospitalityBridge.hasAnnouncedBridge`,
   a plain `bool` on a brand-new per-map `MapComponent`. An existing save gets a fresh instance

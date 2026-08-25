@@ -7,19 +7,22 @@ using Verse;
 namespace OldWestTown.Shops
 {
     /// <summary>
-    /// The clock behind a stickup: how much silver is sitting uncollected across every till on
-    /// this map, and how that turns into rising risk the longer it's left there. Read-only
-    /// against TownEconomy — this file never adds to or changes it, only sums what
-    /// CompBusiness already tracks per counter.
+    /// The clock behind a stickup: how much silver is exposed to a robbery anywhere on this map
+    /// — sitting in a till, or already loose on a sales floor where Collect takings left it — and
+    /// how that turns into rising risk the longer it stays exposed. Read-only against
+    /// TownEconomy — this file never adds to or changes it, only sums what CompBusiness already
+    /// tracks per counter. Collecting a till does not lower this total: it only moves silver from
+    /// one half of the sum to the other. Only a hauler actually carrying it off the map's shops
+    /// lowers it.
     ///
     /// Every registered business counts toward the total, open or closed: a robber doesn't check
-    /// the sign on the door before cracking the till, and neither does the risk this clock
-    /// tracks.
+    /// the sign on the door before cracking the till or grabbing a floor pile, and neither does
+    /// the risk this clock tracks.
     /// </summary>
     public class StickupWatch : MapComponent
     {
-        /// <summary>Below this much silver sitting uncollected, the clock never rolls at all —
-        /// chosen to land near the faro table's own starting bankroll (see
+        /// <summary>Below this much silver exposed — till and floor combined — the clock never
+        /// rolls at all — chosen to land near the faro table's own starting bankroll (see
         /// CompProperties_Business.startingTillSilver on OWT_FaroTable in
         /// Buildings_Commerce.xml), so one well-stocked gambling hall alone can just clear the
         /// floor on its own.</summary>
@@ -44,11 +47,16 @@ namespace OldWestTown.Shops
 
         public StickupWatch(Map map) : base(map) { }
 
-        /// <summary>Every silver currently sitting in a till anywhere on this map, across every
-        /// registered business — not just the open ones. Recomputed on every read: the shop
-        /// list is short (one entry per counter), and both a robber's scoring and the alert
-        /// warning about this need the exact current figure, not something a tick stale.</summary>
-        public int TotalTillSilver
+        /// <summary>Every silver currently exposed anywhere on this map, across every registered
+        /// business — not just the open ones: each shop's till, plus everything loose on its own
+        /// sales floor. A stack on a floor two counters both credit as their own is counted once,
+        /// the same "don't count one physical pile twice" dedup TownEconomy.TakeStock already
+        /// uses for appeal — by bare Thing reference, which can never collide with till silver
+        /// either, since till contents live in a ThingOwner and are never spawned on the map.
+        /// Recomputed on every read: the shop list is short (one entry per counter), and a
+        /// robber's scoring, the alert, and the incident's own point-sizing all need the exact
+        /// current figure, not something a tick stale.</summary>
+        public int TotalSilverAtRisk
         {
             get
             {
@@ -56,11 +64,21 @@ namespace OldWestTown.Shops
                 if (econ == null) return 0;
 
                 int total = 0;
+                HashSet<Thing> countedFloorSilver = new HashSet<Thing>();
                 IReadOnlyList<CompBusiness> shops = econ.Shops;
                 for (int i = 0; i < shops.Count; i++)
                 {
                     CompBusiness shop = shops[i];
-                    if (shop?.parent != null && shop.parent.Spawned) total += shop.TillSilver;
+                    if (shop?.parent == null || !shop.parent.Spawned) continue;
+                    total += shop.TillSilver;
+
+                    List<Thing> floor = shop.FloorSilverStacks;
+                    for (int j = 0; j < floor.Count; j++)
+                    {
+                        Thing t = floor[j];
+                        if (t == null || !t.Spawned || t.Destroyed) continue;
+                        if (countedFloorSilver.Add(t)) total += t.stackCount;
+                    }
                 }
                 return total;
             }
@@ -72,7 +90,7 @@ namespace OldWestTown.Shops
             if (!map.IsPlayerHome || !OldWestTownMod.Settings.stickupsEnabled) return;
             if (Find.TickManager.TicksGame % ArrivalCheckInterval != 0) return;
 
-            int silver = TotalTillSilver;
+            int silver = TotalSilverAtRisk;
             if (silver < MinSilverAtRisk) return;
 
             float mtbDays = Mathf.Lerp(MaxMtbDays, MinMtbDays,

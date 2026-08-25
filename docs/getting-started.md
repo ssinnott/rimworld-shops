@@ -102,7 +102,7 @@ their turn behind them, what's on sale, the markup, the till and today's takings
 | A message says customers are walking past a shop rather than wait | The counter is staffed, but its line is already as long as anyone will join. Nobody was neglected and the town's name is untouched — it only cost you the sale. Open a second counter; see [too busy to take them](customers.md#too-busy-to-take-them). |
 | The barber chair is idle | A haircut never allows self-service. It needs a colonist standing at the chair's staff side, whatever the mod setting says. |
 | A gambling hall stopped taking bets | Its till couldn't cover a win in full, and it force-closed itself. Check [the till as a bankroll](economy.md#the-till-as-a-bankroll), then reopen it with the **Open for business** toggle when you're ready. |
-| A till got robbed | Too much silver sat uncollected for too long and drew a stickup. See [outlaws and the law](outlaws.md) — collect your takings more often, or keep a sheriff on duty to slow the risk. |
+| A till got robbed | Too much silver sat exposed — in a till, or loose on the floor — for too long and drew a stickup. See [outlaws and the law](outlaws.md). Collecting alone won't fix this: it only moves silver onto the floor, so keep hauling it off to a stockpile, or keep a sheriff on duty to slow the risk either way. |
 
 ## Mod settings
 
@@ -113,6 +113,6 @@ Three sliders and four checkboxes, under Options → Mod settings → Old West T
 | **Allow self-service** | off | Customers buy from an unattended counter instead of walking out. Convenient, but a customer nobody actually served thinks only half as well of the town at the end of the day. A haircut ignores this setting entirely. |
 | **Customer volume** | 100% | Scales both how often groups arrive and how large they are. Range 25%–300%. |
 | **Customer wealth** | 100% | Scales the silver each customer arrives carrying. Range 25%–300%. |
-| **Outlaw stickups** | on | Rich, uncollected tills draw armed robbers who empty them and leave unless resisted. Off removes the risk entirely. See [outlaws and the law](outlaws.md). |
+| **Outlaw stickups** | on | Silver sitting exposed — in a till, or loose on a sales floor — draws armed robbers who take it and leave unless resisted; a floor pile is just as much a target as a till. Off removes the risk entirely. See [outlaws and the law](outlaws.md). |
 | **Gold rush events** | on | A nearby strike floods the town with prospectors for a while — more, richer customers, hungry for tools, medicine, meals and drink — then a quieter stretch once it's over. Off skips the whole event. See [gold rush](economy.md#gold-rush). |
 | **Rival towns** | on | One or two NPC towns compete for the same regional trade — your share of it slows your own arrival clock, never by more than 60%. A **Rival strength** slider (25%–300%) appears while this is on, scaling how hard a rival's own numbers count. Off restores today's arrival clock exactly. See [regional competition](economy.md#regional-competition). |
