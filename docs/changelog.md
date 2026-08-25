@@ -517,6 +517,19 @@ change itself, and update the [wiki page](contributing.md#the-workflow) it affec
   `startingTillSilver`'s sizing never had to defend against concurrent draws in the first place.
   See [known risks](architecture.md#known-risks).
 
+### Added
+
+- **The departure message now carries the accounting, not just the flavour.** When a group heads
+  home on a natural (timed) exit, *"The travellers from X are heading home"* now also says what
+  the group spent and what they're still carrying — and, only when it's a real signal, how many
+  never found anything to buy or gave up waiting for a counter. A group that spent most of what it
+  brought, or a small shortfall from a small group, stays quiet: this only speaks up when a group
+  kept at least half what it had, or when a real share of the group went home empty-handed. The
+  violence exit is unchanged and deliberately stays flavour-only — see
+  [the design notes](DESIGN.md#the-departure-report) for why. `CustomerRecord.spent`,
+  `.purchases` and `.walkouts` were already being written on every sale and read by nothing; this
+  is the first thing to actually read them.
+
 ---
 
 ## Stage 4 — Town roles — 2026-08-23

@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using OldWestTown.Shops;
 using RimWorld;
 using Verse;
 using Verse.AI;
@@ -226,12 +228,14 @@ namespace OldWestTown.Lords
             // exactly Trigger_TicksPassed(durationTicks), unchanged from before lodging existed.
             Transition timeUp = new Transition(shopping, leave);
             timeUp.AddTrigger(new Trigger_VisitComplete(this));
-            timeUp.AddPreAction(new TransitionAction_Message(
-                "OWT_CustomersLeaving".Translate(faction?.def?.pawnsPlural ?? "customers", faction?.Name ?? ""),
-                MessageTypeDefOf.NeutralEvent));
+            timeUp.AddPreAction(new TransitionAction_Custom(AnnounceDeparture));
             graph.AddTransition(timeUp);
 
-            // Somebody shot at the customers — nobody stays to browse through that.
+            // Somebody shot at the customers — nobody stays to browse through that. Deliberately
+            // still flavour-only, unlike the timeUp exit below: an interruption minutes into a
+            // visit measures how early the raid landed, not what the shelves offered, so held-
+            // vs-spent here would be exactly the confident-wrong-explanation the accounting on
+            // the ordinary exit is built to avoid. See DESIGN.md#the-departure-report.
             Transition harmed = new Transition(shopping, leave);
             harmed.AddTrigger(new Trigger_PawnHarmed());
             harmed.AddPreAction(new TransitionAction_Message(
@@ -241,6 +245,112 @@ namespace OldWestTown.Lords
             graph.AddTransition(harmed);
 
             return graph;
+        }
+
+        /// <summary>Held silver below this is just the ordinary change ShopPricing.MaxAffordable
+        /// always leaves on the table, not a signal — set above a single non-VIP customer's
+        /// smallest possible purse (BasePurse's 120 floor × TownEconomy.MinPurseFactor's 0.9
+        /// floor ≈ 108), so one idle solo customer's whole purse stays under it on its own and
+        /// does not, by itself, read as money left on the table. A first-cut guess from the
+        /// purse-generation code, not from play.</summary>
+        private const int MinUnspentSilverToReport = 150;
+
+        /// <summary>Shared floor for both headcount clauses in AnnounceDeparture: the affected
+        /// pawn count must clear this *and* be at least half the group before a non-buying or
+        /// walked-out minority gets named. The absolute floor keeps one unlucky pawn from
+        /// reading as a town-wide verdict; the proportional half keeps it scaled to group size
+        /// instead of firing on two-out-of-twenty. A group of one can never clear the floor,
+        /// which is what keeps the clause out of a solo visitor's message without needing
+        /// singular-safe phrasing.</summary>
+        private const int MinAffectedForVerdict = 2;
+
+        /// <summary>Fires once, at the instant the shopping toil hands off to LordToil_CloseUp on
+        /// the ordinary (timeUp) exit — the harmed exit stays flavour-only; see CreateGraph's
+        /// comment there. Builds the existing OWT_CustomersLeaving line, then — only when the
+        /// numbers say something worth saying — one figures sentence and at most one attribution
+        /// clause, and posts a single combined message.
+        ///
+        /// Reads lord.ownedPawns and records directly (via TryGetValue, not RecordFor) so that
+        /// producing a report never has the side effect of creating a record for a pawn that
+        /// doesn't have one.</summary>
+        private void AnnounceDeparture()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append("OWT_CustomersLeaving".Translate(faction?.def?.pawnsPlural ?? "customers", faction?.Name ?? ""));
+
+            // Defensive, matching this file's existing stance on unproven vanilla call order
+            // (see architecture.md#known-risks): this runs inside vanilla's own
+            // Transition.DoAction, and nothing here can prove lord is still non-null at that
+            // point. A null lord just means the plain departure line runs alone.
+            if (lord != null)
+            {
+                List<Pawn> pawns = lord.ownedPawns;
+                int groupSize = pawns.Count;
+
+                int spentTotal = 0;
+                int heldTotal = 0;
+                int neverBought = 0;
+                int walkedOut = 0;
+
+                for (int i = 0; i < pawns.Count; i++)
+                {
+                    Pawn p = pawns[i];
+                    // Unconditional and live — needs no record, unlike the three tallies below.
+                    heldTotal += ShopTransaction.SilverCarriedBy(p);
+
+                    if (records.TryGetValue(p, out CustomerRecord rec))
+                    {
+                        spentTotal += rec.spent;
+
+                        // causedTrouble excluded defensively: its only gameplay write site
+                        // (TroubleUtility.Notify_ServiceRound, via JobDriver_UseService) always
+                        // follows a paid service round, so this is currently a no-op — but it
+                        // stops a future trouble-triggering path from being misread as "never
+                        // found anything to buy", which is a different, false claim.
+                        if (rec.purchases == 0 && !rec.causedTrouble) neverBought++;
+                        if (rec.walkouts > 0) walkedOut++;
+                    }
+                    else
+                    {
+                        // No record at all means this pawn never even got as far as a recorded
+                        // attempt — at least as strong an instance of "never bought" as a record
+                        // with purchases == 0.
+                        neverBought++;
+                    }
+                }
+
+                // The ÷-free form of "held at least half what the group spent".
+                bool moneyLeftOnTable = heldTotal >= spentTotal && heldTotal >= MinUnspentSilverToReport;
+                bool neverBoughtQualifies = neverBought >= MinAffectedForVerdict && neverBought * 2 >= groupSize;
+                bool walkoutsQualify = walkedOut >= MinAffectedForVerdict && walkedOut * 2 >= groupSize;
+
+                if (moneyLeftOnTable || neverBoughtQualifies || walkoutsQualify)
+                {
+                    sb.Append(' ');
+                    sb.Append("OWT_VisitFigures".Translate(
+                        ((float)spentTotal).ToStringMoney(), ((float)heldTotal).ToStringMoney()));
+
+                    if (neverBoughtQualifies || walkoutsQualify)
+                    {
+                        sb.Append(' ');
+                        // A single comparison is enough to choose between the two clauses:
+                        // whenever either candidate clears its own bar, the larger of the two
+                        // always also clears it, since both the floor and the proportional test
+                        // are monotonic in the count. Ties favor walkouts — the more specific,
+                        // more confidently-attributable cause: a walkout has an identified fix
+                        // (staff the counter, the same one OWT_ColonistGaveUp already points at),
+                        // where "never bought" is vaguer and, for a purse outscaling a modest
+                        // shelf, may have no single clean cause at all.
+                        sb.Append(walkedOut >= neverBought
+                            ? "OWT_VisitWalkouts".Translate(walkedOut)
+                            : "OWT_VisitNeverBought".Translate(neverBought));
+                    }
+                }
+            }
+
+            // Same message type as today — this is "here's a number", not inherently bad news:
+            // a VIP group leaving with cash still in hand is a growth signal, not a complaint.
+            Messages.Message(sb.ToString(), MessageTypeDefOf.NeutralEvent);
         }
 
         public override void ExposeData()

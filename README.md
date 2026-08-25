@@ -48,7 +48,10 @@ This mod is standalone. It does not require Hospitality, and is written to sit a
   voiding it.
 - **Customers who react to how you run the place.** An unattended counter makes shoppers wait,
   then walk out — leaving any goods by the counter — which costs you town reputation. An alert
-  fires while customers are still queueing, so you can staff up before they give up.
+  fires while customers are still queueing, so you can staff up before they give up. When a group
+  heads home, the message tells you what they spent and what they're still holding — and, when
+  it's a real share of the group, how many never bought anything or gave up waiting — so a slow
+  visit doesn't just vanish once they're gone.
 - **A town economy that compounds.** Appeal is computed from how many *distinct* stocked or
   serviced businesses you run, what's on display or on offer, and your reputation. Appeal
   directly drives how often customers arrive — the town runs its own arrival clock, which
