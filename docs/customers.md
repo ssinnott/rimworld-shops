@@ -82,9 +82,15 @@ Two things end the visit:
 - **Time.** After about 16 in-game hours: *"The travellers from X are heading home."* Everyone
   drops what they are doing and walks — except the one customer somebody is mid-sale with, who is
   left alone to finish and pay. If their shopkeeper wanders off before it's done, they give up on
-  it and follow the others out.
+  it and follow the others out. The message now also says what the group spent and what they're
+  still carrying, and, when a real share of the group either never bought anything at all or gave
+  up waiting for a counter, names that too — an ordinary partial-purchase visit, or a small group,
+  stays quiet about all of it.
 - **Violence.** Any customer being harmed stops every customer where they stand and sends the
-  whole group for the exit: *"Violence in town. The customers from X are leaving."*
+  whole group for the exit: *"Violence in town. The customers from X are leaving."* This exit
+  stays flavour-only, deliberately: an interrupted visit's leftover silver reflects when the
+  interruption landed, not what the shelves had to offer, so it isn't the demand signal there
+  that it is on a visit that ran its full course.
 
 While they're here, they treat your open businesses as the centre of their visit and range about
 30 tiles around it. They're allowed to eat, drink and sleep between purchases — they're here for
@@ -105,7 +111,9 @@ For every customer in the group: how much silver they've spent, how many purchas
 when they arrived, how many times they've walked out, which counters they've given up on for as
 long as those stay unattended, and which goods a counter has already turned their purse down for.
 It travels with the group and disappears when they leave, so it costs a save nothing once
-they've gone.
+they've gone. A slice of it stops being invisible right at the end: the group's total spent and
+held, and, when it's a real signal, how many never bought anything or gave up waiting, reach the
+player in the message that sends the group home.
 
 ## Choosing where to shop
 

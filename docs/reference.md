@@ -195,7 +195,7 @@ where it lives in C# it is a `const` in the named file.
 | `AdRadius` | 7 tiles | How far a false front's bonus reaches from a shop's customer-facing side |
 | Curb-appeal bonus | +0.10 (one qualifying facade), +0.15 (two or more) | Folded into `ValueAppeal`; diminishing, capped at two |
 
-### Customers — `AI/`, `Incidents/`
+### Customers — `AI/`, `Incidents/`, `Lords/LordJob_ShopVisit.cs`
 
 | Name | Value | Where |
 | --- | --- | --- |
@@ -215,6 +215,8 @@ where it lives in C# it is a `const` in the named file.
 | Points | `clamp(appeal × 60 × volume, 40, 900)` | " |
 | Max units per purchase | `stackLimit / 4`, or 1 if unstackable | `ShopStock` |
 | Item choice tie-break | `× random(0.6, 1.4)` | " |
+| `MinUnspentSilverToReport` | 150 | `LordJob_ShopVisit` — floor below which held silver is ordinary change, not a signal |
+| `MinAffectedForVerdict` | 2 | " — floor + at-least-half-the-group test shared by the never-bought and gave-up-waiting clauses in the [departure message](customers.md#the-visit) |
 
 ### Lodging — `Shops/ServiceWorker.cs`, `AI/JobGiver_SleepInRentedBed.cs`, `AI/JobDriver_SleepInRentedBed.cs`
 
@@ -362,7 +364,7 @@ otherwise.
 | Town ledger | `OWT_LedgerTitle`, `OWT_LedgerAppealLine`, `OWT_LedgerAppealBusinessesLine`, `OWT_LedgerAppealGoodsLine`, `OWT_LedgerAppealStandingLine`, `OWT_LedgerAppealMissingLine`, `OWT_LedgerPurseLine`, `OWT_LedgerReputationLine`, `OWT_LedgerTodayLine`, `OWT_LedgerServiceLine`, `OWT_LedgerQuietLine`, `OWT_LedgerLifetimeLine`, `OWT_LedgerShopLine`, `OWT_LedgerShopWalkouts`, `OWT_LedgerRegularLine`, `OWT_LedgerColdLine` |
 | Stock tab | `OWT_TabStock`, `OWT_TabStockShelves`, `OWT_TabStockEmpty`, `OWT_TabStockShelvesTip`, `OWT_MarkupSlider`, `OWT_MarkupSliderTip`, `OWT_TabStockReputation`, `OWT_TabStockServices`, `OWT_TabStockServiceFixed`, `OWT_TabStockServiceStock`, `OWT_ResetStock` |
 | Sending a colonist | `OWT_OrderService`, `OWT_OrderServiceDisabled`, `OWT_ReasonClosed`, `OWT_ReasonRecently`, `OWT_ReasonReserved`, `OWT_ReasonBusy`, `OWT_ReasonUnreachable` |
-| Events | `OWT_LetterCustomersLabel`, `OWT_LetterCustomersText`, `OWT_CustomersLeaving`, `OWT_CustomersScared`, `OWT_CustomerWalkedOut`, `OWT_CustomerWalkedOutService`, `OWT_ColonistGaveUp`, `OWT_ColonistNotReached`, `OWT_CounterBusy`, `OWT_GuestEvicted` |
+| Events | `OWT_LetterCustomersLabel`, `OWT_LetterCustomersText`, `OWT_CustomersLeaving`, `OWT_CustomersScared`, `OWT_VisitFigures`, `OWT_VisitNeverBought`, `OWT_VisitWalkouts`, `OWT_CustomerWalkedOut`, `OWT_CustomerWalkedOutService`, `OWT_ColonistGaveUp`, `OWT_ColonistNotReached`, `OWT_CounterBusy`, `OWT_GuestEvicted` |
 | Alerts | `OWT_AlertUnattended`, `OWT_AlertUnattendedDesc` |
 | Rentable bed inspect panel and gizmo | `OWT_BedVacant`, `OWT_BedOccupiedBy`, `OWT_CmdEvictGuest`, `OWT_CmdEvictGuestDesc` |
 | False front | `OWT_FalseFrontAdvertising`, `OWT_FalseFrontIdle` |

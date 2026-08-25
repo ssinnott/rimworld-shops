@@ -110,7 +110,7 @@ All under `Source/OldWestTown/`, namespace `OldWestTown`.
 
 | File | Type | Job |
 | --- | --- | --- |
-| `Lords/LordJob_ShopVisit.cs` | `CustomerRecord`, `LordJob_ShopVisit` | The [visiting group](customers.md#the-visit) and its per-customer records — including, now, who's checked into a bed. Deliberately a flat graph: shopping, then exit; `Trigger_VisitComplete` additionally waits for every rented bed to empty before the group can leave. |
+| `Lords/LordJob_ShopVisit.cs` | `CustomerRecord`, `LordJob_ShopVisit` | The [visiting group](customers.md#the-visit) and its per-customer records — including, now, who's checked into a bed. Deliberately a flat graph: shopping, then exit; `Trigger_VisitComplete` additionally waits for every rented bed to empty before the group can leave. On the ordinary (`timeUp`) exit, `AnnounceDeparture` composes a [departure accounting](DESIGN.md#the-departure-report) sentence — spent, held, and, when it's a real signal, how many never bought or gave up waiting — via a shared `TransitionAction_Custom`; the harmed exit deliberately keeps its flavour-only message. |
 | `Lords/LordToil_Shop.cs` | `LordToil_Shop` | Hands every group member the `OWT_Shop` duty. |
 | `Lords/LordJob_Stickup.cs` | `LordJob_Stickup` | A [stickup](outlaws.md) crew's own flat graph — near-twin of `LordJob_ShopVisit`'s shape, hostile instead of paying. Exits either on its own (the duration cap, sheriff-halved, or every till already emptied) or into `LordToil_PanicFlee` the instant anyone shoots back. `GuiltyOnDowned` is what makes capturing a downed raider ordinary vanilla prisoner mechanics rather than anything this mod builds. |
 | `Lords/LordToil_Stickup.cs` | `LordToil_Stickup` | Hands every crew member the `OWT_StickupDuty` duty. Byte-for-byte mirror of `LordToil_Shop`. |
@@ -534,3 +534,20 @@ anything changes hands.
   and still shows a shared floor's full total from every counter standing on it, deliberately: that
   one is a per-counter view of the same figure `StockOnDisplay` already gives one, not a sum of
   parts that has to add up to anything.
+- **The [departure report](DESIGN.md#the-departure-report)'s new pre-action assumes a
+  `Transition`'s pre-actions run before the target `LordToil`'s `UpdateAllDuties()` swaps duties
+  and ends jobs** — the assumption that lets `AnnounceDeparture` read every pawn in
+  `lord.ownedPawns`'s still-uninterrupted purse. Inferred from this file's own account of the
+  harmed path above (`TransitionAction_EndAllJobs` running as a *post*-action is only consistent
+  with post-actions firing after `LordToil_CloseUp`'s own selective end), not confirmed from IL —
+  reference assemblies carry none. A real build compiles it; the firing order is unproven until
+  first play, like every other lord-graph claim in this list.
+- **`TransitionAction_Custom(Action action)` needed a compile to find at all.** `refdump` confirmed
+  the type and its public `action` field, but reports fields, properties and methods only, never
+  constructors — so the object-initializer construction (`new TransitionAction_Custom { action =
+  ... }`) an early draft of the departure report assumed compiled clean on paper and failed for
+  real with `CS1729`: the type defines two constructors (`Action`, and a second overload taking an
+  `Action<T>`) and neither is parameterless, which suppresses the implicit default one. Fixed by
+  calling the `Action` constructor directly, the same "let the compiler resolve the one question
+  refdump can't" resolution this list already reaches for elsewhere (`LordToil_PanicFlee`,
+  `RivalTowns`'s own constructor, `IncidentWorker_Stickup`'s access-modifier overrides).

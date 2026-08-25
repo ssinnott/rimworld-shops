@@ -80,6 +80,9 @@
   <OWT_LetterCustomersText>{0} travellers from {1} have heard there is business to be done here, and have come to spend.\n\nThey will browse whatever your open shops have on display and pay across the counter — if there is someone there to serve them.</OWT_LetterCustomersText>
   <OWT_CustomersLeaving>The {0} from {1} are heading home.</OWT_CustomersLeaving>
   <OWT_CustomersScared>Violence in town. The customers from {0} are leaving.</OWT_CustomersScared>
+  <OWT_VisitFigures>They spent {0} and kept {1}.</OWT_VisitFigures>
+  <OWT_VisitNeverBought>{0} of them never found anything to buy.</OWT_VisitNeverBought>
+  <OWT_VisitWalkouts>{0} of them gave up waiting for a counter.</OWT_VisitWalkouts>
   <OWT_CustomerWalkedOut>{0} gave up waiting at {1} and left the goods behind. They think the less of the town for it, and won't go back to that counter until somebody is standing behind it.</OWT_CustomerWalkedOut>
   <OWT_CustomerWalkedOutService>{0} gave up waiting at {1} and left. They think the less of the town for it, and won't go back to that counter until somebody is standing behind it.</OWT_CustomerWalkedOutService>
   <OWT_ColonistGaveUp>{0} gave up waiting for a {1} at {2}. Nobody came to work the counter — raise Shopkeeping's priority, or right-click the counter with another colonist to send them to it. It cost the town nothing, and {0} the better part of an hour.</OWT_ColonistGaveUp>
