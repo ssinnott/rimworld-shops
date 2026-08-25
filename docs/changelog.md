@@ -443,6 +443,30 @@ change itself, and update the [wiki page](contributing.md#the-workflow) it affec
   every setting before them. Safe to drop into a save in progress, with or without any rival
   having grown large enough to matter yet.
 
+### Added
+
+- **Dev-mode debug actions and opt-in telemetry logging** (`Source/OldWestTown/DevTools/`). An
+  "Old West Town" category under Dev Mode's own Debug Actions menu covers every system a short
+  test session couldn't otherwise reach in reasonable time — spawn a customer group, fire a
+  stickup, start a gold rush and force it to bust, force a rival undercut, max out rival appeal,
+  roll straight to the nightly settlement, set town reputation, expire the stagecoach arrival
+  clock, top up a selected till or a selected pawn's purse, spike a patron's rowdiness, and dump
+  the full town-economy state to the log. Every lever fires the real production incident or
+  writes to the same shared state a real transaction already touches — never a hand-built job.
+  Alongside it, a new **Telemetry logging** setting (`telemetryLoggingEnabled`, off by default)
+  logs one line per customer arrival, nightly settlement and stickup roll — the real numbers this
+  wiki's known risks keep asking to have confirmed in play. See
+  [Contributing → Dev Mode kit](contributing.md#dev-mode-kit).
+
+### Changed
+
+- **Corrected a known-risks entry that had drifted from the code.** The code map used to describe
+  a gambling hall's service as concurrent — every queued gambler accruing served ticks in
+  parallel. Staffed service has been strictly sequential for every business kind since the
+  queueing rework, and `OWT_Wager`'s own self-service path is structurally closed too, so
+  `startingTillSilver`'s sizing never had to defend against concurrent draws in the first place.
+  See [known risks](architecture.md#known-risks).
+
 ---
 
 ## Stage 4 — Town roles — 2026-08-23

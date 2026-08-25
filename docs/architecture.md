@@ -99,6 +99,13 @@ All under `Source/OldWestTown/`, namespace `OldWestTown`.
 | `RivalTownDef.cs` | `RivalTownDef` | Data-driven rival archetype: starting and ceiling appeal, daily growth rate, and the MTB days, duration and price index behind an [undercutting swing](economy.md#undercutting). Same "kind is a stanza, not a class" idiom `ShopKindDef` and `CoachTierDef` already use. |
 | `RivalTowns.cs` | `RivalTown`, `RivalTowns` | `RivalTowns` is this mod's first `WorldComponent` — a world-scoped roster of `RivalTown` instances, one per loaded `RivalTownDef`, shared by every loaded map rather than owned by any one of them. `WorldComponentTick` grows each rival's appeal toward its own ceiling once per elapsed world-day and rolls its own MTB clock for an undercutting swing, messaging on each transition — gated on the rival towns master switch, which freezes growth and rolling while off without letting the missed days pile up into a jump on re-enable. `TotalRivalPull` is the sum `TownEconomy.CompetingPull` reads; that getter itself never reads `OldWestTownMod.Settings`, so a given sum means the same thing regardless of any one map's settings — the `rivalStrength` scaling happens exactly once, on the `TownEconomy` side. |
 
+### `DevTools/` — developer tooling and telemetry
+
+| File | Type | Job |
+| --- | --- | --- |
+| `DebugActions.cs` | `DebugActions` | Dev Mode debug actions, category "Old West Town": fires or forces every system a short session can't otherwise reach in reasonable time — a customer arrival, a stickup, a gold rush and its bust, a rival undercut and appeal cap, a nightly settlement, town reputation, the stagecoach arrival clock, a till top-up, a customer's purse, a rowdiness spike, and a full economy-state dump. Every lever reuses an existing public or internal entry point — `Storyteller.TryFire` for anything that's really an incident, a direct write to shared comp/economy state for everything else — rather than reimplementing one, so nothing here is a second pawn loop or a hand-built job. |
+| `Telemetry.cs` | `Telemetry` | Three opt-in log lines — one per customer arrival, nightly settlement and stickup roll — gated on the `telemetryLoggingEnabled` [mod setting](reference.md#mod-settings), off by default. Each early-returns before doing any work, so "off" costs one bool read per already-infrequent call site (never a per-tick path). |
+
 ### `Lords/`, `Incidents/`, `Alerts/`, `UI/`
 
 | File | Type | Job |
@@ -169,6 +176,21 @@ anything changes hands.
   passes the [static checks](contributing.md#static-checks), but job drivers, lord graphs and
   duty think trees are exactly the code static checking can't validate. First-play bugs are
   expected.
+- **The `DevTools/` debug actions and telemetry are, like everything else in this mod,
+  unexercised in a live game.** Whether RimWorld's Debug Actions menu actually discovers and
+  categorizes a plain `[DebugAction(..., actionType = DebugActionType.Action)]` method the way
+  every lever in `DebugActions.cs` assumes is only as proven as
+  `HospitalityInterop.LogDetectionState` already was before this feature: compiles, matches the
+  one established convention this codebase had for it, never actually clicked in a running game.
+  The `Dialog_Slider` levers rest on the identical unverified-in-play assumption `CompBusiness`'s
+  own House Edge gizmo already carried. Neither class is itself `IExposable` — there's no bespoke
+  save/load code of this feature's own to get wrong — but several individual levers deliberately
+  write into existing, already-persisted production fields (till silver, town reputation, a
+  rival's appeal and undercut timer, the gold rush's bust flag) exactly as a real transaction
+  would, and those writes are ordinary saved state from the next save onward; see
+  [Contributing → Dev Mode kit](contributing.md#dev-mode-kit) for which levers do that. All of it
+  still runs only behind Dev Mode, so the worst case of the menu-discovery assumption above being
+  wrong is a menu entry that does nothing or throws, not a corrupted save.
 - `CustomerCell` mirrors the interaction cell through the counter. For an unusually shaped or
   awkwardly placed counter this can pick a cell the player didn't intend. There's a fallback to
   any standable neighbour, and queueing customers fan out to free cells, but a dedicated
@@ -302,19 +324,24 @@ anything changes hands.
   Hospitality itself. Undiscoverable from this sandbox either way, and stated plainly rather than
   papered over.
 
-- **A gambling hall's `WaitForService` toil gates on the shared `Staffed` flag, not a per-customer
-  lock** — the same architecture every business already has, confirmed by reading it: every
-  queued gambler accrues served ticks in parallel as long as the table is staffed at all. Several
-  patrons can therefore resolve a winning hand in the same tick window, each independently
-  drawing on the till before it's replenished — `startingTillSilver`'s sizing implicitly assumes
-  roughly sequential play. This is **not a race condition** — RimWorld ticks pawns sequentially,
-  and `CompBusiness.TakeFromTill` re-reads the till fresh on every call, so no draw can ever
-  overdraw it — just a reason a busy table can burn through its bankroll and self-close sooner
-  than a sequential-play estimate would suggest. The hard per-round till cap is what keeps that
-  graceful rather than catastrophic: worst case under heavy concurrent play is the hall shutting
-  itself down sooner and more visibly, never a negative till. Solving it for real would mean
-  adding an exclusivity lock to the shared-`Staffed`-flag architecture the whole mod's
-  non-synchronising-loops guarantee rests on — out of scope for a step-2 `ServiceWorker`.
+- **Corrected — a gambling hall's serving is strictly sequential, for every business kind, not
+  just gambling.** An earlier version of this entry claimed `WaitForService` gates on the shared
+  `Staffed` flag alone and lets every queued gambler accrue served ticks in parallel. Reading
+  `JobDriver_PatronizeBusiness.WaitForService` in full shows otherwise: `servedTicks` only
+  advances inside the branch gated on `shop.Staffed && place == 0`, where `place =
+  shop.TakePlaceInLine(pawn)` — only the pawn at the head of the line. Everyone else behind them
+  resets `servedTicks = 0` that same tick. The only other route to `servedTicks` accrual — the
+  honesty box — is closed for a wager specifically: `OWT_Wager`'s `allowsSelfService` is `false`
+  in `Services_Commerce.xml`, and `JobDriver_UseService.SelfServiceAllowed` reads exactly that
+  field, so the unstaffed self-service branch in `WaitForService` is structurally unreachable for
+  a wager. Consequently `startingTillSilver`'s sizing (300) never had to defend against concurrent
+  draws at all — it only has to cover one sequential win's payout multiple, which is what
+  `CompProperties_Business.startingTillSilver`'s own doc comment already claims. This is still
+  **not a race condition** — RimWorld
+  ticks pawns sequentially, and `CompBusiness.TakeFromTill` re-reads the till fresh on every call,
+  so no draw can ever overdraw it — and the hard per-round till cap is ordinary defense-in-depth
+  against one big win outrunning the bankroll, not a backstop against a concurrent-play scenario
+  that turns out not to happen.
 - **A save from before the gambling hall existed, with a `OWT_FaroTable` already placed, loads as
   an unseeded business.** The def reshape (decorative → `CompProperties_Business`) means vanilla
   simply instantiates whatever comps the new def declares on load, and every `CompBusiness` field

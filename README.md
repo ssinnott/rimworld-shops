@@ -237,6 +237,18 @@ python3 tools/make_textures.py     # draw art for anything that has none
 
 It never overwrites existing art unless you pass `--force`.
 
+### Testing without waiting on real-time or in-game-day clocks
+
+Several systems are slow to reach in an ordinary session — a stickup needs an hour of real-time
+till accumulation, a gold rush is an MTB roll, a route-tier promotion takes in-game days. With
+Dev Mode on, the **Old West Town** category in RimWorld's own Debug Actions menu covers all of
+them: spawn a customer group, fire a stickup, start (and force the bust of) a gold rush, force a
+rival undercut, roll straight to the nightly settlement, top up a selected till or pawn's purse,
+and more — every lever reuses the mod's own production code path rather than faking one. An
+opt-in **Telemetry logging** mod setting (off by default) logs real arrival gaps, settlement
+verdicts and stickup rolls to the player log. See
+[Contributing → Dev Mode kit](https://ssinnott.github.io/rimworld-shops/contributing.html#dev-mode-kit).
+
 CI (`.github/workflows/ci.yml`) runs all of the above plus a full build on every push.
 `.github/workflows/pages.yml` builds the wiki on every pull request and publishes it on
 every push to `main`.

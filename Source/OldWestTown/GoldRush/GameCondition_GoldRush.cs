@@ -33,6 +33,17 @@ namespace OldWestTown.GoldRush
 
         public bool BustActive => bustStarted;
 
+        /// <summary>Dev Mode lever: forces the boom straight into its bust phase — byte-for-byte
+        /// the same transition GameConditionTick performs once the boom's own duration elapses,
+        /// so the debug path and the real one are indistinguishable afterward. See
+        /// DevTools/DebugActions.cs.</summary>
+        internal void DebugForceBust()
+        {
+            if (bustStarted) return;
+            bustStarted = true;
+            Messages.Message("OWT_GoldRushBustBegins".Translate(), MessageTypeDefOf.NegativeEvent);
+        }
+
         public override void GameConditionTick()
         {
             base.GameConditionTick();

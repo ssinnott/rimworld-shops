@@ -346,6 +346,7 @@ themselves were left alone rather than retuned alongside the logic.
 | `goldRushEnabled` | true | on/off | Master switch for [the gold rush event](economy.md#gold-rush). Off removes the event from the storyteller entirely |
 | `rivalTownsEnabled` | true | on/off | Master switch for [regional competition](economy.md#regional-competition). Off restores pre-feature arrival-clock behavior exactly — `CompetingPull` reads 0 everywhere |
 | `rivalStrength` | 1.0 | 0.25–3.0 | Scales every rival's own pull before it's weighed against this town's. A multiplier on a sum, not a divisor, so it carries no near-zero floor the way the sliders above do |
+| `telemetryLoggingEnabled` | false | on/off | Logs one line per customer arrival, nightly settlement and stickup roll to the player log — see [Contributing → Dev Mode kit](contributing.md#dev-mode-kit) |
 
 ## Translation keys
 
@@ -376,6 +377,7 @@ otherwise.
 | Coach depot inspect panel | `OWT_DepotTierLine`, `OWT_DepotNextArrivalLine`, `OWT_DepotNextTierLine`, `OWT_DepotMaxTierLine`, `OWT_DepotNoRoute`, `OWT_DepotNoTiers` |
 | Gold rush letters, status lines and setting | `OWT_LetterGoldRushLabel`, `OWT_LetterGoldRushText`, `OWT_GoldRushBustBegins`, `OWT_GoldRushBoomStatus`, `OWT_GoldRushBustStatus`, `OWT_GoldRushGougeWarning`, `OWT_LetterGoldRushRecoveredLabel`, `OWT_LetterGoldRushRecoveredText`, `OWT_SettingGoldRushEnabled`, `OWT_SettingGoldRushEnabledDesc` |
 | Regional competition: inspect line, ledger and settings | `OWT_RegionalShareLine`, `OWT_LedgerRivalsHeader`, `OWT_LedgerRivalLine`, `OWT_LedgerRivalLineUndercutting`, `OWT_LedgerRegionalShareLine`, `OWT_RivalUndercutStartMessage`, `OWT_RivalUndercutEndMessage`, `OWT_RegionalLeadGainedMessage`, `OWT_RegionalLeadLostMessage`, `OWT_SettingRivalTownsEnabled`, `OWT_SettingRivalTownsEnabledDesc`, `OWT_SettingRivalStrength` |
+| Dev tools: telemetry setting and debug-lever sliders | `OWT_SettingTelemetryEnabled`, `OWT_SettingTelemetryEnabledDesc`, `OWT_DevFillTillSlider`, `OWT_DevPurseMultiplierSlider`, `OWT_DevReputationSlider` |
 
 ## Saved state
 

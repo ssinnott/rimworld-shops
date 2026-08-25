@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using OldWestTown.DevTools;
 using OldWestTown.GoldRush;
 using OldWestTown.Lords;
 using OldWestTown.Shops;
@@ -87,6 +88,7 @@ namespace OldWestTown.Incidents
             // ceiling had independently elapsed is correctly treated as "the guarantee was
             // satisfied," not as a separate case to special-case away.
             bool scheduled = econ.GuaranteedArrivalDue;
+            int ticksSinceLast = econ.TicksSinceLastArrival;
             CoachTierDef tier = scheduled ? econ.RouteTier : null;
             Pawn vip = (tier != null && tier.vipChance > 0f && Rand.Chance(tier.vipChance))
                 ? pawns.RandomElement()
@@ -110,6 +112,7 @@ namespace OldWestTown.Incidents
             // Every successful arrival resets the guarantee clock, organic or scheduled alike —
             // see TownEconomy.NotifyArrival.
             econ.NotifyArrival();
+            Telemetry.LogArrival(map, pawns, ticksSinceLast, scheduled);
 
             if (vip != null)
             {

@@ -591,10 +591,10 @@ the first time in a save that the bridge successfully hands a guest a job — th
 confirmation that the entire unverified detection chain above matched at least once. Everything
 else about detection state is available on request rather than announced: an always-visible
 settings-window status line (`OWT_HospitalityDetected` / `OWT_HospitalityNotDetected`), and —
-this mod's first `[DebugAction]`, kept to exactly that one exception to its otherwise
-zero-`Log.Message` history — a Dev Mode diagnostic that dumps every pawn's detection result,
-`Lord`/`LordJob` type and full comp list, for whoever eventually corrects the guesses above
-against a real Hospitality install.
+this mod's first `[DebugAction]`, and the first of what's now several Dev Mode/telemetry uses of
+`Log.Message` in this codebase (see [`DevTools/`](architecture.md#devtools--developer-tooling-and-telemetry))
+— a Dev Mode diagnostic that dumps every pawn's detection result, `Lord`/`LordJob` type and full
+comp list, for whoever eventually corrects the guesses above against a real Hospitality install.
 
 ### Gambling hall: a till that pays out
 
@@ -1101,6 +1101,50 @@ there is never a debt to catch up on. The *magnitude* of a rival's effect stays 
 exactly one place regardless: `TownEconomy.CompetingPull` is the only site that reads
 rivalStrength, so the world state's own meaning stays independent of any one map's settings, or
 even existence — only whether it's currently ticking at all is settings-dependent.
+
+### Dev tools: debug levers and telemetry, without a new pawn loop
+
+Twelve shipped systems and zero minutes of runtime is the problem `DevTools/` exists to fix — not
+by building a faster way to play, but by giving Dev Mode direct access to the same levers a real
+session pulls, so a short first-play run can reach a stickup, a gold rush and its bust, a
+route-tier promotion and a rival undercut in minutes rather than days.
+
+Every lever in `DebugActions.cs` is one of exactly two shapes, and there is no third:
+
+- **It fires the real incident**, through `Storyteller.TryFire` — the identical call
+  `TownEconomy.TryAttractCustomers` and `StickupWatch.MapComponentTick` already make. A
+  debug-spawned customer group is a completely ordinary `LordJob_ShopVisit`; nothing downstream
+  (the counter's line, `WorkGiver_ManShop`, the waiting-customers alert) needs a special case for
+  "this one was debug-triggered," because there isn't one to need.
+- **It writes directly to state a real transaction already writes to** — a till
+  (`CompBusiness.AddToTill`), a pawn's inventory (`IncidentWorker_ShopCustomers.GivePurse`), an
+  economy field (`TownEconomy`'s `reputation`, `lastArrivalTick`) — the same shared board both
+  pawn loops already read and write independently, never a new one.
+
+The one lever shape deliberately not built: anything that force-assigns a job to a customer or
+colonist pawn directly. A hastily-built debug job could read state a real dispatch path would
+have populated first, but a shortcut didn't — exactly [the stranded-job hazard](#the-one-decision-everything-else-follows-from)
+this mod's one rule exists to prevent. Firing the real incident, or writing to the real shared
+state, sidesteps that risk entirely by never introducing a new pawn loop for it to apply to.
+
+Firing an incident this way inherits that incident's own `minRefireDays`: a forced lever can
+legitimately do nothing shortly after the same incident already fired, organically or from
+another debug call, and every lever reports `Storyteller.TryFire`'s own boolean honestly rather
+than assuming success. That is a cooldown behaving correctly, not a bug in the lever — bypassing
+it would mean bypassing the exact throttle a real session runs under, which defeats the purpose of
+reusing the production incident in the first place.
+
+`Telemetry.cs` is the passive half: three log lines — one per customer arrival, one per nightly
+settlement, one per stickup roll whether it fired or not — gated on a single opt-in setting, each
+one early-returning before doing any work while it's off. It exists because this wiki's own known
+risks keep asking, in so many words, for real inter-arrival gaps to be confirmed in play; now
+there is a way to actually log them, rather than reasoning about `Rand.MTBEventOccurs` from first
+principles a second time.
+
+Both files log through `Log.Message`, never `Messages.Message` — the same choice
+`HospitalityInterop.LogDetectionState` made first: this is instrumentation for whoever is reading
+the player log, not an in-fiction event for whoever is playing the game. `DevTools/` is what turns
+that from a one-off exception into an established pattern.
 
 ## The economy loop
 

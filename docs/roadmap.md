@@ -191,3 +191,24 @@ combined, is already a real, player-caused "you've neutralized them" state. See 
 competition](economy.md#regional-competition) for how it plays, and [the design
 notes](DESIGN.md#rival-towns-an-opponent-not-a-second-town) for the reasoning, the worked bound,
 and the multi-colony answer.
+
+## Dev and testing tools
+
+Not a player-facing feature — this mod's own tooling for testing everything above without
+waiting on its real clocks.
+
+**First-play kit — done.** Twelve shipped systems and zero minutes of runtime made most of this
+wiki's known risks unreachable in a short session: a stickup needs an hour of real-time till
+accumulation, a gold rush is an MTB roll, a route-tier promotion takes in-game days, a rival
+undercut is a roughly-12-day MTB. An "Old West Town" category under RimWorld's own Dev Mode
+debug actions menu now covers all of it: spawn a customer group, fire a stickup, start a gold
+rush and force it to bust, force a rival undercut, max out rival appeal, roll straight to the
+nightly settlement, set town reputation directly, expire the stagecoach arrival clock, top up a
+selected till or a selected pawn's purse, spike a patron's rowdiness, and dump the full
+town-economy state to the log. Every lever reuses a real production entry point — the same
+`Storyteller.TryFire` call an organic arrival or stickup already makes, or a direct write to the
+same till/purse/economy state a real transaction already touches — so nothing here is a second
+pawn loop or a shortcut that could strand one. Alongside it, an opt-in **Telemetry logging**
+setting (off by default) writes one log line per customer arrival, nightly settlement and
+stickup roll — the real numbers this wiki's known risks keep asking to have confirmed in play.
+See [Contributing](contributing.md#dev-mode-kit) for the full list and what each lever calls into.
